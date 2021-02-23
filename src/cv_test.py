@@ -1,19 +1,15 @@
 #!/home/antogeo/anaconda3/envs/julearn/bin/python
 
-import numpy as np
 import pandas as pd
-import os
-import os.path as op
-import matplotlib.pyplot as plt
-from sklearn.metrics import mean_absolute_error
+# pip install https://github.com/JamesRitchie/scikit-rvm/archive/master.zip
+from skrvm import RVR
 from julearn import run_cross_validation
 from julearn.utils import configure_logging
-from sklearn.svc
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from lib.create_splits import stratified_splits
 
-%config IPCompleter.use_jedi = False
-
+configure_logging(level='INFO')
+# in case seaborn conflicts with autocomplete
 df = pd.read_csv('/home/antogeo/codes/PET_MRI_age/tests/test_train.csv',
                  index_col=0)
 
@@ -27,15 +23,22 @@ y = df_train['Age'].values
 
 rand_seed = 42
 num_bins = 5
+rvr = RVR()
+models = [rvr, 'svm']
+model_names = ['rvr', 'svm']
 # creates dictionary of test indices for different repeats
+
 cv_folds = stratified_splits(bins_on=y_pseudo, num_bins=num_bins,
                              data=df_train, num_splits=5,
                              shuffle=True, random_state=42)
-cv = StratifiedKFold(n_splits=5).split(X, y_pseudo)
-
-scores = run_cross_validation(X=X, y=y,
-                              preprocess_X='scaler_robust',
-                              problem_type='regression',
-                              model='svm', cv=cv,
-                              return_estimator='final',
-                              seed=rand_seed)
+scores = {}
+for i, model in enumerate(models):
+    cv = StratifiedKFold(n_splits=5).split(X, y_pseudo)
+    scores[model_names[i]] = []
+    scores[model_names[i]].append(run_cross_validation(X=X, y=y,
+                                  preprocess_X='scaler_robust',
+                                  problem_type='regression',
+                                  model=model, cv=cv,
+                                  return_estimator='final',
+                                  seed=rand_seed, scoring=['r2', 'r2']))
+print(scores)
