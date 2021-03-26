@@ -46,3 +46,11 @@ print("\nRIDGE VECTOR REGRESSION:\nR2: ", np.round(np.mean(scores['rvr'][0][0]['
       "\nMAE: ", np.abs(np.round(np.mean(scores['rvr'][0][0]['test_neg_mean_absolute_error']),2)))
 print("\nSUPPORT VECTOR MACHINE:\nR2: ", np.round(np.mean(scores['svm'][0][0]['test_r2']),2),
       "\nMAE: ", np.abs(np.round(np.mean(scores['svm'][0][0]['test_neg_mean_absolute_error']),2)))
+
+dl_feature_importance = permutation_importance(clf.best_estimator_,features_train_dl,y_train,
+                                               scoring="f1_weighted",n_repeats=10)
+plt.bar(range(3),dl_feature_importance.importances_mean,yerr=dl_feature_importance.importances_std)
+plt.xticks([0,1,2],[names[ind_dl[0]], names[ind_dl[1]], "ApoE-4 status"],rotation=45)
+plt.ylabel("Permutation Importance")
+plt.show()
+print(np.sum(dl_feature_importance.importances_mean[:2]))
