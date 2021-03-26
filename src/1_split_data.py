@@ -1,5 +1,3 @@
-#!/home/antogeo/anaconda3/envs/julearn/bin/python
-
 import numpy as np
 import pandas as pd
 import os
@@ -7,15 +5,15 @@ import os.path as op
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
-%matplotlib
-%config IPCompleter.use_jedi = False
+#%matplotlib
+#%config IPCompleter.use_jedi = False
 
-df = pd.read_csv('../data/parcels_FDG.csv',
-                 index_col=0)
+df = pd.read_csv('../data/parcels_FDG.csv')
+
 df['Age_bins'] = df['Age'].values // 5
 df['Age_bins'] = df['Age_bins'].astype(int)
 
-col = [x for x in df.columns if 'cereb' in x]
+col = [x for x in df.columns if '_' in x]
 
 X = df[col].values
 
@@ -23,11 +21,11 @@ y_pseudo = df['Age_bins']
 y = df['Age']
 
 x_train, x_test,  y_train, y_test, id_train, id_test = train_test_split(
-    X, y, df['participant_id'], test_size=.2, random_state=42,
+    X, y, df['Subject'], test_size=.2, random_state=42,
     stratify=y_pseudo)
 
 df['train'] = ["T" if x in id_train.values else "F" for x in df[
-               'participant_id']]
+               'Subject']]
 
 
 plt.hist(y_pseudo.values)
