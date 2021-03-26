@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 %matplotlib
 %config IPCompleter.use_jedi = False
 
-df = pd.read_csv('/home/antogeo/codes/PET_MRI_age/tests/test_csv.csv',
+df = pd.read_csv('../data/parcels_FDG.csv',
                  index_col=0)
 df['Age_bins'] = df['Age'].values // 5
 df['Age_bins'] = df['Age_bins'].astype(int)
@@ -35,4 +35,4 @@ plt.hist(y_train // 5)
 plt.hist(y_test // 5)
 plt.show()
 
-df.to_csv('/home/antogeo/codes/PET_MRI_age/tests/test_train.csv')
+df.to_csv('../data/test_train_FDG.csv')
