@@ -1,24 +1,31 @@
 from nilearn._utils import check_niimg
-from nilearn.input_data import NiftiLabelsMasker
+from nilearn.input_data import NiftiLabelsMaskerg
 import nibabel as nib
 import os.path as op
 import numpy as np
 import pandas as pd
 from glob import glob
+from nilearn.datasets import fetch_atlas_schaefer_2018
 
 # Edit paths before running
-subject_list = '/data/project/age_prediction/codes/PET_MRI_age/data/OASIS_PET_IDs.txt'
-atlas_path = '/data/project/age_prediction/codes/PET_MRI_age/data/Schaefer2018_200Parcels_17Networks_order_FSLMNI152_1mm.nii.gz'
+subject_list = '../data/OASIS_CN_IDs_Age.txt'
+atlas = fetch_atlas_schaefer_2018(n_rois=200)
 # this should include subjects' folders
 data_file = '/data/project/cat_12.5/OASIS3'
 output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/parcels.csv'
 
-# Using readlines()
-file1 = open(subject_list, 'r')
-subjs = file1.read()
-subjs = subjs.splitlines()
-subj_list = ['sub-' + sub for sub in subjs]
-print(subj_list)
+
+
+# NOTE: 'sub-OAS30775_ses-d2893', 'sub-OAS31018_ses-d0469' need to be excluded as not all frames were measured in PET
+# therefore pre-processing was not possible!
+excl_ids = ['sub-OAS30775_ses-d2893', 'sub-OAS31018_ses-d0469']
+
+# read IDs and age
+subjs = pd.read_csv(subject_list, delimiter="\t")
+
+subjs = pd.read_csv(subject_list, delimiter="\t")
+subj_list = ['sub-' + sub for sub in subjs['SCAN_ID']]
+age = subjs['age']
 
 count = 0
 image_list = []
@@ -32,7 +39,7 @@ for sub in subj_list:
     if foi:
         this_image = nib.load(foi[0])
         niimg = check_niimg(this_image, atleast_4d=True)
-        masker = NiftiLabelsMasker(labels_img=atlas_path,
+        masker = NiftiLabelsMasker(labels_img=atlas.maps,
                                    standardize=False,
                                    memory='nilearn_cache',
                                    resampling_target='data')
@@ -43,8 +50,15 @@ for sub in subj_list:
 features = np.array(image_list)
 x, y, z = features.shape
 features = features.reshape(x, z)
-df = pd.DataFrame(features)
+df = pd.DataFrame(features, columns=atlas.labels)
 
-subs_pd = pd.DataFrame(subj_succ, columns=['subject'])
+# exclude data where PET could not be pre-processed (not all frames measured)
+age = [age[x] for x in range(len(subj_succ)) if subj_list[x] not in excl_ids]
+subj_succ = [x for x in subj_succ if x in excl_ids]
+
+subs = {'Subject' : subj_succ,
+       'Age' : age}
+subs_pd = pd.DataFrame(subs)
 df_new = pd.concat([subs_pd, df], axis=1)
+
 df_new.to_csv(output_csv, index=False)
