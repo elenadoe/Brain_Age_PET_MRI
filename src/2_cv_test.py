@@ -1,21 +1,20 @@
-#!/home/antogeo/anaconda3/envs/julearn/bin/python
-
 import pandas as pd
+import numpy as np
+import sys
 # pip install https://github.com/JamesRitchie/scikit-rvm/archive/master.zip
 from skrvm import RVR
 from julearn import run_cross_validation
 from julearn.utils import configure_logging
 from sklearn.model_selection import train_test_split, StratifiedKFold
-from lib.create_splits import stratified_splits
+sys.path.append("../lib")
+from create_splits import stratified_splits
 
-configure_logging(level='INFO')
+#configure_logging(level='INFO')
 # in case seaborn conflicts with autocomplete
-df = pd.read_csv('/home/antogeo/codes/PET_MRI_age/tests/test_train.csv',
-                 index_col=0)
+df = pd.read_csv('../data/test_train_FDG.csv', index_col=0)
 
 df_train = df[df['train'] == "T"]
-
-col = [x for x in df_train.columns if 'cereb' in x]
+col = [x for x in df_train.columns if 'H_' in x]
 
 X = df_train[col].values
 y_pseudo = df_train['Age_bins']
@@ -40,5 +39,10 @@ for i, model in enumerate(models):
                                   problem_type='regression',
                                   model=model, cv=cv,
                                   return_estimator='final',
-                                  seed=rand_seed, scoring=['r2', 'r2']))
-print(scores)
+                                  seed=rand_seed, scoring=['r2', 'neg_mean_absolute_error']))
+
+print("RESULTS")
+print("\nRIDGE VECTOR REGRESSION:\nR2: ", np.round(np.mean(scores['rvr'][0][0]['test_r2']),2),
+      "\nMAE: ", np.abs(np.round(np.mean(scores['rvr'][0][0]['test_neg_mean_absolute_error']),2)))
+print("\nSUPPORT VECTOR MACHINE:\nR2: ", np.round(np.mean(scores['svm'][0][0]['test_r2']),2),
+      "\nMAE: ", np.abs(np.round(np.mean(scores['svm'][0][0]['test_neg_mean_absolute_error']),2)))
