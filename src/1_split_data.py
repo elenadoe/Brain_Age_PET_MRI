@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 #%matplotlib
 #%config IPCompleter.use_jedi = False
 
-df = pd.read_csv('../data/parcels_FDG_2.csv')
+df = pd.read_csv('../data/parcels_FDG_fdgtemplate.csv')
 
 df['Age_bins'] = df['Age'].values // 5
 df['Age_bins'] = df['Age_bins'].astype(int)
