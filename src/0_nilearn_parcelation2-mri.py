@@ -9,7 +9,7 @@ from nilearn.datasets import fetch_atlas_schaefer_2018
 
 # Edit paths before running
 subject_list = '../data/OASIS_CN_IDs_Age.txt'
-atlas = fetch_atlas_schaefer_2018(n_rois=200)
+atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks = 17)
 # this should include subjects' folders
 data_file = '/data/project/cat_12.5/OASIS3'
 output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/parcels.csv'

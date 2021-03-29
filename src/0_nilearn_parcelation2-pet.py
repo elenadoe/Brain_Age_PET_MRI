@@ -9,7 +9,7 @@ from nilearn.datasets import fetch_atlas_schaefer_2018
 
 # Edit paths before running
 subject_list = '../data/OASIS_CN_IDs_Age.txt'
-atlas = fetch_atlas_schaefer_2018(n_rois=200)
+atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks = 17)
 
 # this should include subjects' folders
 data_path = '/DATA/doeringe/Dokumente/BrainAge/2_Segmented/'
