@@ -1,3 +1,4 @@
+import os
 from nilearn._utils import check_niimg
 from nilearn.input_data import NiftiLabelsMasker
 import nibabel as nib
@@ -8,7 +9,7 @@ from glob import glob
 from nilearn.datasets import fetch_atlas_schaefer_2018
 
 # Edit paths before running
-subject_list = '../data/OASIS_CN_IDs_Age.txt'
+subject_list = 'data/OASIS_CN_IDs_Age.txt'
 atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
 # this should include subjects' folders
 data_file = '/data/project/cat_12.5/OASIS3'
@@ -27,7 +28,10 @@ age = subjs['age']
 
 count = 0
 image_list = []
-subj_succ = []
+subj_succ = {}
+subj_succ['name'] = []
+subj_succ['sess'] = []
+# subj_succ['age'] = []
 # Strips the newline character
 for sub in subj_list:
     sub_name = sub.split("_", 1)[0]
@@ -36,6 +40,9 @@ for sub in subj_list:
     foi = glob(op.join(data_file, sub_name, '*/mri', '*.nii*'))
     if foi:
         this_image = nib.load(foi[0])
+        path = os.path.normpath(foi[0])
+        sess = [dir for dir in path.split(os.sep) if dir.startswith('ses')]
+
         niimg = check_niimg(this_image, atleast_4d=True)
         masker = NiftiLabelsMasker(labels_img=atlas.maps,
                                    standardize=False,
@@ -43,23 +50,19 @@ for sub in subj_list:
                                    resampling_target='data')
         parcelled = masker.fit_transform(niimg)
         image_list.append(parcelled)
-        subj_succ.append(sub)
+        subj_succ['sess'].append(sess[0])
+        # subj_succ['age'].append()
+        subj_succ['name'].append(sub)
 
 features = np.array(image_list)
 x, y, z = features.shape
 features = features.reshape(x, z)
 df = pd.DataFrame(features, columns=atlas.labels)
+df_sub = pd.DataFrame(subj_succ)
+df_final = pd.concat([df_sub, df], axis=1)
 
+for excl_id in excl_ids:
+    df_final.drop(df_final[df_final['name'] == excl_id].index, inplace=True)
 # exclude data where PET could not be pre-processed (not all frames measured)
-age = [age[x] for x in range(len(subj_succ)) if subj_list[x] not in excl_ids]
-# TODO: The following line is deleting everything.'not in' maybe
-# TMO is better to delete it
-# from the initial list. Another way would be to add a QC column or common.
-subj_succ = [x for x in subj_succ if x in excl_ids]
 
-subs = {'Subject': subj_succ,
-        'Age': age}
-subs_pd = pd.DataFrame(subs)
-df_new = pd.concat([subs_pd, df], axis=1)
-
-df_new.to_csv(output_csv, index=False)
+df_final.to_csv(output_csv, index=False)
