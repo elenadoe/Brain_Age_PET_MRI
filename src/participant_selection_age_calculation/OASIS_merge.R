@@ -35,11 +35,13 @@ participants_pet <- read.csv2("C:/Users/doeringe/Documents/BrainAge/PET_MRI_age/
 participants_pet <- participants_pet[participants_pet$ID %in% participants_mri$ID,]
 participants_mri <- participants_mri[participants_mri$ID %in% participants_pet$ID,]
 
+# difference in days between both scans
+mean(participants_mri$dayAfterBaseline - participants_pet$dayAfterBaseline)
 # remove unnecessary variables 2.0
 participants_mri <- subset(participants_mri, select=-c(mmse, cdr, 
                                                       daysDiffNPTesting, ID, 
                                                       dayAfterBaseline))
-participants_pet <- subset(participants_pet, select=ID)
+participants_pet <- subset(participants_pet, select=-ID)
 
 write.csv(participants_mri, "C:/Users/doeringe/Documents/BrainAge/PET_MRI_age/data/OASIS_CN_clean_MRI.csv", row.names = FALSE)
 write.csv(participants_pet, "C:/Users/doeringe/Documents/BrainAge/PET_MRI_age/data/OASIS_CN_clean_PET.csv", row.names = FALSE)
