@@ -8,9 +8,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import seaborn as sns
 # pip install https://github.com/JamesRitchie/scikit-rvm/archive/master.zip
 from skrvm import RVR
 from sklearn.svm import SVR
+from sklearn.metrics import mean_absolute_error
 from julearn import run_cross_validation
 from julearn.utils import configure_logging
 from nilearn.datasets import fetch_atlas_schaefer_2018
@@ -19,14 +21,15 @@ from nilearn import image
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.inspection import permutation_importance
 sys.path.append("../lib")
-from create_splits import stratified_splits
+from lib.create_splits import stratified_splits
 
 # configure_logging(level='INFO')
 # TODO: do with FDG template
 # in case seaborn conflicts with autocomplete
-df = pd.read_csv('../data/test_train_MRI.csv', index_col=0)
+df = pd.read_csv('data/test_train_MRI.csv', index_col=0)
 
 df_train = df[df['train'] == "T"]
+df_train = df_train.reset_index(drop=True)
 col = [x for x in df_train.columns if 'H_' in x]
 
 X = df_train[col].values
@@ -40,24 +43,73 @@ num_bins = 5
 rvr = RVR()
 models = [rvr, 'svm']
 model_names = ['rvr', 'svm']
+splits = 5
 # creates dictionary of test indices for different repeats
 
-score_results = []
+# score_results = []
 model_results = []
+scores_r = []
+res = {}
+res['model'] = []
+res['iter'] = []
+res['pred'] = []
+res['ind'] = []
+# res = pd.Series(index=df_train.index)
 for i, model in enumerate(models):
-    cv = StratifiedKFold(n_splits=5).split(X, y_pseudo)
-    scores, model = run_cross_validation(X=X, y=y,
+    cv = StratifiedKFold(n_splits=splits).split(df_train[col],
+                                                df_train['Age_bins'])
+    cv = list(cv)
+    scores, final_model = run_cross_validation(X=col, y='Age',
                                          # preprocess_X='scaler_robust',
                                          problem_type='regression',
+                                         data=df_train,
                                          model=model, cv=cv,
-                                         return_estimator='final',
+                                         return_estimator='all',
                                          seed=rand_seed,
                                          scoring=[
                                             'r2', 'neg_mean_absolute_error'])
-    score_results.append(scores)
-    model_results.append(model)
+    # score_results.append(scores)
+    model_results.append(final_model)
+    scores_r.append(scores)
+    for iter in range(splits):
+        pred = scores.estimator[iter].predict(df_train.iloc[cv[iter][1]][col])
+        res['pred'].append(pred)
+        res['iter'].append(iter)
+        res['model'].append(str(model))
+        res['ind'].append(cv[iter][1])
 
+df_res = pd.DataFrame(res)
+age_pred = {}
+age_pred['subj'] = []
+age_pred['pred'] = []
+age_pred['real'] = []
+for i, fold in enumerate(df_res['ind']):
+    for sample in range(len(fold)):
+        age_pred['real'].append(df_train.iloc[sample]['Age'])
+        age_pred['pred'].append(df_res['pred'].iloc[i][sample])
+        age_pred['subj'].append(df_train.iloc[sample]['Subject'])
 
+df_ages = pd.DataFrame(age_pred)
+
+y_true = age_pred['real']
+y_pred = age_pred['pred']
+
+mae = format(mean_absolute_error(y_true, y_pred), '.2f')
+corr = format(np.corrcoef(y_pred, y_true)[1, 0], '.2f')
+
+fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+sns.set_style("darkgrid")
+plt.scatter(y_true, y_pred)
+plt.plot(y_true, y_true)
+xmin, xmax = ax.get_xlim()
+ymin, ymax = ax.get_ylim()
+text = 'MAE: ' + str(mae) + '   CORR: ' + str(corr)
+ax.set(xlabel='True values', ylabel='Predicted values')
+plt.title('Actual vs Predicted')
+plt.text(xmax - 0.01 * xmax, ymax - 0.01 * ymax, text, verticalalignment='top',
+         horizontalalignment='right', fontsize=12)
+plt.axis('scaled')
+plt.show()
 # In[4]:
 
 
