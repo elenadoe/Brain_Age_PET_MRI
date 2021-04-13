@@ -35,6 +35,7 @@ col = [x for x in df_train.columns if 'H_' in x]
 X = df_train[col].values
 y_pseudo = df_train['Age_bins']
 y = df_train['Age'].values
+plt.hist(y, bins=30)
 # round to no decimal place
 y = np.around(y).astype(int)
 
@@ -57,7 +58,7 @@ res['ind'] = []
 # res = pd.Series(index=df_train.index)
 for i, model in enumerate(models):
     cv = StratifiedKFold(n_splits=splits).split(df_train[col],
-                                                df_train['Age_bins'])
+                                                df_train['Age'].values.round())
     cv = list(cv)
     scores, final_model = run_cross_validation(X=col, y='Age',
                                          # preprocess_X='scaler_robust',
@@ -84,9 +85,9 @@ age_pred['subj'] = []
 age_pred['pred'] = []
 age_pred['real'] = []
 for i, fold in enumerate(df_res['ind']):
-    for sample in range(len(fold)):
+    for ind, sample in enumerate(fold):
         age_pred['real'].append(df_train.iloc[sample]['Age'])
-        age_pred['pred'].append(df_res['pred'].iloc[i][sample])
+        age_pred['pred'].append(df_res['pred'].iloc[i][ind])
         age_pred['subj'].append(df_train.iloc[sample]['Subject'])
 
 df_ages = pd.DataFrame(age_pred)
@@ -94,12 +95,18 @@ df_ages = pd.DataFrame(age_pred)
 y_true = age_pred['real']
 y_pred = age_pred['pred']
 
+# y_pred = final_model.predict(df_train[col])
+# y_true = df_train['Age'].values
+# m, b = np.polyfit(y_true, y_pred, 1)
+# plt.plot(y_true, m*y_true + b)
+
 mae = format(mean_absolute_error(y_true, y_pred), '.2f')
 corr = format(np.corrcoef(y_pred, y_true)[1, 0], '.2f')
 
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
 sns.set_style("darkgrid")
 plt.scatter(y_true, y_pred)
+# ax = sns.regplot(x=y_true, y=y_pred)
 plt.plot(y_true, y_true)
 xmin, xmax = ax.get_xlim()
 ymin, ymax = ax.get_ylim()
