@@ -58,7 +58,7 @@ res['ind'] = []
 # res = pd.Series(index=df_train.index)
 for i, model in enumerate(models):
     cv = StratifiedKFold(n_splits=splits).split(df_train[col],
-                                                df_train['Age'].values.round())
+                                                df_train['Age_bins'])
     cv = list(cv)
     scores, final_model = run_cross_validation(X=col, y='Age',
                                          # preprocess_X='scaler_robust',
@@ -84,21 +84,18 @@ age_pred = {}
 age_pred['subj'] = []
 age_pred['pred'] = []
 age_pred['real'] = []
+age_pred['model'] = []
 for i, fold in enumerate(df_res['ind']):
     for ind, sample in enumerate(fold):
         age_pred['real'].append(df_train.iloc[sample]['Age'])
         age_pred['pred'].append(df_res['pred'].iloc[i][ind])
         age_pred['subj'].append(df_train.iloc[sample]['Subject'])
+        age_pred['model'].append(df_res.iloc[i]['model'])
 
 df_ages = pd.DataFrame(age_pred)
 
-y_true = age_pred['real']
-y_pred = age_pred['pred']
-
-# y_pred = final_model.predict(df_train[col])
-# y_true = df_train['Age'].values
-# m, b = np.polyfit(y_true, y_pred, 1)
-# plt.plot(y_true, m*y_true + b)
+y_true = df_ages[df_ages['model'] == 'svm']['real']
+y_pred = df_ages[df_ages['model'] == 'svm']['pred']
 
 mae = format(mean_absolute_error(y_true, y_pred), '.2f')
 corr = format(np.corrcoef(y_pred, y_true)[1, 0], '.2f')
@@ -106,16 +103,38 @@ corr = format(np.corrcoef(y_pred, y_true)[1, 0], '.2f')
 fig, ax = plt.subplots(1, 1, figsize=(10, 7))
 sns.set_style("darkgrid")
 plt.scatter(y_true, y_pred)
+m, b = np.polyfit(y_true, y_pred, 1)
+plt.plot(y_true, m*y_true + b)
 # ax = sns.regplot(x=y_true, y=y_pred)
-plt.plot(y_true, y_true)
 xmin, xmax = ax.get_xlim()
 ymin, ymax = ax.get_ylim()
 text = 'MAE: ' + str(mae) + '   CORR: ' + str(corr)
 ax.set(xlabel='True values', ylabel='Predicted values')
 plt.title('Actual vs Predicted')
-plt.text(xmax - 0.01 * xmax, ymax - 0.01 * ymax, text, verticalalignment='top',
+plt.text(xmin + 10, ymax - 0.01 * ymax, text, verticalalignment='top',
          horizontalalignment='right', fontsize=12)
-plt.axis('scaled')
+plt.show()
+
+
+y_true = df_ages[df_ages['model'] == 'RVR()']['real']
+y_pred = df_ages[df_ages['model'] == 'RVR()']['pred']
+
+mae = format(mean_absolute_error(y_true, y_pred), '.2f')
+corr = format(np.corrcoef(y_pred, y_true)[1, 0], '.2f')
+
+fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+sns.set_style("darkgrid")
+plt.scatter(y_true, y_pred)
+m, b = np.polyfit(y_true, y_pred, 1)
+plt.plot(y_true, m*y_true + b)
+# ax = sns.regplot(x=y_true, y=y_pred)
+xmin, xmax = ax.get_xlim()
+ymin, ymax = ax.get_ylim()
+text = 'MAE: ' + str(mae) + '   CORR: ' + str(corr)
+ax.set(xlabel='True values', ylabel='Predicted values')
+plt.title('Actual vs Predicted')
+plt.text(xmin + 10, ymax - 0.01 * ymax, text, verticalalignment='top',
+         horizontalalignment='right', fontsize=12)
 plt.show()
 # In[4]:
 
