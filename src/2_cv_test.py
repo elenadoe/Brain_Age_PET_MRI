@@ -29,15 +29,12 @@ from lib.create_splits import stratified_splits
 df = pd.read_csv('data/test_train_MRI.csv', index_col=0)
 
 df_train = df[df['train'] == "T"]
-df_train = df_train.reset_index(drop=True)
-col = [x for x in df_train.columns if 'H_' in x]
-
-X = df_train[col].values
-y_pseudo = df_train['Age_bins']
-y = df_train['Age'].values
-plt.hist(y, bins=30)
 # round to no decimal place
-y = np.around(y).astype(int)
+df_train['Age'] = np.around(df_train['Age'].astype(int))
+df_train = df_train.reset_index(drop=True)
+
+col = [x for x in df_train.columns if 'H_' in x]
+plt.hist(y, bins=30)
 
 rand_seed = 42
 num_bins = 5
@@ -45,11 +42,9 @@ rvr = RVR()
 models = [rvr, 'svm']
 model_names = ['rvr', 'svm']
 splits = 5
-# creates dictionary of test indices for different repeats
 
-# score_results = []
 model_results = []
-scores_r = []
+scores_results = []
 res = {}
 res['model'] = []
 res['iter'] = []
@@ -69,9 +64,8 @@ for i, model in enumerate(models):
                                          seed=rand_seed,
                                          scoring=[
                                             'r2', 'neg_mean_absolute_error'])
-    # score_results.append(scores)
     model_results.append(final_model)
-    scores_r.append(scores)
+    scores_results.append(scores)
     for iter in range(splits):
         pred = scores.estimator[iter].predict(df_train.iloc[cv[iter][1]][col])
         res['pred'].append(pred)
