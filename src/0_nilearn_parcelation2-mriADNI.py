@@ -38,11 +38,13 @@ subj_succ['name'] = []
 subj_succ['sess'] = []
 # subj_succ['age'] = []
 # Strips the newline character
-for sub in subj_list:
-    sub_name = sub.split("_", 1)[0]
-    session = sub.split("_", 1)[1]
+i = 1
+for sub in subjs['Subject']:
+    sub_name = 'sub-' + sub.replace('_', '')
+    year = subjs[subjs['Subject'] == sub]['AcqDate'].values[0].split('/')[2]
     # /data/project/cat_12.5/HCP/993675/mri/m0wp1993675.nii.gz
-    foi = glob(op.join(data_file, sub_name, '*/mri', '*.nii*'))
+    foi = glob(op.join(data_file, sub_name, 'ses-' + year + '*', 'mri',
+               '*.nii*'))
     if foi:
         this_image = nib.load(foi[0])
         path = os.path.normpath(foi[0])
@@ -57,7 +59,7 @@ for sub in subj_list:
         image_list.append(parcelled)
         subj_succ['sess'].append(sess[0])
         # subj_succ['age'].append()
-        subj_succ['name'].append(sub)
+        subj_succ['name'].append(sub_name)
 
 features = np.array(image_list)
 x, y, z = features.shape
