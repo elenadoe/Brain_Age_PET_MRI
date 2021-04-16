@@ -1,32 +1,26 @@
 from nilearn._utils import check_niimg
 from nilearn.input_data import NiftiLabelsMasker
 import nibabel as nib
-import os.path as op
 import numpy as np
 import pandas as pd
 from glob import glob
 from nilearn.datasets import fetch_atlas_schaefer_2018
 
-# Edit paths before running
 subject_list = '../data/OASIS_CN_IDs_Age.txt'
+data_path = '/DATA/doeringe/Dokumente/BrainAge/2_Segmented/'
+output_csv = '../data/parcels_FDG.csv'
 atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks = 17)
 
-# this should include subjects' folders
-data_path = '/DATA/doeringe/Dokumente/BrainAge/2_Segmented/'
-output_csv = '../data/parcels_FDG_fdgtemplate.csv'
-
 # read IDs and age
-subjs = pd.read_csv(subject_list, delimiter="\t")
-
 subjs = pd.read_csv(subject_list, delimiter="\t")
 subj_list = ['sub-' + sub for sub in subjs['SCAN_ID']]
 age = subjs['age']
 
-count = 0
 image_list = []
 subj_succ = []
 subj_miss = []
 
+# create list of regional data and subject IDs
 for sub in subj_list:
     sub_name = sub.split("_", 1)[0]
     session = sub.split("_", 1)[1]
@@ -51,7 +45,7 @@ x, y, z = features.shape
 features = features.reshape(x, z)
 df = pd.DataFrame(features, columns=atlas.labels)
 
-# include age info in dataframe
+# combine information on subjects, age and regional data
 subs = {'Subject' : subj_succ,
        'Age' : age}
 subs_pd = pd.DataFrame(subs)
