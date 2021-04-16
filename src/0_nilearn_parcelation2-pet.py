@@ -13,7 +13,6 @@ atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks = 17)
 
 # read IDs and age
 subjs = pd.read_csv(subject_list, delimiter="\t")
-subjs = pd.read_csv(subject_list, delimiter="\t")
 subj_list = ['sub-' + sub for sub in subjs['SCAN_ID']]
 age = subjs['age']
 
