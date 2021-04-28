@@ -1,55 +1,38 @@
-import os
 from nilearn._utils import check_niimg
 from nilearn.input_data import NiftiLabelsMasker
 import nibabel as nib
-import os.path as op
 import numpy as np
 import pandas as pd
 from glob import glob
 from nilearn.datasets import fetch_atlas_schaefer_2018
 
-# Edit paths before running
-subject_list = 'data/FDG_BASELINE_HEALTHY_4_15_2021.csv'
+subjects = pd.read_csv('../FDG_BASELINE_HEALTHY_4_15_2021.csv')
+subject_list = subjects['Subject'].tolist()
+data_path = '/home/doeringe/Dokumente/brain age/4_SUVR/'
+output_csv = '../data/parcels_FDG_tpm_ADNI.csv'
+atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks = 17)
 
-atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
-# this should include subjects' folders
-data_file = '/data/project/cat_12.5/ADNI_complete'
-output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/ADNI_mri_parcels.csv'
-
-
-# NOTE: 'sub-OAS30775_ses-d2893', 'sub-OAS31018_ses-d0469' need to be
-# excluded as not all frames were measured in PET
-# therefore pre-processing was not possible!
-excl_ids = []
-
-# read IDs and age
-subjs = pd.read_csv(subject_list)
-subj_list = ['sub-' + sub.replace('_', '') for sub in subjs['Subject']]
-dates = [date.split('/')[::-1] for date in subjs['AcqDate']]
-sess_list = [date[0]+date[1]+'0' + date[2] if len(date[2]) == 1
-             else ''.join(date) for date in dates]
-subjs['sess'] = sess_list
-age = subjs['Age']
-
-count = 0
 image_list = []
-subj_succ = {}
-subj_succ['name'] = []
-subj_succ['sess'] = []
-# subj_succ['age'] = []
-# Strips the newline character
-i = 1
-for sub in subjs['Subject']:
-    sub_name = 'sub-' + sub.replace('_', '')
-    year = subjs[subjs['Subject'] == sub]['AcqDate'].values[0].split('/')[2]
-    # /data/project/cat_12.5/HCP/993675/mri/m0wp1993675.nii.gz
-    foi = glob(op.join(data_file, sub_name, 'ses-' + year + '*', 'mri',
-               '*.nii*'))
-    if foi:
-        this_image = nib.load(foi[0])
-        path = os.path.normpath(foi[0])
-        sess = [dir for dir in path.split(os.sep) if dir.startswith('ses')]
+subj_succ = []
+subj_miss = []
+subj_year = []
+subj_month = []
+subj_age = []
 
+# create list of regional data and subject IDs
+for sub in subject_list:
+    # CHANGE TO MRI FILE BEGINNING
+    foi = glob(data_path + "SUV*" + sub + "*.nii")
+    y = []
+    
+    # if there are several scans, only extract regional values for the first
+    for n in range(len(foi)):
+        # CHANGE WHERE IN STRING YEAR OCCURS HERE
+        y.append(int(foi[n][95:99]))
+    base_ind_ = y.index(np.min(y))
+    
+    if foi and (sub not in subj_succ):
+        this_image = nib.load(foi[base_ind_])
         niimg = check_niimg(this_image, atleast_4d=True)
         masker = NiftiLabelsMasker(labels_img=atlas.maps,
                                    standardize=False,
@@ -57,19 +40,24 @@ for sub in subjs['Subject']:
                                    resampling_target='data')
         parcelled = masker.fit_transform(niimg)
         image_list.append(parcelled)
-        subj_succ['sess'].append(sess[0])
-        # subj_succ['age'].append()
-        subj_succ['name'].append(sub_name)
-
+        subj_succ.append(sub)
+        # CHANGE WHERE IN STRING YEAR OCCURS HERE
+        subj_year.append(foi[base_ind_][95:99])
+        # CHANGE WHERE IN STRING MONTH OCCURS HERE
+        subj_month.append(foi[base_ind_][99:101])
+        subj_age.append(np.min(subjects['Age'][subjects['Subject']==sub]))
+        
+    
 features = np.array(image_list)
 x, y, z = features.shape
 features = features.reshape(x, z)
 df = pd.DataFrame(features, columns=atlas.labels)
-df_sub = pd.DataFrame(subj_succ)
-df_final = pd.concat([df_sub, df], axis=1)
 
-for excl_id in excl_ids:
-    df_final.drop(df_final[df_final['name'] == excl_id].index, inplace=True)
-# exclude data where PET could not be pre-processed (not all frames measured)
-
-df_final.to_csv(output_csv, index=False)
+# combine information on subjects, age and regional data
+subs = {'Subject' : subj_succ,
+       'Age' : subj_age,
+       'Year' : subj_year,
+       'Month' : subj_month}
+subs_pd = pd.DataFrame(subs)
+df_new = pd.concat([subs_pd, df], axis=1)
+df_new.to_csv(output_csv, index=False)
