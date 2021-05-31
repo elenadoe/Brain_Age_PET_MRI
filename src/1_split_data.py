@@ -1,24 +1,21 @@
+from nilearn._utils import check_niimg
+from nilearn.input_data import NiftiLabelsMasker
+import nibabel as nib
 import numpy as np
 import pandas as pd
-import os
-import os.path as op
-import matplotlib.pyplot as plt
+from glob import glob
 from sklearn.model_selection import train_test_split
 
-#%matplotlib
-#%config IPCompleter.use_jedi = False
+df = pd.read_csv('../data/ADNI/parcels_MRI_ADNI_final.csv', sep = ";")
 
-df = pd.read_csv('../../data/OASIS_CN_clean_PET.csv')
-
-# modulo 7 works for both MRI and PET, 5 throws an error for PET
-df['Age_bins'] = df['Age'].values // 7
-df['Age_bins'] = df['Age_bins'].astype(int)
+df['Agebins'] = df['Age'].values // 7
+df['Agebins'] = df['Agebins'].astype(int)
 
 col = [x for x in df.columns if '_' in x]
 
 X = df[col].values
 
-y_pseudo = df['Age_bins']
+y_pseudo = df['Agebins']
 y = df['Age']
 
 x_train, x_test,  y_train, y_test, id_train, id_test = train_test_split(
@@ -28,10 +25,4 @@ x_train, x_test,  y_train, y_test, id_train, id_test = train_test_split(
 df['train'] = ["T" if x in id_train.values else "F" for x in df[
                'Subject']]
 
-
-plt.hist(y_pseudo.values)
-plt.hist(y_train // 5)
-plt.hist(y_test // 5)
-plt.show()
-
-df.to_csv('../../data/test_train_FDG_fdg.csv')
+#df.to_csv('../data/test_train_FDG.csv')
