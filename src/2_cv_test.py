@@ -79,26 +79,26 @@ y_pred = df_ages[df_ages['model'] == 'svm']['pred']
 # fit a linear model for bias correction
 # TODO: bias correction without chronological age
 lm_rvr = LinearRegression()
-lm_rvr.fit(np.array(y_true).reshape(-1,1), np.array(y_pred-y_true).reshape(-1,1))
+lm_rvr.fit(np.array(y_pred).reshape(-1,1), np.array(y_true).reshape(-1,1))
 slope_rvr = lm_rvr.coef_
 intercept_rvr = lm_rvr.intercept_
-y_pred_bc = y_pred - (y_true*slope_rvr[0][0]+intercept_rvr[0])
+y_pred_bc = (y_pred - intercept_rvr[0])/slope_rvr[0][0]
 
 # plot real_vs_pred
-plots.real_vs_pred(y_true,y_pred_bc, mode, "rvr", modality)
+plots.real_vs_pred(y_true,y_pred_bc, "rvr", mode, modality)
 
 y_true = df_ages[df_ages['model'] == 'RVR()']['real']
 y_pred = df_ages[df_ages['model'] == 'RVR()']['pred']
 
 # fit a linear model for bias correction
 lm_svr = LinearRegression()
-lm_svr.fit(np.array(y_true).reshape(-1,1), np.array(y_pred-y_true).reshape(-1,1))
-slope_svr = lm_svr.coef_
-intercept_svr = lm_svr.intercept_
-y_pred_bc = y_pred - (y_true*slope_svr[0]+intercept_svr[0])
+lm_svr.fit(np.array(y_pred).reshape(-1,1), np.array(y_true).reshape(-1,1))
+slope_svr = lm_svr.coef_[0][0]
+intercept_svr = lm_svr.intercept_[0]
+y_pred_bc = (y_pred - intercept_svr)/slope_svr
 
 # plot real_vs_pred
-plots.real_vs_pred(y_true,y_pred_bc, mode, "svr", modality)
+plots.real_vs_pred(y_true,y_pred_bc, "svr", mode, modality)
 
 # %%
 # TESTING

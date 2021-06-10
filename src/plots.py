@@ -33,7 +33,7 @@ def real_vs_pred(y_true, y_pred, alg, modality, train_test):
     ymin, ymax = ax.get_ylim()
     text = 'MAE: ' + str(mae) + '   CORR: ' + str(corr)
     ax.set(xlabel='True values', ylabel='Predicted values')
-    plt.title('Actual vs Predicted')
+    plt.title('Actual vs Predicted {}'.format(alg))
     plt.text(xmin + 10, ymax - 0.01 * ymax, text, verticalalignment='top',
             horizontalalignment='right', fontsize=12)
     plt.savefig("../results/real_vs_pred_{}_{}_{}.jpg".format(train_test, modality, alg))
