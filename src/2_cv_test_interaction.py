@@ -8,17 +8,19 @@ from skrvm import RVR
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import StandardScaler
-from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LinearRegression
 
 # %%
 modality = "multimodal"
 mode = "train"
-mri = pd.read_csv('data/ADNI/test_train_MRI_ADNI.csv')
-pet = pd.read_csv('data/ADNI/test_train_FDG_tpm_ADNI.csv')
+mri = pd.read_csv('../data/ADNI/test_train_MRI_ADNI.csv')
+pet = pd.read_csv('../data/ADNI/test_train_FDG_tpm_ADNI.csv')
 mri_train = mri[mri['train'] == "T"]
-print(mri_train['Agebins'])
 pet_train = pet[pet['train'] == "T"]
+mri_train = mri_train.reset_index()
+pet_train = pet_train.reset_index()
+print(mri_train.shape)
+# check that all IDs are the same
 print(any((pet_train['Subject'] == mri_train['Subject'])==False))
 
 col = [x for x in mri_train.columns if ('_' in x)]
@@ -47,20 +49,22 @@ res['ind'] = []
 
 mri_scaler = StandardScaler()
 pet_scaler = StandardScaler()
-print(np.array(mri_train).shape, np.array(pet_train).shape)
-mri_train = mri_scaler.fit_transform(mri_train[col])
-pet_train = pet_scaler.fit_transform(pet_train[col])
-print(mri_train.shape, pet_train.shape)
-interact_train = mri_train * pet_train
-print(interact_train.shape, mri_train[0,0], pet_train[0,0], interact_train[0,0])
-all = list(range(interact_train.shape[1]))
+mri_train_data = mri_scaler.fit_transform(mri_train[col])
+pet_train_data = pet_scaler.fit_transform(pet_train[col])
+interact_train = mri_train_data * pet_train_data
+interact_train = pd.DataFrame(interact_train, columns = col)
+print(interact_train.shape)
 
+interact_train['Subject'] = mri_train['Subject']
+interact_train['Agebins'] = mri_train['Agebins']
+interact_train['Age'] = mri_train['Age']
+print(interact_train.shape)
+# %%
 for i, model in enumerate(models):
-    cv = StratifiedKFold(n_splits=splits).split(interact_train,
-                                                mri_train['Agebins'])
+    cv = StratifiedKFold(n_splits=splits).split(interact_train[col],
+                                                interact_train['Agebins'])
     cv = list(cv)
-    scores, final_model = run_cross_validation(X=all, y='Age',
-                                         #preprocess_X='scaler_robust',
+    scores, final_model = run_cross_validation(X=col, y='Age',
                                          problem_type='regression',
                                          data=interact_train,
                                          model=model, cv=cv,
@@ -71,7 +75,7 @@ for i, model in enumerate(models):
     model_results.append(final_model)
     scores_results.append(scores)
     for iter in range(splits):
-        pred = scores.estimator[iter].predict(interact_train.iloc[cv[iter][1]][all])
+        pred = scores.estimator[iter].predict(interact_train.iloc[cv[iter][1]][col])
         res['pred'].append(pred)
         res['iter'].append(iter)
         res['model'].append(str(model))
@@ -85,39 +89,40 @@ age_pred['real'] = []
 age_pred['model'] = []
 for i, fold in enumerate(df_res['ind']):
     for ind, sample in enumerate(fold):
-        age_pred['real'].append(df_train.iloc[sample]['Age'])
+        age_pred['real'].append(interact_train.iloc[sample]['Age'])
         age_pred['pred'].append(df_res['pred'].iloc[i][ind])
-        age_pred['subj'].append(df_train.iloc[sample]['Subject'])
+        age_pred['subj'].append(interact_train.iloc[sample]['Subject'])
         age_pred['model'].append(df_res.iloc[i]['model'])
 
 df_ages = pd.DataFrame(age_pred)
 # %%
 y_true = df_ages[df_ages['model'] == 'svm']['real']
 y_pred = df_ages[df_ages['model'] == 'svm']['pred']
-"""
+
 # fit a linear model for bias correction
 # TODO: bias correction without chronological age
 lm_rvr = LinearRegression()
-lm_rvr.fit(np.array(y_true).reshape(-1,1), np.array(y_pred-y_true).reshape(-1,1))
+lm_rvr.fit(np.array(y_pred).reshape(-1,1), np.array(y_true).reshape(-1,1))
 slope_rvr = lm_rvr.coef_
 intercept_rvr = lm_rvr.intercept_
-y_pred_bc = y_pred - (y_true*slope_rvr[0][0]+intercept_rvr[0])
+y_pred_bc = (y_pred - intercept_rvr[0])/slope_rvr[0][0]
 
 # plot real_vs_pred
-plots.real_vs_pred(y_true,y_pred_bc, mode, "rvr", modality)
+plots.real_vs_pred(y_true,y_pred_bc, "rvr", mode, modality)
 
 y_true = df_ages[df_ages['model'] == 'RVR()']['real']
 y_pred = df_ages[df_ages['model'] == 'RVR()']['pred']
 
 # fit a linear model for bias correction
 lm_svr = LinearRegression()
-lm_svr.fit(np.array(y_true).reshape(-1,1), np.array(y_pred-y_true).reshape(-1,1))
+lm_svr.fit(np.array(y_pred).reshape(-1,1), np.array(y_true).reshape(-1,1))
 slope_svr = lm_svr.coef_
 intercept_svr = lm_svr.intercept_
-y_pred_bc = y_pred - (y_true*slope_svr[0]+intercept_svr[0])
+y_pred_bc = (y_pred - intercept_svr[0])/slope_svr[0][0]
+
 
 # plot real_vs_pred
-plots.real_vs_pred(y_true,y_pred_bc, mode, "svr", modality)
+plots.real_vs_pred(y_true,y_pred_bc, "svr", mode, modality)
 
 # %%
 # TESTING

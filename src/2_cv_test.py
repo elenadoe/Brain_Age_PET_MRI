@@ -2,7 +2,9 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.stats as stats
 import plots
+import neuropsychology_correlations
 from skrvm import RVR
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
@@ -12,8 +14,8 @@ from sklearn.linear_model import LinearRegression
 # %%
 modality = "MRI"
 mode = "train"
-df = pd.read_csv('../data/ADNI/test_train_MRI_ADNI.csv')
-df_train = df[df['train'] == "T"]
+df = pd.read_csv('../data/ADNI/test_train_MRI_ADNI_NP.csv', sep = ";")
+df_train = df[df['train'] == True]
 col = [x for x in df_train.columns if ('_' in x)]
 
 # round to no decimal place
@@ -80,9 +82,9 @@ y_pred = df_ages[df_ages['model'] == 'svm']['pred']
 # TODO: bias correction without chronological age
 lm_rvr = LinearRegression()
 lm_rvr.fit(np.array(y_pred).reshape(-1,1), np.array(y_true).reshape(-1,1))
-slope_rvr = lm_rvr.coef_
-intercept_rvr = lm_rvr.intercept_
-y_pred_bc = (y_pred - intercept_rvr[0])/slope_rvr[0][0]
+slope_rvr = lm_rvr.coef_[0][0]
+intercept_rvr = lm_rvr.intercept_[0]
+y_pred_bc = (y_pred - intercept_rvr)/slope_rvr
 
 # plot real_vs_pred
 plots.real_vs_pred(y_true,y_pred_bc, "rvr", mode, modality)
@@ -102,7 +104,7 @@ plots.real_vs_pred(y_true,y_pred_bc, "svr", mode, modality)
 
 # %%
 # TESTING
-df_test = df[df['train'] == "F"]
+df_test = df[df['train'] == False]
 mode = "test"
 col = [x for x in df_train.columns if '_' in x]
 
@@ -111,14 +113,25 @@ y_true = df_test['Age'].values
 
 y_pred = model_results[0]['rvr'].predict(X_test)
 
-y_pred_bc = y_pred - (y_true*slope_rvr[0]+intercept_rvr[0])
+y_pred_bc = (y_pred - intercept_rvr)/slope_rvr
 
-plots.real_vs_pred(y_true,y_pred_bc, mode, "rvr", modality)
+plots.real_vs_pred(y_true,y_pred_bc, "rvr", mode, modality)
 
 y_pred = model_results[1]['svm'].predict(X_test)
-y_pred_bc = y_pred - (y_true*slope_svr[0]+intercept_svr[0])
+y_pred_bc = (y_pred - intercept_rvr)/slope_rvr
 
-plots.real_vs_pred(y_true,y_pred_bc, mode, "svr", modality)
+plots.real_vs_pred(y_true,y_pred_bc, "svr", mode, modality)
+
+# %%
+# Correlation with Neuropsychology - brain age
+npt = df.columns[-14:].values
+neuropsychology_correlations.neuropsych_correlation(y_true, y_pred,
+                                                    npt, df_test)
+# Correlation with Neuropsychology - brain age difference (CA - BA)
+y_diff = y_true - y_pred
+neuropsychology_correlations.neuropsych_correlation(y_true, y_diff,
+                                                    npt, df_test)
+
 # %%
 # PERMUTATION IMP
 rvr_feature_importance = permutation_importance(model_results[0]['rvr'], X_test, y_true,

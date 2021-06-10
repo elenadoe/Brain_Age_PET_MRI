@@ -1,9 +1,4 @@
-from nilearn._utils import check_niimg
-from nilearn.input_data import NiftiLabelsMasker
-import nibabel as nib
-import numpy as np
 import pandas as pd
-from glob import glob
 from sklearn.model_selection import train_test_split
 
 df = pd.read_csv('../data/ADNI/parcels_MRI_ADNI_final.csv', sep = ";")
