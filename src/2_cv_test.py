@@ -1,10 +1,11 @@
 #%%
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
-import plots
 import neuropsychology_correlations
+import plots
 from skrvm import RVR
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
@@ -79,7 +80,6 @@ y_true = df_ages[df_ages['model'] == 'svm']['real']
 y_pred = df_ages[df_ages['model'] == 'svm']['pred']
 
 # fit a linear model for bias correction
-# TODO: bias correction without chronological age
 lm_rvr = LinearRegression()
 lm_rvr.fit(np.array(y_pred).reshape(-1,1), np.array(y_true).reshape(-1,1))
 slope_rvr = lm_rvr.coef_[0][0]
@@ -111,24 +111,37 @@ col = [x for x in df_train.columns if '_' in x]
 X_test = df_test[col].values
 y_true = df_test['Age'].values
 
-y_pred = model_results[0]['rvr'].predict(X_test)
+# plot rvr
+y_pred_rvr = model_results[0]['rvr'].predict(X_test)
+y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
-y_pred_bc = (y_pred - intercept_rvr)/slope_rvr
+plots.real_vs_pred(y_true,y_pred_rvr_bc, "rvr", mode, modality)
 
-plots.real_vs_pred(y_true,y_pred_bc, "rvr", mode, modality)
+# plot svr
+y_pred_svr = model_results[1]['svm'].predict(X_test)
+y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
-y_pred = model_results[1]['svm'].predict(X_test)
-y_pred_bc = (y_pred - intercept_rvr)/slope_rvr
+plots.real_vs_pred(y_true,y_pred_svr_bc, "svr", mode, modality)
 
-plots.real_vs_pred(y_true,y_pred_bc, "svr", mode, modality)
+# %%
+# Create table of (corrected) predicted and chronological age in this modality
+# svr had better performance in both MAE and R2 --> take svr as final model
+y_diff = y_true - y_pred_svr_bc
+df_test = df_test.reset_index(drop=True)
+pred_csv = pd.concat((df_test["Subject"],
+                      pd.DataFrame(y_true, columns = ["Age"]),
+                      pd.DataFrame(y_pred_svr, columns = ["RawPredAge"]),
+                      pd.DataFrame(y_pred_svr_bc, columns = ["CorrPredAge"]),
+                      pd.DataFrame(y_diff, columns = ["BPAD"])), axis = 1)
+
+pred_csv.to_csv('../results/pred_age_{}.csv'.format(modality))
 
 # %%
 # Correlation with Neuropsychology - brain age
 npt = df.columns[-14:].values
-neuropsychology_correlations.neuropsych_correlation(y_true, y_pred,
+neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_svr_bc,
                                                     npt, df_test)
 # Correlation with Neuropsychology - brain age difference (CA - BA)
-y_diff = y_true - y_pred
 neuropsychology_correlations.neuropsych_correlation(y_true, y_diff,
                                                     npt, df_test)
 
