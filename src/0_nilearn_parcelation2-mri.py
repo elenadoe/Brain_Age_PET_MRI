@@ -9,12 +9,15 @@ from glob import glob
 from nilearn.datasets import fetch_atlas_schaefer_2018
 
 # Edit paths before running
-subject_list = 'data/OASIS_CN_IDs_Age.txt'
+subject_list = 'data/OASIS/OASIS_CN_IDs_Age.txt'
 atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
 # this should include subjects' folders
 data_file = '/data/project/cat_12.5/OASIS3'
-output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/parcels.csv'
+output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/OASIS_mri_parcels_mixedAtlas.csv'
 
+text_file = open('/data/project/age_prediction/extras/Tian_Subcortex_S1_3T_label.txt')
+labels = text_file.read().split('\n')
+labels = np.append(atlas['labels'], np.array(labels[:-1]))
 
 # NOTE: 'sub-OAS30775_ses-d2893', 'sub-OAS31018_ses-d0469' need to be
 # excluded as not all frames were measured in PET
@@ -44,7 +47,7 @@ for sub in subj_list:
         sess = [dir for dir in path.split(os.sep) if dir.startswith('ses')]
 
         niimg = check_niimg(this_image, atleast_4d=True)
-        masker = NiftiLabelsMasker(labels_img=atlas.maps,
+        masker = NiftiLabelsMasker(labels_img='data/schaefer200-17_Tian.nii',
                                    standardize=False,
                                    memory='nilearn_cache',
                                    resampling_target='data')
@@ -57,7 +60,7 @@ for sub in subj_list:
 features = np.array(image_list)
 x, y, z = features.shape
 features = features.reshape(x, z)
-df = pd.DataFrame(features, columns=atlas.labels)
+df = pd.DataFrame(features, columns=labels)
 df_sub = pd.DataFrame(subj_succ)
 df_final = pd.concat([df_sub, df], axis=1)
 
