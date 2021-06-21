@@ -13,7 +13,7 @@ subject_list = 'data/OASIS/OASIS_CN_IDs_Age.txt'
 atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
 # this should include subjects' folders
 data_file = '/data/project/cat_12.5/OASIS3'
-output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/OASIS_mri_parcels_mixedAtlas.csv'
+output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/OASIS_Sch_Tian_1mm_parcels.csv'
 
 text_file = open('/data/project/age_prediction/extras/Tian_Subcortex_S1_3T_label.txt')
 labels = text_file.read().split('\n')
@@ -47,7 +47,7 @@ for sub in subj_list:
         sess = [dir for dir in path.split(os.sep) if dir.startswith('ses')]
 
         niimg = check_niimg(this_image, atleast_4d=True)
-        masker = NiftiLabelsMasker(labels_img='data/schaefer200-17_Tian.nii',
+        masker = NiftiLabelsMasker(labels_img='data/schaefer200_17_Tian1mm.nii',
                                    standardize=False,
                                    memory='nilearn_cache',
                                    resampling_target='data')
