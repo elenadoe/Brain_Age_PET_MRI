@@ -1,9 +1,8 @@
-# %%
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import plots
-import os
+import src.plots as plots
+from sklearn.inspection import permutation_importance
 from skrvm import RVR
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
@@ -13,15 +12,15 @@ from sklearn.linear_model import LinearRegression
 # %%
 modality = "multimodal"
 mode = "train"
-mri = pd.read_csv('../data/ADNI/test_train_MRI_ADNI.csv')
-pet = pd.read_csv('../data/ADNI/test_train_FDG_tpm_ADNI.csv')
+mri = pd.read_csv('data/ADNI/test_train_MRI_ADNI.csv')
+pet = pd.read_csv('data/ADNI/test_train_FDG_tpm_ADNI.csv')
 mri_train = mri[mri['train'] == "T"]
 pet_train = pet[pet['train'] == "T"]
 mri_train = mri_train.reset_index()
 pet_train = pet_train.reset_index()
 print(mri_train.shape)
 # check that all IDs are the same
-print(any((pet_train['Subject'] == mri_train['Subject'])==False))
+print(any((pet_train['Subject'] == mri_train['Subject']) == False))
 
 col = [x for x in mri_train.columns if ('_' in x)]
 
@@ -52,7 +51,7 @@ pet_scaler = StandardScaler()
 mri_train_data = mri_scaler.fit_transform(mri_train[col])
 pet_train_data = pet_scaler.fit_transform(pet_train[col])
 interact_train = mri_train_data * pet_train_data
-interact_train = pd.DataFrame(interact_train, columns = col)
+interact_train = pd.DataFrame(interact_train, columns=col)
 print(interact_train.shape)
 
 interact_train['Subject'] = mri_train['Subject']
@@ -65,17 +64,18 @@ for i, model in enumerate(models):
                                                 interact_train['Agebins'])
     cv = list(cv)
     scores, final_model = run_cross_validation(X=col, y='Age',
-                                         problem_type='regression',
-                                         data=interact_train,
-                                         model=model, cv=cv,
-                                         return_estimator='all',
-                                         seed=rand_seed,
-                                         scoring=[
-                                            'r2', 'neg_mean_absolute_error'])
+                                               problem_type='regression',
+                                               data=interact_train,
+                                               model=model, cv=cv,
+                                               return_estimator='all',
+                                               seed=rand_seed,
+                                               scoring=['r2',
+                                                    'neg_mean_absolute_error'])
     model_results.append(final_model)
     scores_results.append(scores)
     for iter in range(splits):
-        pred = scores.estimator[iter].predict(interact_train.iloc[cv[iter][1]][col])
+        pred = scores.estimator[iter].predict(
+                        interact_train.iloc[cv[iter][1]][col])
         res['pred'].append(pred)
         res['iter'].append(iter)
         res['model'].append(str(model))
@@ -102,30 +102,32 @@ y_pred = df_ages[df_ages['model'] == 'svm']['pred']
 # fit a linear model for bias correction
 # TODO: bias correction without chronological age
 lm_rvr = LinearRegression()
-lm_rvr.fit(np.array(y_pred).reshape(-1,1), np.array(y_true).reshape(-1,1))
+lm_rvr.fit(np.array(y_pred).reshape(-1, 1), np.array(y_true).reshape(-1, 1))
 slope_rvr = lm_rvr.coef_
 intercept_rvr = lm_rvr.intercept_
 y_pred_bc = (y_pred - intercept_rvr[0])/slope_rvr[0][0]
 
 # plot real_vs_pred
-plots.real_vs_pred(y_true,y_pred_bc, "rvr", mode, modality)
+plots.real_vs_pred(y_true, y_pred_bc, "rvr", mode, modality)
 
 y_true = df_ages[df_ages['model'] == 'RVR()']['real']
 y_pred = df_ages[df_ages['model'] == 'RVR()']['pred']
 
 # fit a linear model for bias correction
 lm_svr = LinearRegression()
-lm_svr.fit(np.array(y_pred).reshape(-1,1), np.array(y_true).reshape(-1,1))
+lm_svr.fit(np.array(y_pred).reshape(-1, 1), np.array(y_true).reshape(-1, 1))
 slope_svr = lm_svr.coef_
 intercept_svr = lm_svr.intercept_
 y_pred_bc = (y_pred - intercept_svr[0])/slope_svr[0][0]
 
 
 # plot real_vs_pred
-plots.real_vs_pred(y_true,y_pred_bc, "svr", mode, modality)
+plots.real_vs_pred(y_true, y_pred_bc, "svr", mode, modality)
 
 # %%
 # TESTING
+
+# TODO: df appears first here. The same df_train some line bellow!
 df_test = df[df['train'] == "F"]
 mode = "test"
 col = [x for x in df_train.columns if '_' in x]
@@ -137,18 +139,19 @@ y_pred = model_results[0]['rvr'].predict(X_test)
 
 y_pred_bc = y_pred - (y_true*slope_rvr[0]+intercept_rvr[0])
 
-plots.real_vs_pred(y_true,y_pred_bc, mode, "rvr", modality)
+plots.real_vs_pred(y_true, y_pred_bc, mode, "rvr", modality)
 
 y_pred = model_results[1]['svm'].predict(X_test)
 y_pred_bc = y_pred - (y_true*slope_svr[0]+intercept_svr[0])
 
-plots.real_vs_pred(y_true,y_pred_bc, mode, "svr", modality)
+plots.real_vs_pred(y_true, y_pred_bc, mode, "svr", modality)
 # %%
 # PERMUTATION IMP
-rvr_feature_importance = permutation_importance(model_results[0]['rvr'], X_test, y_true,
-                                                scoring="r2", n_repeats = 1000)
-svr_feature_importance = permutation_importance(model_results[1]['svm'], X_test, y_true, scoring="r2", n_repeats = 1000)
-"""
-
+rvr_feature_importance = permutation_importance(model_results[0]['rvr'],
+                                                X_test, y_true,
+                                                scoring="r2", n_repeats=1000)
+svr_feature_importance = permutation_importance(model_results[1]['svm'],
+                                                X_test, y_true,
+                                                scoring="r2", n_repeats=1000)
 
 # %%
