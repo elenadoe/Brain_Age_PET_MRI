@@ -20,4 +20,4 @@ x_train, x_test,  y_train, y_test, id_train, id_test = train_test_split(
 df['train'] = ["T" if x in id_train.values else "F" for x in df[
                'Subject']]
 
-#df.to_csv('../data/test_train_FDG.csv')
+df.to_csv('../data/test_train_MRI.csv')

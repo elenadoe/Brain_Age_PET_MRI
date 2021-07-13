@@ -3,7 +3,6 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.stats as stats
 import neuropsychology_correlations
 import plots
 from skrvm import RVR
@@ -13,7 +12,9 @@ from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LinearRegression
 
 # %%
-modality = "MRI"
+# LOAD DATA
+# load and inspect data, set modality
+modality = input("Which modality are you analyzing? ")
 mode = "train"
 df = pd.read_csv('../data/ADNI/test_train_MRI_ADNI_NP.csv', sep = ";")
 df_train = df[df['train'] == True]
@@ -21,11 +22,13 @@ col = [x for x in df_train.columns if ('_' in x)]
 
 # round to no decimal place
 df_train = df_train.reset_index(drop=True)
-
 plt.hist(df_train['Age'], bins=30)
-
+#%%
+# PREPARATION
 rand_seed = 42
 num_bins = 5
+
+# define models and model names (some are already included in julearn)
 rvr = RVR()
 models = [rvr, 'svm', 'gauss']
 model_names = ['rvr', 'svm', 'gauss']
@@ -39,12 +42,14 @@ res['iter'] = []
 res['pred'] = []
 res['ind'] = []
 
+#%%
+# TRAINING
+# train models using 5-fold cross-validation
 for i, model in enumerate(models):
     cv = StratifiedKFold(n_splits=splits).split(df_train[col],
                                                 df_train['Agebins'])
     cv = list(cv)
     scores, final_model = run_cross_validation(X=col, y='Age',
-                                         #preprocess_X='scaler_robust',
                                          problem_type='regression',
                                          data=df_train,
                                          model=model, cv=cv,
@@ -54,6 +59,7 @@ for i, model in enumerate(models):
                                             'r2', 'neg_mean_absolute_error'])
     model_results.append(final_model)
     scores_results.append(scores)
+    
     for iter in range(splits):
         pred = scores.estimator[iter].predict(df_train.iloc[cv[iter][1]][col])
         res['pred'].append(pred)
@@ -67,7 +73,9 @@ age_pred['subj'] = []
 age_pred['pred'] = []
 age_pred['real'] = []
 age_pred['model'] = []
+
 for i, fold in enumerate(df_res['ind']):
+
     for ind, sample in enumerate(fold):
         age_pred['real'].append(df_train.iloc[sample]['Age'])
         age_pred['pred'].append(df_res['pred'].iloc[i][ind])
@@ -75,35 +83,39 @@ for i, fold in enumerate(df_res['ind']):
         age_pred['model'].append(df_res.iloc[i]['model'])
 
 df_ages = pd.DataFrame(age_pred)
+
 # %%
+# BIAS CORRECTION
+# Eliminate linear correlation of brain age difference and chronological age
 y_true = df_ages[df_ages['model'] == 'svm']['real']
 y_pred = df_ages[df_ages['model'] == 'svm']['pred']
 
-# fit a linear model for bias correction
+# fit a linear model for bias correction for rvr
 lm_rvr = LinearRegression()
 lm_rvr.fit(np.array(y_pred).reshape(-1,1), np.array(y_true).reshape(-1,1))
 slope_rvr = lm_rvr.coef_[0][0]
 intercept_rvr = lm_rvr.intercept_[0]
 y_pred_bc = (y_pred - intercept_rvr)/slope_rvr
 
-# plot real_vs_pred
+# plot predictions against ground truth (GT)
 plots.real_vs_pred(y_true,y_pred_bc, "rvr", mode, modality)
 
 y_true = df_ages[df_ages['model'] == 'RVR()']['real']
 y_pred = df_ages[df_ages['model'] == 'RVR()']['pred']
 
-# fit a linear model for bias correction
+# fit a linear model for bias correction for svm
 lm_svr = LinearRegression()
 lm_svr.fit(np.array(y_pred).reshape(-1,1), np.array(y_true).reshape(-1,1))
 slope_svr = lm_svr.coef_[0][0]
 intercept_svr = lm_svr.intercept_[0]
 y_pred_bc = (y_pred - intercept_svr)/slope_svr
 
-# plot real_vs_pred
+# plot predictions against GT
 plots.real_vs_pred(y_true,y_pred_bc, "svr", mode, modality)
 
 # %%
 # TESTING
+# How well does the model perform on unseen data?
 df_test = df[df['train'] == False]
 mode = "test"
 col = [x for x in df_train.columns if '_' in x]
@@ -111,19 +123,29 @@ col = [x for x in df_train.columns if '_' in x]
 X_test = df_test[col].values
 y_true = df_test['Age'].values
 
-# plot rvr
+# plot rvr predictions against GT in test set
 y_pred_rvr = model_results[0]['rvr'].predict(X_test)
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
 plots.real_vs_pred(y_true,y_pred_rvr_bc, "rvr", mode, modality)
 
-# plot svr
+# plot svr predictions against GT in test set
 y_pred_svr = model_results[1]['svm'].predict(X_test)
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
 plots.real_vs_pred(y_true,y_pred_svr_bc, "svr", mode, modality)
+# %%
+# PERMUTATION IMPORTANCE
+# How important are single brain regions towards regression task?
+rvr_feature_importance = permutation_importance(model_results[0]['rvr'], 
+                                                X_test, y_true,
+                                                scoring="r2", n_repeats = 1000)
+svr_feature_importance = permutation_importance(model_results[1]['svm'], 
+                                                X_test, y_true, scoring="r2", 
+                                                n_repeats = 1000)
 
 # %%
+# SAVE RESULTS
 # Create table of (corrected) predicted and chronological age in this modality
 # svr had better performance in both MAE and R2 --> take svr as final model
 y_diff = y_true - y_pred_svr_bc
@@ -137,7 +159,9 @@ pred_csv = pd.concat((df_test["Subject"],
 pred_csv.to_csv('../results/pred_age_{}.csv'.format(modality))
 
 # %%
-# Correlation with Neuropsychology - brain age
+# CORRELATION NEUROPSYCHOLOGY - BRAIN AGE
+# Inspect correlation of neuropsychological scores and predicted/corrected
+# brain age
 npt = df.columns[-14:].values
 neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_svr_bc,
                                                     npt, df_test)
@@ -145,12 +169,3 @@ neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_svr_bc,
 neuropsychology_correlations.neuropsych_correlation(y_true, y_diff,
                                                     npt, df_test)
 
-# %%
-# PERMUTATION IMP
-rvr_feature_importance = permutation_importance(model_results[0]['rvr'], X_test, y_true,
-                                                scoring="r2", n_repeats = 1000)
-svr_feature_importance = permutation_importance(model_results[1]['svm'], X_test, y_true, scoring="r2", n_repeats = 1000)
-
-
-
-# %%
