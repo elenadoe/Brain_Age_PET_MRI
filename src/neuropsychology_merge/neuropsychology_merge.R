@@ -1,5 +1,3 @@
-library('tidyr')
-
 adni <- read.csv('ADNImerge/ADNImerge_full.csv',
                  sep = ";", na.strings = c("NA", ""))
 adni <- adni[(adni$VISCODE=="bl"),]
@@ -7,7 +5,7 @@ adni <- adni[(adni$DX == "CN"),]
 
 rownames(adni) <- NULL
 
-data <- read.csv('BrainAge/PET_MRI_age/data/ADNI/test_train_FDG_tpm_ADNI.csv')
+data <- read.csv('BrainAge/PET_MRI_age/data/ADNI/test_train_MRI_ADNI.csv')
 
 adni <- subset(adni, select = c(PTID, MMSE, CDRSB, ADAS13, RAVLT_immediate, RAVLT_learning, RAVLT_forgetting,
                        FAQ, MOCA, EcogPtMem, EcogPtLang, EcogPtVisspat, EcogPtPlan,
@@ -47,3 +45,5 @@ for (i in 1:nrow(data)){
     data$EcogPTDivatt[i] <-  adni$EcogPtDivatt[adni$PTID == pat & !is.na(adni$EcogPtDivatt)]
   }
 }
+
+write.csv(data, "BrainAge/PET_MRI_age/data/ADNI/test_train_MRI_ADNI_NP.csv", row.names = FALSE)
