@@ -7,7 +7,7 @@ import plots
 from skrvm import RVR
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
-from sklearn.inspection import permutation_importance
+#from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LinearRegression
 
 # %%
@@ -15,7 +15,7 @@ from sklearn.linear_model import LinearRegression
 # load and inspect data, set modality
 modality = input("Which modality are you analyzing? ")
 mode = "train"
-df = pd.read_csv('data/ADNI/test_train_MRI_ADNI_NP.csv', sep=";")
+df = pd.read_csv('../data/ADNI/test_train_'+modality+'.csv')
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
 col = [x for x in df_train.columns if ('_' in x)]
@@ -23,7 +23,7 @@ col = [x for x in df_train.columns if ('_' in x)]
 # round to no decimal place
 df_train = df_train.reset_index(drop=True)
 # plot hist with Ages of train data
-plt.hist(df_train['Age'], bins=30)
+plt.hist(df_train['age'], bins=30)
 #%%
 # PREPARATION
 rand_seed = 42
@@ -54,7 +54,7 @@ for i, model in enumerate(models):
                                                 df_train['Agebins'])
     cv = list(cv)
     # run julearn function
-    scores, final_model = run_cross_validation(X=col, y='Age',
+    scores, final_model = run_cross_validation(X=col, y='age',
                                                # preprocess_X='scaler_robust',
                                                problem_type='regression',
                                                data=df_train,
@@ -83,9 +83,9 @@ age_pred['model'] = []
 for i, fold in enumerate(df_res['ind']):
 
     for ind, sample in enumerate(fold):
-        age_pred['real'].append(df_train.iloc[sample]['Age'])
+        age_pred['real'].append(df_train.iloc[sample]['age'])
         age_pred['pred'].append(df_res['pred'].iloc[i][ind])
-        age_pred['subj'].append(df_train.iloc[sample]['Subject'])
+        age_pred['subj'].append(df_train.iloc[sample]['name'])
         age_pred['model'].append(df_res.iloc[i]['model'])
 
 df_ages = pd.DataFrame(age_pred)
@@ -93,8 +93,8 @@ df_ages = pd.DataFrame(age_pred)
 # %%
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age difference and chronological age
-y_true = df_ages[df_ages['model'] == 'svm']['real']
-y_pred = df_ages[df_ages['model'] == 'svm']['pred']
+y_true = df_ages[df_ages['model'] == 'RVR()']['real']
+y_pred = df_ages[df_ages['model'] == 'RVR()']['pred']
 
 # fit a linear model for bias correction for rvr
 lm_rvr = LinearRegression()
@@ -106,8 +106,8 @@ y_pred_bc = (y_pred - intercept_rvr)/slope_rvr
 # plot real_vs_pred
 plots.real_vs_pred(y_true, y_pred_bc, "rvr", mode, modality)
 
-y_true = df_ages[df_ages['model'] == 'RVR()']['real']
-y_pred = df_ages[df_ages['model'] == 'RVR()']['pred']
+y_true = df_ages[df_ages['model'] == 'svm']['real']
+y_pred = df_ages[df_ages['model'] == 'svm']['pred']
 
 # fit a linear model for bias correction for svm
 lm_svr = LinearRegression()
@@ -127,7 +127,7 @@ mode = "test"
 col = [x for x in df_train.columns if '_' in x]
 
 X_test = df_test[col].values
-y_true = df_test['Age'].values
+y_true = df_test['age'].values
 
 # plot rvr predictions against GT in test set
 y_pred_rvr = model_results[0]['rvr'].predict(X_test)
@@ -148,7 +148,7 @@ plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, modality)
 y_diff = y_true - y_pred_svr_bc
 df_test = df_test.reset_index(drop=True)
 pred_csv = pd.concat((df_test["Subject"],
-                      pd.DataFrame(y_true, columns=["Age"]),
+                      pd.DataFrame(y_true, columns=["age"]),
                       pd.DataFrame(y_pred_svr, columns=["RawPredAge"]),
                       pd.DataFrame(y_pred_svr_bc, columns=["CorrPredAge"]),
                       pd.DataFrame(y_diff, columns=["BPAD"])), axis=1)
