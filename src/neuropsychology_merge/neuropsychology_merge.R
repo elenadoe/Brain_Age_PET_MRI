@@ -5,7 +5,7 @@ adni <- adni[(adni$DX == "CN"),]
 
 rownames(adni) <- NULL
 
-data <- read.csv('BrainAge/PET_MRI_age/data/ADNI/test_train_MRI_ADNI.csv')
+data <- read.csv('BrainAge/PET_MRI_age/data/ADNI/test_train_PET.csv')
 
 adni <- subset(adni, select = c(PTID, MMSE, CDRSB, ADAS13, RAVLT_immediate, RAVLT_learning, RAVLT_forgetting,
                        FAQ, MOCA, EcogPtMem, EcogPtLang, EcogPtVisspat, EcogPtPlan,
@@ -27,7 +27,7 @@ data$EcogPTPlan <- NA
 data$EcogPTOrgan <- NA
 data$EcogPTDivatt <- NA
 for (i in 1:nrow(data)){
-  pat <- data$Subject[i]
+  pat <- data$name[i]
   if (pat %in% adni$PTID){
     data$MMSE[i] <- adni$MMSE[adni$PTID == pat & !is.na(adni$MMSE)]
     data$CDRSB[i] <- adni$CDRSB[adni$PTID == pat & !is.na(adni$CDRSB)]
@@ -46,4 +46,4 @@ for (i in 1:nrow(data)){
   }
 }
 
-write.csv(data, "BrainAge/PET_MRI_age/data/ADNI/test_train_MRI_ADNI_NP.csv", row.names = FALSE)
+write.csv(data, "BrainAge/PET_MRI_age/data/ADNI/test_train_PET_NP.csv", row.names = FALSE)
