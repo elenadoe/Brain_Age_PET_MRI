@@ -7,11 +7,13 @@ rownames(adni) <- NULL
 
 data <- read.csv('BrainAge/PET_MRI_age/data/ADNI/test_train_PET.csv')
 
-adni <- subset(adni, select = c(PTID, MMSE, CDRSB, ADAS13, RAVLT_immediate, RAVLT_learning, RAVLT_forgetting,
+adni <- subset(adni, select = c(PTID, MMSE, ABETA, AV45, CDRSB, ADAS13, RAVLT_immediate, RAVLT_learning, RAVLT_forgetting,
                        FAQ, MOCA, EcogPtMem, EcogPtLang, EcogPtVisspat, EcogPtPlan,
                        EcogPtOrgan, EcogPtDivatt))
 
 adni <- na.omit(adni)
+data$ABETA <- NA
+data$AV45 <- NA
 data$MMSE <- NA
 data$CDRSB <- NA
 data$ADAS13 <- NA
@@ -29,6 +31,8 @@ data$EcogPTDivatt <- NA
 for (i in 1:nrow(data)){
   pat <- data$name[i]
   if (pat %in% adni$PTID){
+    data$AV45[i] <- adni$AV45[adni$PTID == pat & !is.na(adni$AV45)]
+    data$ABETA[i] <- adni$ABETA[adni$PTID == pat & !is.na(adni$ABETA)]
     data$MMSE[i] <- adni$MMSE[adni$PTID == pat & !is.na(adni$MMSE)]
     data$CDRSB[i] <- adni$CDRSB[adni$PTID == pat & !is.na(adni$CDRSB)]
     data$ADAS13[i] <- adni$ADAS13[adni$PTID == pat & !is.na(adni$ADAS13)]
@@ -46,4 +50,9 @@ for (i in 1:nrow(data)){
   }
 }
 
-write.csv(data, "BrainAge/PET_MRI_age/data/ADNI/test_train_PET_NP.csv", row.names = FALSE)
+for (i in 1:nrow(data)){
+  if (!is.na(data$ABETA[i]) & data$ABETA[i] == '>1700'){
+    data$ABETA[i] <- 1700
+  }
+}
+write.csv(data, "BrainAge/PET_MRI_age/data/ADNI/test_train_PET_NP_amy.csv", row.names = FALSE)
