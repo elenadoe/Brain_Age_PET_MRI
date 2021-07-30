@@ -20,7 +20,7 @@ labels = np.append(atlas['labels'], np.array(labels[:-1]))
 
 # this should include subjects' folders
 data_file = '/data/project/cat_12.5/ADNI_complete'
-output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/ADNI_Sch_Tian_1mm_parcels.csv'
+output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/ADNI_Sch_Tian_1mm_parcels_age.csv'
 
 
 # ids to be excluded
@@ -39,7 +39,7 @@ image_list = []
 subj_succ = {}
 subj_succ['name'] = []
 subj_succ['sess'] = []
-# subj_succ['age'] = []
+subj_succ['age'] = []
 
 # create list of regional data and subject IDs
 for sub in subjs['Subject']:
@@ -47,6 +47,7 @@ for sub in subjs['Subject']:
     year = subjs[subjs['Subject'] == sub]['AcqDate'].values[0].split('/')[2]
     fois = glob(op.join(data_file, sub_name, 'ses-' + year + '*', 'mri',
                 '*.nii*'))
+    age = subjs[subjs['Subject'] == sub]['Age'].values[0]
     if fois:
         for foi in fois:
             this_image = nib.load(foi)
@@ -61,7 +62,7 @@ for sub in subjs['Subject']:
             parcelled = masker.fit_transform(niimg)
             image_list.append(parcelled)
             subj_succ['sess'].append(sess[0])
-            # subj_succ['age'].append()
+            subj_succ['age'].append(age)
             subj_succ['name'].append(sub_name)
 
 features = np.array(image_list)
