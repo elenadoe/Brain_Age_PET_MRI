@@ -1,9 +1,12 @@
 import pandas as pd
+import numpy as np
+from scipy import stats
 from sklearn.model_selection import train_test_split
 
-df = pd.read_csv('../data/ADNI/parcels_MRI_ADNI_final.csv', sep = ";")
+modality = input("Which modality are you analyzing? ")
+df = pd.read_csv('../data/ADNI_'+modality+'_Sch_Tian_1mm_parcels.csv', sep = ",")
 
-df['Agebins'] = df['Age'].values // 7
+df['Agebins'] = df['age'].values // 7
 df['Agebins'] = df['Agebins'].astype(int)
 
 col = [x for x in df.columns if '_' in x]
@@ -11,13 +14,16 @@ col = [x for x in df.columns if '_' in x]
 X = df[col].values
 
 y_pseudo = df['Agebins']
-y = df['Age']
+y = df['age']
 
 x_train, x_test,  y_train, y_test, id_train, id_test = train_test_split(
-    X, y, df['Subject'], test_size=.2, random_state=42,
+    X, y, df['name'], test_size=.3, random_state=42,
     stratify=y_pseudo)
 
-df['train'] = ["T" if x in id_train.values else "F" for x in df[
-               'Subject']]
+z = np.abs(stats.zscore(df['age']))
+# TODO: exclude rows where z > 3
 
-#df.to_csv('../data/test_train_FDG.csv')
+df['train'] = [True if x in id_train.values else False for x in df[
+               'name']]
+
+df.to_csv('../data/ADNI/test_train_'+modality+'.csv')

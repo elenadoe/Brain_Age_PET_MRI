@@ -1,5 +1,3 @@
-library('tidyr')
-
 adni <- read.csv('ADNImerge/ADNImerge_full.csv',
                  sep = ";", na.strings = c("NA", ""))
 adni <- adni[(adni$VISCODE=="bl"),]
@@ -7,13 +5,15 @@ adni <- adni[(adni$DX == "CN"),]
 
 rownames(adni) <- NULL
 
-data <- read.csv('BrainAge/PET_MRI_age/data/ADNI/test_train_FDG_tpm_ADNI.csv')
+data <- read.csv('BrainAge/PET_MRI_age/data/ADNI/test_train_PET.csv')
 
-adni <- subset(adni, select = c(PTID, MMSE, CDRSB, ADAS13, RAVLT_immediate, RAVLT_learning, RAVLT_forgetting,
+adni <- subset(adni, select = c(PTID, MMSE, ABETA, AV45, CDRSB, ADAS13, RAVLT_immediate, RAVLT_learning, RAVLT_forgetting,
                        FAQ, MOCA, EcogPtMem, EcogPtLang, EcogPtVisspat, EcogPtPlan,
                        EcogPtOrgan, EcogPtDivatt))
 
 adni <- na.omit(adni)
+data$ABETA <- NA
+data$AV45 <- NA
 data$MMSE <- NA
 data$CDRSB <- NA
 data$ADAS13 <- NA
@@ -29,8 +29,10 @@ data$EcogPTPlan <- NA
 data$EcogPTOrgan <- NA
 data$EcogPTDivatt <- NA
 for (i in 1:nrow(data)){
-  pat <- data$Subject[i]
+  pat <- data$name[i]
   if (pat %in% adni$PTID){
+    data$AV45[i] <- adni$AV45[adni$PTID == pat & !is.na(adni$AV45)]
+    data$ABETA[i] <- adni$ABETA[adni$PTID == pat & !is.na(adni$ABETA)]
     data$MMSE[i] <- adni$MMSE[adni$PTID == pat & !is.na(adni$MMSE)]
     data$CDRSB[i] <- adni$CDRSB[adni$PTID == pat & !is.na(adni$CDRSB)]
     data$ADAS13[i] <- adni$ADAS13[adni$PTID == pat & !is.na(adni$ADAS13)]
@@ -47,3 +49,10 @@ for (i in 1:nrow(data)){
     data$EcogPTDivatt[i] <-  adni$EcogPtDivatt[adni$PTID == pat & !is.na(adni$EcogPtDivatt)]
   }
 }
+
+for (i in 1:nrow(data)){
+  if (!is.na(data$ABETA[i]) & data$ABETA[i] == '>1700'){
+    data$ABETA[i] <- 1700
+  }
+}
+write.csv(data, "BrainAge/PET_MRI_age/data/ADNI/test_train_PET_NP_amy.csv", row.names = FALSE)
