@@ -7,12 +7,11 @@ Created on Thu Jun 10 17:17:08 2021
 """
 import numpy as np
 import scipy.stats as stats
-def neuropsych_correlation(y_true, y_pred, neuropsych_var, df_test):
+def neuropsych_correlation(y_pred, neuropsych_var, df_test):
     """
 
     Parameters
     ----------
-    y_true : true chronological age (int or float)
     y_pred : predicted age (int or float)
     neuropsych : list of str containing all neuropsychological test names
     to be assessed
