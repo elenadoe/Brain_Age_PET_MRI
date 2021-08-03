@@ -4,7 +4,7 @@ from scipy import stats
 from sklearn.model_selection import train_test_split
 
 modality = input("Which modality are you analyzing? ")
-df = pd.read_csv('../data/ADNI_'+modality+'_Sch_Tian_1mm_parcels.csv', sep = ",")
+df = pd.read_csv('../data/ADNI/ADNI_'+modality+'_Sch_Tian_1mm_parcels.csv', sep = ";")
 
 df['Agebins'] = df['age'].values // 7
 df['Agebins'] = df['Agebins'].astype(int)
