@@ -16,7 +16,7 @@ def nearest(items, pivot):
 
 
 # Edit paths before running
-subject_list = 'data/ADNI/FDG_BASELINE_HEALTHY_4_15_2021.csv'
+subject_list = 'data/ADNI/ADNI_PET_Sch_Tian_1mm_parcels.csv'
 
 # fetch schaefer atlas. We need the labels from it. Then load Tian labels
 # and concat
@@ -27,7 +27,7 @@ labels = np.append(atlas['labels'], np.array(labels[:-1]))
 
 # this should include subjects' folders
 data_file = '/data/project/cat_12.5/ADNI_complete'
-output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/ADNI_Sch_Tian_1mm_parcels_nearest.csv'
+output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/ADNI_Sch_Tian_1mm_parcels_nearestPET.csv'
 
 
 # ids to be excluded
@@ -35,12 +35,7 @@ excl_ids = []
 
 # read IDs and age
 subjs = pd.read_csv(subject_list)
-subj_list = ['sub-' + sub.replace('_', '') for sub in subjs['Subject']]
-dates = [date.split('/')[::-1] for date in subjs['AcqDate']]
-sess_list = [date[0]+date[1]+'0' + date[2] if len(date[2]) == 1
-             else ''.join(date) for date in dates]
-subjs['sess'] = sess_list
-age = subjs['Age']
+subj_list = ['sub-' + sub.replace('_', '') for sub in subjs['name']]
 
 image_list = []
 subj_succ = {}
@@ -50,11 +45,11 @@ subj_succ['Age'] = []
 # subj_succ['age'] = []
 
 # create list of regional data and subject IDs
-for sub in subjs['Subject']:
+for sub in subjs['name']:
     sub_name = 'sub-' + sub.replace('_', '')
-    year = subjs[subjs['Subject'] == sub]['AcqDate'].values[0].split('/')[2]
-    day = subjs[subjs['Subject'] == sub]['AcqDate'].values[0].split('/')[1]
-    month = subjs[subjs['Subject'] == sub]['AcqDate'].values[0].split('/')[0]
+    year = subjs[subjs['name'] == sub]['sess'].values[0].astype(str)[0:4]
+    day = subjs[subjs['name'] == sub]['sess'].values[0].astype(str)[4:6]
+    month = subjs[subjs['name'] == sub]['sess'].values[0].astype(str)[6:8]
     pet_date = datetime(int(year), int(month), int(day), 0, 0)
     fois = glob(op.join(data_file, sub_name, 'ses-' + '*', 'mri', '*.nii*'))
     if fois:
@@ -83,8 +78,8 @@ for sub in subjs['Subject']:
         subj_succ['sess'].append(sess[0])
         # subj_succ['age'].append()
         subj_succ['name'].append(sub_name)
-        new_age = subjs[subjs['Subject'] == sub][
-                                'Age'].values[0] + (nearest_scan.year - int(year))
+        new_age = subjs[subjs['name'] == sub][
+                                'age'].values[0] + (nearest_scan.year - int(year))
         subj_succ['Age'].append(new_age)
 
 features = np.array(image_list)
