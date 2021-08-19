@@ -7,12 +7,15 @@ Created on Thu Jun 10 17:17:08 2021
 """
 import numpy as np
 import scipy.stats as stats
-def neuropsych_correlation(y_pred, neuropsych_var, df_test):
+import matplotlib.pyplot as plt
+import seaborn as sns
+def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var, df_test, modality):
     """
 
     Parameters
     ----------
     y_pred : predicted age (int or float)
+    y_true: true age (int or float)
     neuropsych : list of str containing all neuropsychological test names
     to be assessed
     df_test : dataframe containing the neuropsychological test scores for all
@@ -23,16 +26,33 @@ def neuropsych_correlation(y_pred, neuropsych_var, df_test):
     None.
 
     """
+    print("Significant correlations between {} and Neuropsychology".format(age_or_diff))
     
-    print("Significant correlations between predicted brain age and Neuropsychology")
-
     sign = {}
     for n in neuropsych_var:
         exc = np.isnan(df_test[n])
         pearson = stats.pearsonr(df_test[n][~exc], 
                              y_pred[~exc])
         if pearson[1] < 0.05:
-            sign[n] = pearson[0]
+            if age_or_diff == "BPA":
+                sign[n] = pearson[0]
+                fig, ax = plt.subplots(1, figsize = [12,8])
+                sns.regplot(df_test[n], y_true, ax = ax, scatter_kws = {'alpha' : 0.3}, label = "Age")
+                sns.regplot(df_test[n], y_pred, ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)
+                plt.ylabel("Age [years]")
+                plt.legend()
+                plt.title(n)
+            else:
+                sign[n] = pearson[0]
+                fig, ax = plt.subplots(1, figsize = [12,8])
+                sns.regplot(df_test[n], y_pred, ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)
+                plt.ylabel("PA - CA [years]")
+                plt.legend()
+                plt.title(n)
+            plt.savefig(fname = "../results/plots/"+modality+"_"+
+                        age_or_diff+"_"+n+".png")
+
     for key in sign:
         print(key, ":", np.round(sign[key],3))
+        
 

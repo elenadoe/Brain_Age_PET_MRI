@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import nibabel as nib
 from nilearn.datasets import fetch_atlas_schaefer_2018
@@ -23,10 +24,8 @@ def real_vs_pred(y_true, y_pred, alg, modality, train_test):
     mae = format(mean_absolute_error(y_true, y_pred), '.2f')
     corr = format(np.corrcoef(y_pred, y_true)[1, 0], '.2f')
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
-    plt.scatter(y_true, y_pred)
-    m, b = np.polyfit(y_true, y_pred, 1)
-    plt.plot(y_true, m*y_true + b)
+    fig, ax = plt.subplots(1, 1, figsize=(12,8))
+    sns.regplot(y_true, y_pred, ax = ax)
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
     text = 'MAE: ' + str(mae) + '   CORR: ' + str(corr)
@@ -34,7 +33,7 @@ def real_vs_pred(y_true, y_pred, alg, modality, train_test):
     plt.title('Actual vs Predicted {}'.format(alg))
     plt.text(xmin + 10, ymax - 0.01 * ymax, text, verticalalignment='top',
              horizontalalignment='right', fontsize=12)
-    plt.savefig("../results/real_vs_pred_{}_{}_{}.jpg".format(
+    plt.savefig("../results/plots/real_vs_pred_{}_{}_{}.jpg".format(
         train_test, modality, alg))
     plt.show()
 
