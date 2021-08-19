@@ -9,6 +9,9 @@ import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 import seaborn as sns
+import warnings
+
+warnings.filterwarnings("ignore")
 def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var, df_test, modality):
     """
 
@@ -55,4 +58,3 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var, df_test,
     for key in sign:
         print(key, ":", np.round(sign[key],3))
         
-
