@@ -7,13 +7,14 @@ rownames(adni) <- NULL
 
 data <- read.csv('BrainAge/PET_MRI_age/data/ADNI/test_train_PET.csv')
 
-adni <- subset(adni, select = c(PTID, MMSE, ABETA, PTAU, AV45, CDRSB, ADAS13, RAVLT_immediate, RAVLT_learning, RAVLT_forgetting,
+adni <- subset(adni, select = c(PTID, MMSE, ABETA, PTAU, TAU, AV45, CDRSB, ADAS13, RAVLT_immediate, RAVLT_learning, RAVLT_forgetting,
                        FAQ, MOCA, EcogPtMem, EcogPtLang, EcogPtVisspat, EcogPtPlan,
                        EcogPtOrgan, EcogPtDivatt))
 
 adni <- na.omit(adni)
 data$ABETA <- NA
 data$PTAU <- NA
+data$TAU <- NA
 data$AV45 <- NA
 data$MMSE <- NA
 data$CDRSB <- NA
@@ -35,6 +36,7 @@ for (i in 1:nrow(data)){
     data$AV45[i] <- adni$AV45[adni$PTID == pat & !is.na(adni$AV45)]
     data$ABETA[i] <- adni$ABETA[adni$PTID == pat & !is.na(adni$ABETA)]
     data$PTAU[i] <- adni$PTAU[adni$PTID == pat & !is.na(adni$PTAU)]
+    data$TAU[i] <- adni$TAU[adni$PTID == pat & !is.na(adni$TAU)]
     data$MMSE[i] <- adni$MMSE[adni$PTID == pat & !is.na(adni$MMSE)]
     data$CDRSB[i] <- adni$CDRSB[adni$PTID == pat & !is.na(adni$CDRSB)]
     data$ADAS13[i] <- adni$ADAS13[adni$PTID == pat & !is.na(adni$ADAS13)]
