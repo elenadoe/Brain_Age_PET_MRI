@@ -157,12 +157,12 @@ plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, modality)
 # SAVE RESULTS
 # Create table of (corrected) predicted and chronological age in this modality
 # svr had better performance in both MAE and R2 --> take svr as final model
-y_diff = y_true - y_pred_rvr_bc
+y_diff = y_true - y_pred_svr_bc
 df_test = df_test.reset_index(drop=True)
 pred_csv = pd.concat((df_test["name"],
                       pd.DataFrame(y_true, columns=["age"]),
-                      pd.DataFrame(y_pred_rvr, columns=["RawPredAge"]),
-                      pd.DataFrame(y_pred_rvr_bc, columns=["CorrPredAge"]),
+                      pd.DataFrame(y_pred_svr, columns=["RawPredAge"]),
+                      pd.DataFrame(y_pred_svr_bc, columns=["CorrPredAge"]),
                       pd.DataFrame(y_diff, columns=["BPAD"])), axis=1)
 
 pred_csv.to_csv('../results/pred_age_{}.csv'.format(modality))
@@ -172,7 +172,7 @@ pred_csv.to_csv('../results/pred_age_{}.csv'.format(modality))
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
 npt = df.columns[-17:].values
-neuropsychology_correlations.neuropsych_correlation(y_pred_rvr_bc,
+neuropsychology_correlations.neuropsych_correlation(y_pred_svr_bc,
                                                     npt, df_test)
 # Correlation with Neuropsychology - brain age difference (CA - BA)
 neuropsychology_correlations.neuropsych_correlation(y_diff,
