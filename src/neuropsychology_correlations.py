@@ -40,16 +40,16 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var, df_test,
             if age_or_diff == "BPA":
                 sign[n] = pearson[0]
                 fig, ax = plt.subplots(1, figsize = [12,8])
-                sns.regplot(df_test[n], y_true, ax = ax, scatter_kws = {'alpha' : 0.3}, label = "Age")
-                sns.regplot(df_test[n], y_pred, ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)
-                plt.ylabel("Age [years]")
+                sns.regplot(y_true, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, label = "Age")
+                sns.regplot(y_pred, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)
+                plt.xlabel("Age [years]")
                 plt.legend()
                 plt.title(n)
             else:
                 sign[n] = pearson[0]
                 fig, ax = plt.subplots(1, figsize = [12,8])
-                sns.regplot(df_test[n], y_pred, ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)
-                plt.ylabel("PA - CA [years]")
+                sns.regplot(y_pred, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)
+                plt.xlabel("PA - CA [years]")
                 plt.legend()
                 plt.title(n)
             plt.savefig(fname = "../results/plots/"+modality+"_"+
