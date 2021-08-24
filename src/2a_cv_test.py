@@ -15,7 +15,7 @@ from sklearn.linear_model import LinearRegression
 # load and inspect data, set modality
 modality = input("Which modality are you analyzing? ")
 mode = "train"
-df = pd.read_csv('../data/ADNI/test_train_'+modality+'_NP_amytau.csv')
+df = pd.read_csv('../data/ADNI/test_train_'+modality+'_NP_amytau.csv', sep = ";")
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
 col = [x for x in df_train.columns if ('_' in x)]
@@ -54,7 +54,7 @@ for i, model in enumerate(models):
     cv = list(cv)
     # run julearn function
     scores, final_model = run_cross_validation(X=col, y='age',
-                                               #preprocess_X='zscore',
+                                               preprocess_X='zscore',
                                                problem_type='regression',
                                                data=df_train,
                                                model=model, cv=cv,
@@ -157,23 +157,33 @@ plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, modality)
 # SAVE RESULTS
 # Create table of (corrected) predicted and chronological age in this modality
 # svr had better performance in both MAE and R2 --> take svr as final model
-y_diff = y_true - y_pred_rvr_bc
+y_diff = y_pred_svr_bc - y_true
 df_test = df_test.reset_index(drop=True)
+pred_csv = pd.concat((df_test["name"],
+                      pd.DataFrame(y_true, columns=["age"]),
+                      pd.DataFrame(y_pred_svr, columns=["RawPredAge"]),
+                      pd.DataFrame(y_pred_svr_bc, columns=["CorrPredAge"]),
+                      pd.DataFrame(y_diff, columns=["BPAD"])), axis=1)
+
+pred_csv.to_csv('../results/pred_age_{}_svr.csv'.format(modality))
+
+y_diff = y_pred_rvr_bc - y_true
 pred_csv = pd.concat((df_test["name"],
                       pd.DataFrame(y_true, columns=["age"]),
                       pd.DataFrame(y_pred_rvr, columns=["RawPredAge"]),
                       pd.DataFrame(y_pred_rvr_bc, columns=["CorrPredAge"]),
                       pd.DataFrame(y_diff, columns=["BPAD"])), axis=1)
 
-pred_csv.to_csv('../results/pred_age_{}.csv'.format(modality))
+pred_csv.to_csv('../results/pred_age_{}_rvr.csv'.format(modality))
 
 # %%
 # CORRELATION NEUROPSYCHOLOGY - BRAIN AGE
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
-npt = df.columns[-17:].values
-neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_rvr_bc,
+npt = df.columns[-18:].values
+neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_rvr_bc, "BPA",
                                                     npt, df_test, modality)
 # Correlation with Neuropsychology - brain age difference (CA - BA)
-neuropsychology_correlations.neuropsych_correlation(y_true, y_diff,
-                                                    npt, df_test, modality)
+y_diff = y_pred_rvr_bc - y_true
+neuropsychology_correlations.neuropsych_correlation(y_true, y_diff, "BPAD",
+                                                    npt, df_test_svr, modality)

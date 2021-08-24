@@ -40,7 +40,7 @@ for sub in subjs_list:
     
     # if there are several scans, only extract regional values for the first
     for n in range(len(foi)):
-        y.append(int(foi[n][95:99]))
+        y.append(int(foi[n][95j:99]))
     base_ind_ = y.index(np.min(y))
     
     if foi and (sub not in subj_succ):
