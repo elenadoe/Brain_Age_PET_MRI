@@ -34,8 +34,8 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var, df_test,
     sign = {}
     for n in neuropsych_var:
         exc = np.isnan(df_test[n])
-        pearson = stats.pearsonr(df_test[n][~exc], 
-                             y_pred[~exc])
+        pearson = stats.pearsonr(y_pred[~exc],
+                                 df_test[n][~exc])
         if pearson[1] < 0.05:
             if age_or_diff == "BPA":
                 sign[n] = pearson[0]
