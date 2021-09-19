@@ -5,7 +5,7 @@ adni <- adni[(adni$DX == "CN"),]
 
 rownames(adni) <- NULL
 
-data <- read.csv('BrainAge/PET_MRI_age/data/ADNI/test_train_PET.csv')
+data <- read.csv('BrainAge/PET_MRI_age/results/pred_age_PET_rvr.csv')
 
 adni <- subset(adni, select = c(PTID, MMSE, ABETA, PTAU, TAU, AV45, CDRSB, ADAS13, RAVLT_immediate, RAVLT_learning, RAVLT_forgetting,
                        FAQ, MOCA, EcogPtMem, EcogPtLang, EcogPtVisspat, EcogPtPlan,
@@ -62,4 +62,4 @@ for (i in 1:nrow(data)){
     data$PTAU[i] <- 8
   }
 }
-write.csv(data, "BrainAge/PET_MRI_age/data/ADNI/test_train_PET_NP_amytau.csv", row.names = FALSE)
+write.csv(data, "BrainAge/PET_MRI_age/results/pred_age_PET_rvr_withNP.csv", row.names = FALSE)
