@@ -15,6 +15,7 @@ from sklearn.linear_model import LinearRegression
 # %%
 # LOAD DATA
 # load and inspect data, set modality
+# TODO: read in bootstrapping samples @antogeo
 modality = input("Which modality are you analyzing? ")
 mode = "train"
 df = pd.read_csv('../data/ADNI/test_train_'+modality+
@@ -51,6 +52,7 @@ res['ind'] = []
 #%%
 # TRAINING
 # train models using 5-fold cross-validation
+# TODO: read in bootstrapping samples @antogeo
 for i, model in enumerate(models):
     # split data using age-bins instead of real age
     cv = StratifiedKFold(n_splits=splits).split(df_train[col],
