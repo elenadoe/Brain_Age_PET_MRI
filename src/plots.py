@@ -44,14 +44,21 @@ def permutation_imp(feature_imp, alg, modality):
     inputs:
     feature_imp: dictionary-like object from calling
         sklearn.inspection.permutation_importance
-    alg = algorithm used for current task (used for saving)
+    alg : string of algorithm used for current task (used for saving)
     modality: string representing the modality with which brain age was
         assessed (MRI/PET; used for saving)
 
     outputs: none (plots and saves plots)
     """
     schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
-    atlas = image.load_img(schaefer.maps)
+    text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
+    labels = text_file.read().split('\n')
+    labels = np.append(schaefer['labels'], np.array(labels[:-1]))
+    print("Most important regions: {}".format(
+        np.array(labels)[np.where(feature_imp.importances_mean>1e-02)]))
+    
+    atlas = '../data/schaefer200-17_Tian.nii'
+    atlas = image.load_img(atlas)
     atlas_matrix = image.get_data(atlas)
 
     # create statistical map where each voxel value coresponds to permutation
@@ -59,14 +66,14 @@ def permutation_imp(feature_imp, alg, modality):
     imp = feature_imp.importances_mean
     atlas_matrix_stat = atlas_matrix.copy()
 
-    for x in range(201):
+    for x in range(217):
         if x == 0:
             pass
         else:
             atlas_matrix_stat[atlas_matrix_stat == x] = imp[x-1]
     atlas_final = image.new_img_like(atlas, atlas_matrix_stat)
 
-    plotting.plot_stat_map(atlas_final)
+    plotting.plot_stat_map(atlas_final, threshold = 0)
     plt.title("{}-relevant regions for aging".format(alg))
     plt.savefig("../results/Permutation_importance_{}_{}.jpg".format(
         modality, alg))
