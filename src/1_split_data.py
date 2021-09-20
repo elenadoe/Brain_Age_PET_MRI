@@ -26,5 +26,5 @@ df = df.drop(np.where(z>2)[0])
 
 df['train'] = [True if x in id_train.values else False for x in df[
                'name']]
-
+TODO: make bootstrapping test_train_splits @antogeo
 df.to_csv('../data/ADNI/test_train_'+modality+'.csv')
