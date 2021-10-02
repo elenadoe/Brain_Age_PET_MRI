@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import src.plots as plots
+import src.plots as src.plots
 from sklearn.inspection import permutation_importance
 from skrvm import RVR
 from julearn import run_cross_validation
@@ -12,19 +12,22 @@ from sklearn.linear_model import LinearRegression
 # %%
 modality = "multimodal"
 mode = "train"
-mri = pd.read_csv('data/ADNI/test_train_MRI_ADNI.csv')
-pet = pd.read_csv('data/ADNI/test_train_FDG_tpm_ADNI.csv')
-mri_train = mri[mri['train'] == "T"]
-pet_train = pet[pet['train'] == "T"]
+mri = pd.read_csv('data/ADNI/test_train_PET_NP_amytau_olderthan65_42.csv')
+pet = pd.read_csv('data/ADNI/test_train_MRI_NP_amytau_olderthan65_42.csv')
+mri_train = mri[mri['train'] == True]
+pet_train = pet[pet['train'] == True]
 mri_train = mri_train.reset_index()
 pet_train = pet_train.reset_index()
 print(mri_train.shape)
 # check that all IDs are the same
-print(any((pet_train['Subject'] == mri_train['Subject']) == False))
+
+# changed "Subject" to "name"
+if pet_train['name'].equals(mri_train['name']):
+    print("Subjects in two modalities match")
 
 col = [x for x in mri_train.columns if ('_' in x)]
-
-plt.hist(mri_train['Age'], bins=30)
+# age not Age
+plt.hist(mri_train['age'], bins=30)
 plt.title('Age distribution (30 bins)')
 plt.xlabel('Age [years]')
 plt.ylabel('n Participants')
@@ -48,15 +51,18 @@ res['ind'] = []
 
 mri_scaler = StandardScaler()
 pet_scaler = StandardScaler()
+#  according to the columns (pet_train or mri_train):
 mri_train_data = mri_scaler.fit_transform(mri_train[col])
+# KeyError: "['ATHA_rh', 'AMY_lh', 'PUT_lh', 'PTHA_rh'] not in index"
 pet_train_data = pet_scaler.fit_transform(pet_train[col])
+# KeyError: "['aTHA_rh', 'pTHA_rh', 'AMY_h', 'PUT_h'] not in index"
 interact_train = mri_train_data * pet_train_data
 interact_train = pd.DataFrame(interact_train, columns=col)
 print(interact_train.shape)
 
-interact_train['Subject'] = mri_train['Subject']
+interact_train['name'] = mri_train['name']
 interact_train['Agebins'] = mri_train['Agebins']
-interact_train['Age'] = mri_train['Age']
+interact_train['age'] = mri_train['age']
 print(interact_train.shape)
 # %%
 for i, model in enumerate(models):
