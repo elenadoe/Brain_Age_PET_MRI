@@ -16,15 +16,14 @@ from sklearn.linear_model import LinearRegression
 # LOAD DATA
 # load and inspect data, set modality
 # TODO: read in bootstrapping samples @antogeo
-modality = input("Which modality are you analyzing? ")
+# modality = input("Which modality are you analyzing? ")
+modality = 'PET'
 mode = "train"
-df = pd.read_csv('../data/ADNI/test_train_'+modality+
-                 '_NP_amytau_olderthan65_42.csv')
+df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_amytau_olderthan65_42.csv')
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
 col = [x for x in df_train.columns if ('_' in x)]
 df_train = df_train.reset_index(drop=True)
-
 
 # plot hist with Ages of train data
 plt.hist(df_train['age'], bins=30)
@@ -37,8 +36,8 @@ num_bins = 5
 rvr = RVR()
 
 # models to test & names
-models = [rvr, 'svm', 'gauss', 'gradientboost']
-model_names = ['rvr', 'svm', 'gauss', 'gradientboost']
+models = [rvr, 'svm', 'gradientboost']
+model_names = ['rvr', 'svm', 'gradientboost']
 splits = 5
 
 model_results = []
@@ -60,7 +59,7 @@ for i, model in enumerate(models):
     cv = list(cv)
     # run julearn function
     scores, final_model = run_cross_validation(X=col, y='age',
-                                               #preprocess_X='scaler_robust',
+                                               preprocess_X='scaler_robust',
                                                problem_type='regression',
                                                data=df_train,
                                                model=model, cv=cv,
@@ -86,7 +85,6 @@ age_pred['real'] = []
 age_pred['model'] = []
 
 for i, fold in enumerate(df_res['ind']):
-
     for ind, sample in enumerate(fold):
         age_pred['real'].append(df_train.iloc[sample]['age'])
         age_pred['pred'].append(df_res['pred'].iloc[i][ind])
@@ -100,6 +98,8 @@ scaler = RobustScaler().fit(df_train[col])
 # %%
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age difference and chronological age
+
+# relevance Vectors Regression
 y_true = df_ages[df_ages['model'] == 'RVR()']['real']
 y_pred = df_ages[df_ages['model'] == 'RVR()']['pred']
 
@@ -113,33 +113,21 @@ y_pred_bc = (y_pred - intercept_rvr)/slope_rvr
 # plot real_vs_pred
 plots.real_vs_pred(y_true, y_pred_bc, "rvr", mode, modality)
 
-y_true = df_ages[df_ages['model'] == 'svm']['real']
-y_pred = df_ages[df_ages['model'] == 'svm']['pred']
+# SVM
+y_true_svm = df_ages[df_ages['model'] == 'svm']['real']
+y_pred_svm = df_ages[df_ages['model'] == 'svm']['pred']
 
 # fit a linear model for bias correction for svm
 lm_svr = LinearRegression()
-lm_svr.fit(np.array(y_pred).reshape(-1, 1), np.array(y_true).reshape(-1, 1))
+lm_svr.fit(np.array(y_pred_svm).reshape(-1, 1), np.array(y_true_svm).reshape(-1, 1))
 slope_svr = lm_svr.coef_[0][0]
 intercept_svr = lm_svr.intercept_[0]
-y_pred_bc = (y_pred - intercept_svr)/slope_svr
+y_pred_svm_bc = (y_pred_svm - intercept_svr)/slope_svr
 
 # plot real_vs_pred
-plots.real_vs_pred(y_true, y_pred_bc, "svr", mode, modality)
+plots.real_vs_pred(y_true_svm, y_pred_svm_bc, "svr", mode, modality)
 
-y_true = df_ages[df_ages['model'] == 'gauss']['real']
-y_pred = df_ages[df_ages['model'] == 'gauss']['pred']
-
-
-# fit a linear model for bias correction for gaussian
-lm_gauss = LinearRegression()
-lm_gauss.fit(np.array(y_pred).reshape(-1, 1), np.array(y_true).reshape(-1, 1))
-slope_gauss = lm_gauss.coef_[0][0]
-intercept_gauss = lm_gauss.intercept_[0]
-y_pred_bc = (y_pred - intercept_gauss)/slope_gauss
-
-# plot real_vs_pred
-plots.real_vs_pred(y_true, y_pred_bc, "gauss", mode, modality)
-
+# Gradient Boost
 y_true = df_ages[df_ages['model'] == 'gradientboost']['real']
 y_pred = df_ages[df_ages['model'] == 'gradientboost']['pred']
 
@@ -185,7 +173,7 @@ y_pred_gradb_bc = (y_pred_gradb - intercept_gradboost)/slope_gradboost
 plots.real_vs_pred(y_true, y_pred_gradb_bc, "gradboost", mode, modality)
 #%%
 # PERMUTATION IMPORTANCE
-pi = permutation_importance(model_results[0]['rvr'], 
+pi = permutation_importance(model_results[0]['rvr'],
                             X_test, y_true,
                             n_repeats = 1000)
 
