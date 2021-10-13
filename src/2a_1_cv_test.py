@@ -40,6 +40,23 @@ models = [rvr, 'svm', 'gradientboost']
 model_names = ['rvr', 'svm', 'gradientboost']
 splits = 5
 
+# hyperparameters svr & rvr
+kernels = ['linear','rbf']
+cs = [0.001,0.01,0.1,1,10,100]
+# hyperparameters gb
+loss = ['squared_error','absolute_error']
+n_estimators = [10,100,1000]
+learning_rate = [0.001,0.01,0.1]
+
+model_params = [
+    {'rvr__C' : cs,
+    'rvr__kernel' : kernels},
+    {'svm__C' : cs,
+    'svm__kernel' : kernels},
+    {'gradientboost__loss' : loss,
+    'gradientboost__n_estimators' : n_estimators,
+    'gradientboost__learning_rate' : learning_rate}]
+
 model_results = []
 scores_results = []
 res = {}
@@ -59,16 +76,18 @@ for i, model in enumerate(models):
     cv = list(cv)
     # run julearn function
     scores, final_model = run_cross_validation(X=col, y='age',
-                                               preprocess_X='scaler_robust',
+                                               #preprocess_X='scaler_robust',
                                                problem_type='regression',
                                                data=df_train,
                                                model=model, cv=cv,
-                                               return_estimator='all',
                                                seed=rand_seed,
+                                               model_params = model_params[i],
+                                               return_estimator='all',
                                                scoring=['r2',
                                                     'neg_mean_absolute_error'])
     model_results.append(final_model)
     scores_results.append(scores)
+    
     # iterate over julearn results to and save results of each iteration
     for iter in range(splits):
         pred = scores.estimator[iter].predict(df_train.iloc[cv[iter][1]][col])
