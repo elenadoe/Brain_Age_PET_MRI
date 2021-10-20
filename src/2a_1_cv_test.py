@@ -41,21 +41,17 @@ model_names = ['rvr', 'svm', 'gradientboost']
 splits = 5
 
 # hyperparameters svr & rvr
-kernels = ['linear','rbf']
-cs = [0.001,0.01,0.1,1,10,100]
+kernels = ['linear', 'rbf']
+cs = [0.001, 0.01, 0.1, 1, 10, 100]
 # hyperparameters gb
-loss = ['squared_error','absolute_error']
-n_estimators = [10,100,1000]
-learning_rate = [0.001,0.01,0.1]
+loss = ['squared_error', 'absolute_error']
+n_estimators = [10, 100, 1000]
+learning_rate = [0.001, 0.01, 0.1]
 
-model_params = [
-    {'rvr__C' : cs,
-    'rvr__kernel' : kernels},
-    {'svm__C' : cs,
-    'svm__kernel' : kernels},
-    {'gradientboost__loss' : loss,
-    'gradientboost__n_estimators' : n_estimators,
-    'gradientboost__learning_rate' : learning_rate}]
+model_params = [{'rvr__C': cs, 'rvr__kernel': kernels},
+                {'svm__C': cs, 'svm__kernel': kernels},
+                {'gradientboost__n_estimators': n_estimators,
+                 'gradientboost__learning_rate': learning_rate}]
 
 model_results = []
 scores_results = []
@@ -69,25 +65,25 @@ res['ind'] = []
 # TRAINING
 # train models using 5-fold cross-validation
 # TODO: read in bootstrapping samples @antogeo
-for i, model in enumerate(models):
+for i, (model, params) in enumerate(zip(models, model_params)):
     # split data using age-bins instead of real age
     cv = StratifiedKFold(n_splits=splits).split(df_train[col],
                                                 df_train['Agebins'])
     cv = list(cv)
     # run julearn function
     scores, final_model = run_cross_validation(X=col, y='age',
-                                               #preprocess_X='scaler_robust',
+                                               # preprocess_X='scaler_robust',
                                                problem_type='regression',
                                                data=df_train,
                                                model=model, cv=cv,
                                                seed=rand_seed,
-                                               model_params = model_params[i],
+                                               model_params=params,
                                                return_estimator='all',
                                                scoring=['r2',
-                                                    'neg_mean_absolute_error'])
+                                                'neg_mean_absolute_error'])
     model_results.append(final_model)
     scores_results.append(scores)
-    
+
     # iterate over julearn results to and save results of each iteration
     for iter in range(splits):
         pred = scores.estimator[iter].predict(df_train.iloc[cv[iter][1]][col])
