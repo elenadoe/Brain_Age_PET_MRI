@@ -12,7 +12,8 @@ import seaborn as sns
 import warnings
 
 warnings.filterwarnings("ignore")
-def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var, df_test, modality):
+def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var, 
+                           df_test, modality, database):
     """
 
     Parameters
@@ -52,7 +53,7 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var, df_test,
                 plt.xlabel("PA - CA [years]")
                 plt.legend()
                 plt.title(n)
-            plt.savefig(fname = "../results/plots/"+modality+"_"+
+            plt.savefig(fname = "../results/"+database+"/plots/"+modality+"_"+
                         age_or_diff+"_"+n+".png")
 
     for key in sign:
