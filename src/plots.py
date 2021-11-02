@@ -9,7 +9,7 @@ from sklearn.metrics import mean_absolute_error
 
 
 # plot ground truth against predictions
-def real_vs_pred(y_true, y_pred, alg, modality, train_test):
+def real_vs_pred(y_true, y_pred, alg, modality, train_test, database):
     """Plots True labels against the predicted ones.
     inputs:
     y_true: list of floating point values or integers, representing ground
@@ -19,6 +19,7 @@ def real_vs_pred(y_true, y_pred, alg, modality, train_test):
     modality: image modality used (MRI/PET; used for saving)
     train_test: str indicating whether train or test data is plotted
         (used for saving)
+    database: str indicating which database was used
     outputs: none (plots and saves plots)
     """
     mae = format(mean_absolute_error(y_true, y_pred), '.2f')
@@ -33,20 +34,22 @@ def real_vs_pred(y_true, y_pred, alg, modality, train_test):
     plt.title('Actual vs Predicted {}'.format(alg))
     plt.text(xmin + 10, ymax - 0.01 * ymax, text, verticalalignment='top',
              horizontalalignment='right', fontsize=12)
-    plt.savefig("../results/plots/real_vs_pred_{}_{}_{}.jpg".format(
+    plt.savefig("../results/"+database+
+                "/plots/real_vs_pred_{}_{}_{}.jpg".format(
         train_test, modality, alg))
     plt.show()
 
 
 # plot permutation importance
-def permutation_imp(feature_imp, alg, modality):
+def permutation_imp(feature_imp, alg, modality, database):
     """Plots permutation importance as evaluated in test set
     inputs:
     feature_imp: dictionary-like object from calling
         sklearn.inspection.permutation_importance
     alg : string of algorithm used for current task (used for saving)
-    modality: string representing the modality with which brain age was
+    modality: str representing the modality with which brain age was
         assessed (MRI/PET; used for saving)
+    database: str indicating which database was used
 
     outputs: none (plots and saves plots)
     """
@@ -75,8 +78,10 @@ def permutation_imp(feature_imp, alg, modality):
 
     plotting.plot_stat_map(atlas_final, threshold = 0)
     plt.title("{}-relevant regions for aging".format(alg))
-    plt.savefig("../results/Permutation_importance_{}_{}.jpg".format(
+    plt.savefig("../results/"+database+
+                "/Permutation_importance_{}_{}.jpg".format(
         modality, alg))
-    nib.save(atlas_final, "../results/permutation_importance_{}_{}.nii".format(
+    nib.save(atlas_final, "../results/"+database+
+             "/permutation_importance_{}_{}.nii".format(
         modality, alg))
     plt.show()

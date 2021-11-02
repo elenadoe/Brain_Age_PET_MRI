@@ -21,6 +21,7 @@ from sklearn.linear_model import LinearRegression
 # modality = input("Which modality are you analyzing? ")
 modality = 'PET'
 mode = "train"
+database = "ADNI"
 df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_amytau_olderthan65_42.csv')
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
@@ -57,18 +58,9 @@ model_params = [[{'C': cs, 'kernel': kernels}],
                 [{'n_estimators': n_estimators,
                  'learning_rate': learning_rate}]]
 
-model_results = []
-scores_results = []
-res = {}
-res['model'] = []
-res['iter'] = []
-res['pred'] = []
-res['ind'] = []
-
 #%%
 # TRAINING
 # train models using 5-fold cross-validation
-# TODO: read in bootstrapping samples @antogeo
 scaler = RobustScaler()
 X_train = scaler.fit_transform(df_train[col])
 cv = StratifiedKFold(n_splits=splits)
