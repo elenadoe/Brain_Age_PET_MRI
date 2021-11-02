@@ -178,3 +178,5 @@ svr_feature_importance = permutation_importance(model_results[1]['svm'],
                                                 scoring="r2", n_repeats=1000)
 
 # %%
+plots.permutation_imp(rvr_feature_importance, 'rvr', 'pet-mri')
+plots.permutation_imp(svr_feature_importance, 'svr', 'pet-mri')
