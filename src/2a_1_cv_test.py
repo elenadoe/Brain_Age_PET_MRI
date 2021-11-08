@@ -18,6 +18,7 @@ from sklearn.linear_model import LinearRegression
 # TODO: read in bootstrapping samples @antogeo
 # modality = input("Which modality are you analyzing? ")
 modality = 'PET'
+database = "ADNI"
 mode = "train"
 df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_amytau_olderthan65_42.csv')
 df_train = df[df['train'] == True]
@@ -41,17 +42,20 @@ model_names = ['rvr', 'svm', 'gradientboost']
 splits = 5
 
 # hyperparameters svr & rvr
-kernels = ['linear', 'rbf']
+kernels = ['linear', 'rbf', 'poly', 'sigmoid']
 cs = [0.001, 0.01, 0.1, 1, 10, 100]
 # hyperparameters gb
-loss = ['squared_error', 'absolute_error']
+loss = ['friedman_mse', 'squared_error', 'absolute_error']
 n_estimators = [10, 100, 1000]
-learning_rate = [0.001, 0.01, 0.1]
+learning_rate = [0.0001, 0.001, 0.01, 0.1]
+max_depth = [2, 3, 4, 5, 6]
 
 model_params = [{'rvr__C': cs, 'rvr__kernel': kernels},
                 {'svm__C': cs, 'svm__kernel': kernels},
                 {'gradientboost__n_estimators': n_estimators,
-                 'gradientboost__learning_rate': learning_rate}]
+                  'gradientboost__learning_rate': learning_rate,
+                  'gradientboost__max_depth': max_depth,
+                  'gradientboost__random_state': [rand_seed]}]
 
 model_results = []
 scores_results = []
@@ -60,6 +64,7 @@ res['model'] = []
 res['iter'] = []
 res['pred'] = []
 res['ind'] = []
+
 
 #%%
 # TRAINING
@@ -81,12 +86,12 @@ for i, (model, params) in enumerate(zip(models, model_params)):
                                                return_estimator='all',
                                                scoring=['r2',
                                                 'neg_mean_absolute_error'])
-    model_results.append(final_model)
+    model_results.append(final_model.best_estimator_)
     scores_results.append(scores)
 
     # iterate over julearn results to and save results of each iteration
     for iter in range(splits):
-        pred = scores.estimator[iter].predict(df_train.iloc[cv[iter][1]][col])
+        pred = final_model.best_estimator_.predict(df_train.iloc[cv[iter][1]][col])
         res['pred'].append(pred)
         res['iter'].append(iter)
         res['model'].append(str(model))
@@ -108,54 +113,45 @@ for i, fold in enumerate(df_res['ind']):
 
 df_ages = pd.DataFrame(age_pred)
 
-# assess scaling parameters for test data
-scaler = RobustScaler().fit(df_train[col])
 # %%
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age difference and chronological age
+def bias_correction(y_pred, y_true):
+    lm = LinearRegression()
+    lm.fit(np.array(y_pred).reshape(-1,1),
+           np.array(y_true).reshape(-1,1))
+    slope = lm.coef_[0][0]
+    intercept = lm.intercept_[0]
+    y_pred_bc = (y_pred - intercept)/slope
+    
+    return intercept, slope, y_pred_bc
 
 # relevance Vectors Regression
 y_true = df_ages[df_ages['model'] == 'RVR()']['real']
-y_pred = df_ages[df_ages['model'] == 'RVR()']['pred']
+y_pred_rvr = df_ages[df_ages['model'] == 'RVR()']['pred']
 
-# fit a linear model for bias correction for rvr
-lm_rvr = LinearRegression()
-lm_rvr.fit(np.array(y_pred).reshape(-1, 1), np.array(y_true).reshape(-1, 1))
-slope_rvr = lm_rvr.coef_[0][0]
-intercept_rvr = lm_rvr.intercept_[0]
-y_pred_bc = (y_pred - intercept_rvr)/slope_rvr
-
-# plot real_vs_pred
-plots.real_vs_pred(y_true, y_pred_bc, "rvr", mode, modality)
+intercept_rvr, slope_rvr, y_pred_rvr_bc = bias_correction(y_pred_rvr,
+                                                          y_true)
+plots.real_vs_pred(y_true, y_pred_rvr, "rvr", mode, 
+                   modality, database)
 
 # SVM
-y_true_svm = df_ages[df_ages['model'] == 'svm']['real']
-y_pred_svm = df_ages[df_ages['model'] == 'svm']['pred']
+y_pred_svr = df_ages[df_ages['model'] == 'svm']['pred']
 
-# fit a linear model for bias correction for svm
-lm_svr = LinearRegression()
-lm_svr.fit(np.array(y_pred_svm).reshape(-1, 1), np.array(y_true_svm).reshape(-1, 1))
-slope_svr = lm_svr.coef_[0][0]
-intercept_svr = lm_svr.intercept_[0]
-y_pred_svm_bc = (y_pred_svm - intercept_svr)/slope_svr
-
-# plot real_vs_pred
-plots.real_vs_pred(y_true_svm, y_pred_svm_bc, "svr", mode, modality)
+intercept_svr, slope_svr, y_pred_svr_bc = bias_correction(y_pred_svr,
+                                                          y_true)
+plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, 
+                   modality, database)
 
 # Gradient Boost
-y_true = df_ages[df_ages['model'] == 'gradientboost']['real']
-y_pred = df_ages[df_ages['model'] == 'gradientboost']['pred']
+y_pred_gb = df_ages[df_ages['model'] == 'gradientboost']['pred']
 
 
 # fit a linear model for bias correction for gaussian
-lm_gradboost = LinearRegression()
-lm_gradboost.fit(np.array(y_pred).reshape(-1, 1), np.array(y_true).reshape(-1, 1))
-slope_gradboost = lm_gradboost.coef_[0][0]
-intercept_gradboost = lm_gradboost.intercept_[0]
-y_pred_bc = (y_pred - intercept_gradboost)/slope_gradboost
-
-# plot real_vs_pred
-plots.real_vs_pred(y_true, y_pred_bc, "gradboost", mode, modality)
+intercept_gb, slope_gb, y_pred_gb_bc = bias_correction(y_pred_gb,
+                                                       y_true)
+plots.real_vs_pred(y_true, y_pred_gb_bc, "gradboost", mode, 
+                   modality, database)
 
 # %%
 # TESTING
@@ -165,35 +161,38 @@ df_test = df[df['train'] == False]
 #df_test_scaled = scaler.transform(df_test[col])
 mode = "test"
 
-X_test = df_test[col].values
+X_test = df_test[col]
 y_true = df_test['age'].values
 
 # plot rvr predictions against GT in test set
-y_pred_rvr = model_results[0]['rvr'].predict(X_test)
+y_pred_rvr = model_results[0].predict(X_test)
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
-plots.real_vs_pred(y_true, y_pred_rvr_bc, "rvr", mode, modality)
+plots.real_vs_pred(y_true, y_pred_rvr_bc, "rvr", mode, 
+                   modality, database)
 
 # plot svr predictions against GT in test set
-y_pred_svr = model_results[1]['svm'].predict(X_test)
+y_pred_svr = model_results[1].predict(X_test)
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
-plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, modality)
+plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, 
+                   modality, database)
 
 
 # plot gradboost predictions against GT in test set
-y_pred_gradb = model_results[3]['gradientboost'].predict(X_test)
-y_pred_gradb_bc = (y_pred_gradb - intercept_gradboost)/slope_gradboost
+y_pred_gb = model_results[2].predict(X_test)
+y_pred_gradb_bc = (y_pred_gb - intercept_gb)/slope_gb
 
-plots.real_vs_pred(y_true, y_pred_gradb_bc, "gradboost", mode, modality)
+plots.real_vs_pred(y_true, y_pred_gradb_bc, "gradboost", mode, 
+                   modality, database)
 #%%
 # PERMUTATION IMPORTANCE
-pi = permutation_importance(model_results[0]['rvr'],
+pi = permutation_importance(model_results[0],
                             X_test, y_true,
                             n_repeats = 1000)
 
 #%%
-plots.permutation_imp(pi, 'rvr', modality)
+plots.permutation_imp(pi, 'rvr', modality, database)
 # %%
 # SAVE RESULTS
 # Create table of (corrected) predicted and chronological age in this modality
@@ -220,8 +219,8 @@ pred_csv.to_csv('../results/pred_age_{}_rvr.csv'.format(modality))
 y_diff = y_pred_gradb_bc - y_true
 pred_csv = pd.concat((df_test["name"],
                       pd.DataFrame(y_true, columns=["age"]),
-                      pd.DataFrame(y_pred_gradb, columns=["RawPredAge"]),
-                      pd.DataFrame(y_pred_gradb_bc, columns=["CorrPredAge"]),
+                      pd.DataFrame(y_pred_gb, columns=["RawPredAge"]),
+                      pd.DataFrame(y_pred_gb_bc, columns=["CorrPredAge"]),
                       pd.DataFrame(y_diff, columns=["BPAD"])), axis=1)
 
 pred_csv.to_csv('../results/pred_age_{}_gradb.csv'.format(modality))
@@ -232,8 +231,14 @@ pred_csv.to_csv('../results/pred_age_{}_gradb.csv'.format(modality))
 # brain age
 npt = df_test.columns[-12:].values
 neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_rvr_bc, "BPA",
-                                                    npt, df_test, modality)
+                                                    npt, 
+                                                    df_test, 
+                                                    modality,
+                                                    database)
 # Correlation with Neuropsychology - brain age difference ( BA- CA)
 y_diff = y_pred_rvr_bc - y_true
 neuropsychology_correlations.neuropsych_correlation(y_true, y_diff, "BPAD",
-                                                    npt, df_test, modality)
+                                                    npt, 
+                                                    df_test, 
+                                                    modality,
+                                                    database)

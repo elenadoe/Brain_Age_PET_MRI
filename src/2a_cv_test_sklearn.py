@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import neuropsychology_correlations
 import plots
+import pickle
+# TODO: pickle save the trained models
 from skrvm import RVR
 from sklearn.svm import SVR
 from sklearn.ensemble import GradientBoostingRegressor
@@ -18,7 +20,7 @@ from sklearn.linear_model import LinearRegression
 # LOAD DATA
 # load and inspect data, set modality
 # modality = input("Which modality are you analyzing? ")
-modality = 'MRI'
+modality = 'PET'
 mode = "train"
 database = "ADNI"
 df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_amytau_olderthan65_42.csv')
@@ -123,6 +125,7 @@ plots.real_vs_pred(y_true, y_pred_gb_bc, "gradboost", mode,
 # TESTING
 # How well does the model perform on unseen data?
 df_test = df[df['train'] == False]
+df_test = df_test.reset_index()
 # apply scale parameters from training data
 X_test = scaler.transform(df_test[col].values)
 y_test = df_test['age'].values
@@ -171,7 +174,7 @@ pred_csv = pd.concat((df_test["name"],
 
 pred_csv.to_csv('../results/'+database+'/pred_age_{}_svr.csv'.format(modality))
 
-y_diff = y_pred_rvr_bc - y_true
+y_diff = y_pred_rvr_bc - y_test
 pred_csv = pd.concat((df_test["name"],
                       pd.DataFrame(y_test, columns=["age"]),
                       pd.DataFrame(y_pred_rvr, columns=["RawPredAge"]),
@@ -200,7 +203,7 @@ neuropsychology_correlations.neuropsych_correlation(y_test,
                                                     npt, df_test, 
                                                     modality,
                                                     database)
-# Correlation with Neuropsychology - brain age difference ( BA- CA)
+# Correlation with Neuropsychology - brain age difference (BA - CA)
 y_diff = y_pred_rvr_bc - y_test
 neuropsychology_correlations.neuropsych_correlation(y_test, 
                                                     y_diff, 
