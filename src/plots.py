@@ -5,7 +5,7 @@ import nibabel as nib
 from nilearn.datasets import fetch_atlas_schaefer_2018
 from nilearn import plotting
 from nilearn import image
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, r2_score
 
 
 # plot ground truth against predictions
@@ -23,10 +23,14 @@ def real_vs_pred(y_true, y_pred, alg, modality, train_test, database):
     outputs: none (plots and saves plots)
     """
     mae = format(mean_absolute_error(y_true, y_pred), '.2f')
-    corr = format(np.corrcoef(y_pred, y_true)[1, 0], '.2f')
+    corr = format(r2_score(y_true, y_pred), '.2f')
 
     fig, ax = plt.subplots(1, 1, figsize=(12,8))
     sns.regplot(y_true, y_pred, ax = ax)
+    ax.set_xlim(np.min(y_true)-1, 
+                np.max(y_true)+1)
+    ax.set_ylim(np.min(y_true)-1, 
+                np.max(y_true)+1)
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
     text = 'MAE: ' + str(mae) + '   CORR: ' + str(corr)
