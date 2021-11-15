@@ -7,7 +7,6 @@ import plots
 from skrvm import RVR
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import RobustScaler
 from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LinearRegression
 
@@ -20,7 +19,7 @@ from sklearn.linear_model import LinearRegression
 modality = 'PET'
 database = "ADNI"
 mode = "train"
-df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_amytau_olderthan65_42.csv')
+df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP.csv')
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
 col = [x for x in df_train.columns if ('_' in x)]
@@ -37,25 +36,32 @@ num_bins = 5
 rvr = RVR()
 
 # models to test & names
-models = [rvr, 'svm', 'gradientboost']
-model_names = ['rvr', 'svm', 'gradientboost']
+models = [rvr, 'svm']
+model_names = ['rvr', 'svm']
 splits = 5
 
 # hyperparameters svr & rvr
 kernels = ['linear', 'rbf', 'poly', 'sigmoid']
+degree = [2,3]
 cs = [0.001, 0.01, 0.1, 1, 10, 100]
 # hyperparameters gb
 loss = ['friedman_mse', 'squared_error', 'absolute_error']
 n_estimators = [10, 100, 1000]
-learning_rate = [0.0001, 0.001, 0.01, 0.1]
-max_depth = [2, 3, 4, 5, 6]
+learning_rate = [0.0001, 0.001, 0.01]
+max_depth = [2, 3, 4, 5, 6,7,8,9,10]
 
-model_params = [{'rvr__C': cs, 'rvr__kernel': kernels},
-                {'svm__C': cs, 'svm__kernel': kernels},
+model_params = [{'rvr__C': cs, 
+                 'rvr__degree': degree,
+                 'rvr__kernel': kernels},
+                {'svm__C': cs, 
+                 'svm__degree': degree,
+                 'svm__kernel': kernels}]
+
+""",
                 {'gradientboost__n_estimators': n_estimators,
                   'gradientboost__learning_rate': learning_rate,
                   'gradientboost__max_depth': max_depth,
-                  'gradientboost__random_state': [rand_seed]}]
+                  'gradientboost__random_state': [rand_seed]}"""
 
 model_results = []
 scores_results = []
@@ -69,7 +75,7 @@ res['ind'] = []
 #%%
 # TRAINING
 # train models using 5-fold cross-validation
-# TODO: read in bootstrapping samples @antogeo
+
 for i, (model, params) in enumerate(zip(models, model_params)):
     # split data using age-bins instead of real age
     cv = StratifiedKFold(n_splits=splits).split(df_train[col],
@@ -77,7 +83,7 @@ for i, (model, params) in enumerate(zip(models, model_params)):
     cv = list(cv)
     # run julearn function
     scores, final_model = run_cross_validation(X=col, y='age',
-                                               # preprocess_X='scaler_robust',
+                                               preprocess_X='scaler_robust',
                                                problem_type='regression',
                                                data=df_train,
                                                model=model, cv=cv,
@@ -88,6 +94,7 @@ for i, (model, params) in enumerate(zip(models, model_params)):
                                                 'neg_mean_absolute_error'])
     model_results.append(final_model.best_estimator_)
     scores_results.append(scores)
+    print(model,scores['test_neg_mean_absolute_error'].mean())
 
     # iterate over julearn results to and save results of each iteration
     for iter in range(splits):
@@ -143,7 +150,7 @@ intercept_svr, slope_svr, y_pred_svr_bc = bias_correction(y_pred_svr,
 plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, 
                    modality, database)
 
-# Gradient Boost
+"""# Gradient Boost
 y_pred_gb = df_ages[df_ages['model'] == 'gradientboost']['pred']
 
 
@@ -151,7 +158,7 @@ y_pred_gb = df_ages[df_ages['model'] == 'gradientboost']['pred']
 intercept_gb, slope_gb, y_pred_gb_bc = bias_correction(y_pred_gb,
                                                        y_true)
 plots.real_vs_pred(y_true, y_pred_gb_bc, "gradboost", mode, 
-                   modality, database)
+                   modality, database)"""
 
 # %%
 # TESTING
@@ -236,7 +243,7 @@ neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_rvr_bc, "BPA"
                                                     modality,
                                                     database)
 # Correlation with Neuropsychology - brain age difference ( BA- CA)
-y_diff = y_pred_rvr_bc - y_true
+y_diff = (y_pred_rvr_bc - y_true)/y_true
 neuropsychology_correlations.neuropsych_correlation(y_true, y_diff, "BPAD",
                                                     npt, 
                                                     df_test, 
