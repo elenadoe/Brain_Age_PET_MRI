@@ -68,7 +68,7 @@ res['iter'] = []
 res['pred'] = []
 res['ind'] = []
 # %%
-for i, model in enumerate(models):
+for i, (model, params) in enumerate(zip(models, model_params)):
     cv = StratifiedKFold(n_splits=splits).split(df_interact[col],
                                                 df_interact['Agebins'])
     cv = list(cv)
@@ -77,14 +77,15 @@ for i, model in enumerate(models):
                                                problem_type='regression',
                                                data=df_interact,
                                                model=model, cv=cv,
-                                               return_estimator='all',
+                                               return_estimator='final',
+                                               model_params=params,
                                                seed=rand_seed,
                                                scoring=['r2',
                                                     'neg_mean_absolute_error'])
     model_results.append(final_model)
     scores_results.append(scores)
     for iter in range(splits):
-        pred = scores.estimator[iter].predict(
+        pred = final_model.best_estimator_.predict(
                         df_interact.iloc[cv[iter][1]][col])
         res['pred'].append(pred)
         res['iter'].append(iter)
