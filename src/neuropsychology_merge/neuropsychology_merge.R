@@ -62,4 +62,4 @@ for (i in 1:nrow(data)){
     data$PTAU[i] <- 8
   }
 }
-write.csv(data, "C:/Users/doeringe/Documents/BrainAge/PET_MRI_age/data/test_train_MRI_NP.csv", row.names = FALSE)
+write.csv(data, "C:/Users/doeringe/Documents/BrainAge/PET_MRI_age/data/ADNI/test_train_MRI_NP.csv", row.names = FALSE)
