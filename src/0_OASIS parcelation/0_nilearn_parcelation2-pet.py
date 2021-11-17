@@ -6,10 +6,15 @@ import pandas as pd
 from glob import glob
 from nilearn.datasets import fetch_atlas_schaefer_2018
 
-subject_list = '../data/OASIS_CN_IDs_Age.txt'
-data_path = '/DATA/doeringe/Dokumente/BrainAge/2_Segmented/'
-output_csv = '../data/parcels_FDG.csv'
-atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks = 17)
+subject_list = '../data/OASIS/OASIS_CN_IDs_Age.txt'
+data_path = '/media/projects/brain_age/OASIS_test/4_SUVR/'
+output_csv = '../data/OASIS/parcels_FDG.csv'
+
+schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
+atlas = '../data/schaefer200-17_Tian.nii'
+text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
+labels = text_file.read().split('\n')
+labels = np.append(schaefer['labels'], np.array(labels[:-1]))
 
 # read IDs and age
 subjs = pd.read_csv(subject_list, delimiter="\t")
@@ -29,7 +34,7 @@ for sub in subj_list:
     if foi:
         this_image = nib.load(foi[0])
         niimg = check_niimg(this_image, atleast_4d=True)
-        masker = NiftiLabelsMasker(labels_img=atlas.maps,
+        masker = NiftiLabelsMasker(labels_img=atlas,
                                    standardize=False,
                                    memory='nilearn_cache',
                                    resampling_target='data')
@@ -43,7 +48,7 @@ age = [age[x] for x in range(len(subj_list)) if subj_list[x] in subj_succ]
 features = np.array(image_list)
 x, y, z = features.shape
 features = features.reshape(x, z)
-df = pd.DataFrame(features, columns=atlas.labels)
+df = pd.DataFrame(features, columns=labels)
 
 # combine information on subjects, age and regional data
 subs = {'Subject' : subj_succ,
