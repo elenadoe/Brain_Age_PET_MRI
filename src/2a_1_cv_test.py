@@ -9,6 +9,7 @@ from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
 from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LinearRegression
+import seaborn as sns
 
 
 # %%
@@ -23,6 +24,9 @@ df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP.csv')
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
 col = [x for x in df_train.columns if ('_' in x)]
+# exclude RAVLT memory scores
+col = col[:-3]
+
 df_train = df_train.reset_index(drop=True)
 
 # plot hist with Ages of train data
@@ -42,7 +46,6 @@ splits = 5
 
 # hyperparameters svr & rvr
 kernels = ['linear', 'rbf', 'poly', 'sigmoid']
-degree = [2,3]
 cs = [0.001, 0.01, 0.1, 1, 10, 100]
 # hyperparameters gb
 loss = ['friedman_mse', 'squared_error', 'absolute_error']
@@ -185,13 +188,13 @@ y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, 
                    modality, database)
 
-
+"""
 # plot gradboost predictions against GT in test set
 y_pred_gb = model_results[2].predict(X_test)
 y_pred_gradb_bc = (y_pred_gb - intercept_gb)/slope_gb
 
 plots.real_vs_pred(y_true, y_pred_gradb_bc, "gradboost", mode, 
-                   modality, database)
+                   modality, database)"""
 #%%
 # PERMUTATION IMPORTANCE
 pi = permutation_importance(model_results[0],
@@ -236,16 +239,24 @@ pred_csv.to_csv('../results/pred_age_{}_gradb.csv'.format(modality))
 # CORRELATION NEUROPSYCHOLOGY - BRAIN AGE
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
-npt = df_test.columns[-12:].values
-neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_rvr_bc, "BPA",
+npt = df_test.columns[-16:].values
+neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_svr_bc, "BPA",
                                                     npt, 
                                                     df_test, 
                                                     modality,
                                                     database)
-# Correlation with Neuropsychology - brain age difference ( BA- CA)
-y_diff = (y_pred_rvr_bc - y_true)/y_true
-neuropsychology_correlations.neuropsych_correlation(y_true, y_diff, "BPAD",
-                                                    npt, 
-                                                    df_test, 
-                                                    modality,
-                                                    database)
+# Difference between PA-CA+ and PA-CA-
+y_diff = (y_pred_svr_bc - y_true)
+df_test['AV45_bin'] = [0 if x < 1.11 else 1  if x >= 1.11 
+                       else -1 for x in df_test['AV45'].values]
+sns.barplot(x=df_test['AV45_bin'],y=y_diff)
+"""df_test['CSF_bin'] = [0 if x > 192 else 1  if x <= 192 
+                       else -1 for x in df_test['ABETA'].values]
+sns.barplot(x=df_test['CSF_bin'],y=y_diff)"""
+
+
+#%% BINARY --> exclude NA
+import seaborn as sns
+# no CSF amyloid
+#df_test['ABETA_bin'] = [0 if x >= 192 else 1  if x < 192 else -1 for x in df_test['ABETA'].values]
+#sns.barplot(x=df_test['ABETA_bin'],y=y_diff)
