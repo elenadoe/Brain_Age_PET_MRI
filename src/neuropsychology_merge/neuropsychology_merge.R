@@ -10,56 +10,12 @@ data <- read.csv('C:/Users/doeringe/Documents/BrainAge/PET_MRI_age/data/ADNI/tes
 adni <- subset(adni, select = c(PTID, MMSE, ABETA, PTAU, TAU, AV45, CDRSB, ADAS13, RAVLT_immediate, RAVLT_learning, RAVLT_forgetting,
                        FAQ, MOCA, EcogPtMem, EcogPtLang, EcogPtVisspat, EcogPtPlan,
                        EcogPtOrgan, EcogPtDivatt))
+names(adni)[names(adni) == "PTID"] <- "name"
 
-adni <- na.omit(adni)
-data$ABETA <- NA
-data$PTAU <- NA
-data$TAU <- NA
-data$AV45 <- NA
-data$MMSE <- NA
-data$CDRSB <- NA
-data$ADAS13 <- NA
-data$RAVLT.immediate <- NA
-data$RAVLT.learning <- NA
-data$RAVLT.forgetting <- NA
-data$FAQ <- NA
-data$MOCA <- NA
-data$EcogPTMem <- NA
-data$EcogPTLang <- NA
-data$EcogPTVisspa <- NA
-data$EcogPTPlan <- NA
-data$EcogPTOrgan <- NA
-data$EcogPTDivatt <- NA
-for (i in 1:nrow(data)){
-  pat <- data$name[i]
-  if (pat %in% adni$PTID){
-    data$AV45[i] <- adni$AV45[adni$PTID == pat & !is.na(adni$AV45)]
-    data$ABETA[i] <- adni$ABETA[adni$PTID == pat & !is.na(adni$ABETA)]
-    data$PTAU[i] <- adni$PTAU[adni$PTID == pat & !is.na(adni$PTAU)]
-    data$TAU[i] <- adni$TAU[adni$PTID == pat & !is.na(adni$TAU)]
-    data$MMSE[i] <- adni$MMSE[adni$PTID == pat & !is.na(adni$MMSE)]
-    data$CDRSB[i] <- adni$CDRSB[adni$PTID == pat & !is.na(adni$CDRSB)]
-    data$ADAS13[i] <- adni$ADAS13[adni$PTID == pat & !is.na(adni$ADAS13)]
-    data$RAVLT.immediate[i] <- adni$RAVLT_immediate[adni$PTID == pat & !is.na(adni$RAVLT_immediate)]
-    data$RAVLT.learning[i] <- adni$RAVLT_learning[adni$PTID == pat & !is.na(adni$RAVLT_learning)]
-    data$RAVLT.forgetting[i] <- adni$RAVLT_forgetting[adni$PTID == pat & !is.na(adni$RAVLT_forgetting)]
-    data$FAQ[i] <- adni$FAQ[adni$PTID == pat & !is.na(adni$FAQ)]
-    data$MOCA[i] <- adni$MOCA[adni$PTID == pat & !is.na(adni$MOCA)]
-    data$EcogPTMem[i] <-  adni$EcogPtMem[adni$PTID == pat & !is.na(adni$EcogPtMem)]
-    data$EcogPTLang[i] <-  adni$EcogPtLang[adni$PTID == pat & !is.na(adni$EcogPtLang)]
-    data$EcogPTVisspa[i] <-  adni$EcogPtVisspat[adni$PTID == pat & !is.na(adni$EcogPtVisspat)]
-    data$EcogPTPlan[i] <-  adni$EcogPtPlan[adni$PTID == pat & !is.na(adni$EcogPtPlan)]
-    data$EcogPTOrgan[i] <-  adni$EcogPtOrgan[adni$PTID == pat & !is.na(adni$EcogPtOrgan)]
-    data$EcogPTDivatt[i] <-  adni$EcogPtDivatt[adni$PTID == pat & !is.na(adni$EcogPtDivatt)]
-  }
-}
+#adni <- na.omit(adni)
+df <- merge(data,adni,all.x=TRUE,all.y=FALSE)
 
-for (i in 1:nrow(data)){
-  if (!is.na(data$ABETA[i]) & data$ABETA[i] == '>1700'){
-    data$ABETA[i] <- 1700
-  }
-  if (!is.na(data$PTAU[i]) & data$PTAU[i] == '<8'){
-    data$PTAU[i] <- 8
-  }
-}
-write.csv(data, "C:/Users/doeringe/Documents/BrainAge/PET_MRI_age/data/ADNI/test_train_MRI_NP.csv", row.names = FALSE)
+df$ABETA[df$ABETA == ">1700"] <- 1700
+df$TAU[df$TAU == '<8'] <- 8
+
+write.csv(df, "C:/Users/doeringe/Documents/BrainAge/PET_MRI_age/data/ADNI/test_train_MRI_NP.csv", row.names = FALSE)
