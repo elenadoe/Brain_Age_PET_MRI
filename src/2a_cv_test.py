@@ -21,11 +21,10 @@ modality = 'MRI'
 database = "ADNI"
 mode = "train"
 df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP.csv', sep = ";")
+df['PTGENDER'] = [1 if x == "Male" else 2 for x in df['PTGENDER']]
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
-col = [x for x in df_train.columns if ('_' in x)]
-# exclude RAVLT memory scores
-col = col[:-3]
+col = df.columns[4:-20].tolist()
 
 df_train = df_train.reset_index(drop=True)
 
@@ -95,6 +94,7 @@ for i, (model, params) in enumerate(zip(models, model_params)):
                                                preprocess_X='scaler_robust',
                                                problem_type='regression',
                                                data=df_train,
+                                               confounds='PTGENDER',
                                                model=model, cv=cv,
                                                seed=rand_seed,
                                                model_params=params,
