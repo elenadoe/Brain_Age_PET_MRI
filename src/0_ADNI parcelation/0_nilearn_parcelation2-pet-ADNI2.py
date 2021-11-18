@@ -16,7 +16,7 @@ text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
 labels = text_file.read().split('\n')
 labels = np.append(schaefer['labels'], np.array(labels[:-1]))
 
-output_csv = '../data/ADNI_PET_Sch_Tian_1mm_parcels.csv'
+output_csv = '../data/ADNI/ADNI_MCI_PET_Sch_Tian_1mm_parcels.csv'
 
 #%%
 dates = [date.split('/')[::-1] for date in subjs['Acq Date']]
@@ -39,9 +39,10 @@ for sub in subjs_list:
     y = []
     
     # if there are several scans, only extract regional values for the first
-    for n in range(len(foi)):
-        y.append(int(foi[n][95j:99]))
-    base_ind_ = y.index(np.min(y))
+    """for n in range(len(foi)):
+        y.append(int(foi[n][105:109]))
+    base_ind_ = y.index(np.min(y))"""
+    base_ind_ = 0
     
     if foi and (sub not in subj_succ):
         this_image = nib.load(foi[base_ind_])
