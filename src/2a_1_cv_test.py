@@ -57,9 +57,9 @@ degree = [2,3]
 cs = [0.001, 0.01, 0.1, 1, 10, 100]
 # hyperparameters gb
 loss = ['friedman_mse', 'squared_error', 'absolute_error']
-n_estimators = [10, 100, 200]
-learning_rate = [0.0001, 0.001, 0.01]
-max_depth = [4, 5, 6,7,8,9,10]
+n_estimators = [10, 100, 500]
+learning_rate = [0.0001, 0.001, 0.01, 0.1]
+max_depth = [2,3,4,5,10,15]
 
 model_params = [{'rvr__C': cs, 
                  'rvr__degree': degree,
@@ -243,14 +243,14 @@ pred_csv = pd.concat((df_test["name"],
 
 pred_csv.to_csv('../results/pred_age_{}_rvr.csv'.format(modality))
 
-"""y_diff = y_pred_gradb_bc - y_true
+y_diff = y_pred_gradb_bc - y_true
 pred_csv = pd.concat((df_test["name"],
                       pd.DataFrame(y_true, columns=["age"]),
                       pd.DataFrame(y_pred_gb, columns=["RawPredAge"]),
                       pd.DataFrame(y_pred_gb_bc, columns=["CorrPredAge"]),
                       pd.DataFrame(y_diff, columns=["BPAD"])), axis=1)
 
-pred_csv.to_csv('../results/pred_age_{}_gradb.csv'.format(modality))"""
+pred_csv.to_csv('../results/pred_age_{}_gradb.csv'.format(modality))
 
 # %%
 # CORRELATION NEUROPSYCHOLOGY - BRAIN AGE
@@ -263,16 +263,8 @@ neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_svr_bc, "BPA"
                                                     modality,
                                                     database)
 # Difference between PA-CA+ and PA-CA-
-y_diff = (y_pred_svr_bc - y_true)
-neuropsychology_correlations.neuropsych_correlation(y_true, y_diff, "BPAD",
+neuropsychology_correlations.plot_bpad_diff(y_true, y_pred_svr_bc, 
                                                     npt, 
                                                     df_test, 
                                                     modality,
                                                     database)
-
-
-#%% BINARY --> exclude NA
-import seaborn as sns
-# no CSF amyloid
-#df_test['ABETA_bin'] = [0 if x >= 192 else 1  if x < 192 else -1 for x in df_test['ABETA'].values]
-#sns.barplot(x=df_test['ABETA_bin'],y=y_diff)
