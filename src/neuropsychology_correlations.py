@@ -45,7 +45,7 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
                 ymin, ymax = ax.get_ylim()
                 text = 'r = ' + str(np.round(pearson[0],3)) + ' p = ' + str(np.round(pearson[1],3))
                 plt.title('Difference BPAD - {}'.format(n))
-                plt.text(xmin+10, ymax - 0.01 * ymax, text, verticalalignment='top',
+                plt.text(70, ymax - 0.01 * ymax, text, verticalalignment='top',
                          horizontalalignment='right', fontsize=12)
                 sns.regplot(y_true, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, label = "Age")
                 sns.regplot(y_pred, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)

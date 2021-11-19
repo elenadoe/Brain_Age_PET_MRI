@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import plots as plots
+import seaborn as sns
 from sklearn.inspection import permutation_importance
 from skrvm import RVR
 from julearn import run_cross_validation
@@ -30,9 +31,12 @@ col = [x for x in mri_train.columns if ('_' in x)]
 # exclude RAVLT memory scores
 col = col[:-3]
 
-plt.hist(mri_train['age'], bins=30, label="MRI", alpha = 0.5)
-plt.hist(pet_train['age'], bins=30, label="PET", alpha=0.5)
-plt.title('Age distribution (30 bins)')
+age_df = pd.DataFrame()
+age_df['age'] = (mri_train['age'].tolist() + pet_train['age'].tolist())
+age_df['modality'] = (['mri']*len(mri_train) + ['pet']*len(pet_train))
+sns.displot(age_df, x = 'age', hue='modality', 
+            fill = True, kde = True, alpha = 0.5)
+plt.title('Age distribution in Training Data')
 plt.xlabel('Age [years]')
 plt.ylabel('n Participants')
 plt.legend()
@@ -175,15 +179,15 @@ y_true = df_interact_test['age'].values
 
 y_pred = model_results[0]['rvr'].predict(X_test)
 
-y_pred_bc = (y_pred - intercept_rvr)/slope_rvr
+y_pred_rvr_bc = (y_pred - intercept_rvr)/slope_rvr
 
-plots.real_vs_pred(y_true, y_pred_bc, mode, "rvr", modality,
+plots.real_vs_pred(y_true, y_pred_rvr_bc, mode, "rvr", modality,
                    database)
 
 y_pred = model_results[1]['svm'].predict(X_test)
-y_pred_bc = (y_pred - intercept_svr)/slope_svr
+y_pred_svr_bc = (y_pred - intercept_svr)/slope_svr
 
-plots.real_vs_pred(y_true, y_pred_bc, mode, "svr", modality,
+plots.real_vs_pred(y_true, y_pred_svr_bc, mode, "svr", modality,
                    database)
 # %%
 # PERMUTATION IMP

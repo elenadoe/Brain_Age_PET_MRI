@@ -53,7 +53,7 @@ splits = 5
 # hyperparameters svr & rvr
 kernels = ['linear', 'rbf', 'poly', 'sigmoid']
 degree = [2,3]
-cs = [0.001, 0.01, 0.1, 1, 10, 100]
+cs = [0.001, 0.01, 0.1, 1, 10, 100, 500]
 # hyperparameters gb
 loss = ['friedman_mse', 'squared_error', 'absolute_error']
 n_estimators = [10, 100, 500]
@@ -94,7 +94,6 @@ for i, (model, params) in enumerate(zip(models, model_params)):
                                                preprocess_X='scaler_robust',
                                                problem_type='regression',
                                                data=df_train,
-                                               confounds='PTGENDER',
                                                model=model, cv=cv,
                                                seed=rand_seed,
                                                model_params=params,
@@ -105,7 +104,7 @@ for i, (model, params) in enumerate(zip(models, model_params)):
     scores_results.append(scores)
     print(model,scores['test_neg_mean_absolute_error'].mean())
 
-    # iterate over julearn results to and save results of each iteration
+    """# iterate over julearn results to and save results of each iteration
     for iter in range(splits):
         pred = final_model.best_estimator_.predict(df_train.iloc[cv[iter][1]][col])
         res['pred'].append(pred)
@@ -127,7 +126,7 @@ for i, fold in enumerate(df_res['ind']):
         age_pred['subj'].append(df_train.iloc[sample]['name'])
         age_pred['model'].append(df_res.iloc[i]['model'])
 
-df_ages = pd.DataFrame(age_pred)
+df_ages = pd.DataFrame(age_pred)"""
 
 # %%
 # BIAS CORRECTION
@@ -143,8 +142,8 @@ def bias_correction(y_pred, y_true):
     return intercept, slope, y_pred_bc
 
 # relevance Vectors Regression
-y_true = df_ages[df_ages['model'] == 'RVR()']['real']
-y_pred_rvr = df_ages[df_ages['model'] == 'RVR()']['pred']
+y_true = df_train['age']
+y_pred_rvr = model_results[0].predict(df_train[col])
 
 intercept_rvr, slope_rvr, y_pred_rvr_bc = bias_correction(y_pred_rvr,
                                                           y_true)
@@ -152,7 +151,7 @@ plots.real_vs_pred(y_true, y_pred_rvr, "rvr", mode,
                    modality, database)
 
 # SVM
-y_pred_svr = df_ages[df_ages['model'] == 'svm']['pred']
+y_pred_svr = model_results[1].predict(df_train[col])
 
 intercept_svr, slope_svr, y_pred_svr_bc = bias_correction(y_pred_svr,
                                                           y_true)
@@ -160,7 +159,7 @@ plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode,
                    modality, database)
 
 # Gradient Boost
-y_pred_gb = df_ages[df_ages['model'] == 'gradientboost']['pred']
+y_pred_gb = model_results[2].predict(df_train[col])
 
 
 # fit a linear model for bias correction for gaussian

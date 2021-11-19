@@ -44,6 +44,7 @@ def real_vs_pred(y_true, y_pred, alg, modality, train_test, database):
     plt.show()
 
 
+    
 # plot permutation importance
 def permutation_imp(feature_imp, alg, modality, database):
     """Plots permutation importance as evaluated in test set
@@ -60,7 +61,7 @@ def permutation_imp(feature_imp, alg, modality, database):
     schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
     text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
     labels = text_file.read().split('\n')
-    labels = np.append(schaefer['labels'], np.array(labels[:-1]))
+    labels = np.append(schaefer['labels'], np.array(labels))
     print("Most important regions: {}".format(
         np.array(labels)[np.where(feature_imp.importances_mean>1e-02)]))
     
@@ -73,11 +74,11 @@ def permutation_imp(feature_imp, alg, modality, database):
     imp = feature_imp.importances_mean
     atlas_matrix_stat = atlas_matrix.copy()
 
-    for x in range(217):
+    for x in range(215):
         if x == 0:
             pass
         else:
-            atlas_matrix_stat[atlas_matrix_stat == x] = imp[x-1]
+            atlas_matrix_stat[atlas_matrix_stat == x] = imp[x]
     atlas_final = image.new_img_like(atlas, atlas_matrix_stat)
 
     plotting.plot_stat_map(atlas_final, threshold = 0)
