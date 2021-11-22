@@ -49,7 +49,6 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
                          horizontalalignment='right', fontsize=12)
                 sns.regplot(y_true, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, label = "Age")
                 sns.regplot(y_pred, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)
-                plt.xlabel("Age [years]")
                 plt.legend()
                 plt.title(n)
             else:
