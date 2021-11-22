@@ -4,8 +4,7 @@ import numpy as np
 import nibabel as nib
 import scipy.stats as stats
 from nilearn.datasets import fetch_atlas_schaefer_2018
-from nilearn import plotting
-from nilearn import image
+from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
 
 
@@ -131,14 +130,15 @@ def permutation_imp(feature_imp, alg, modality, database):
     imp = feature_imp.importances_mean
     atlas_matrix_stat = atlas_matrix.copy()
 
-    for x in range(215):
+    for x in range(217):
         if x == 0:
             pass
         else:
-            atlas_matrix_stat[atlas_matrix_stat == x] = imp[x]
+            atlas_matrix_stat[atlas_matrix_stat == x] = imp[x-1]
     atlas_final = image.new_img_like(atlas, atlas_matrix_stat)
 
-    plotting.plot_stat_map(atlas_final, threshold = 0)
+    plotting.plot_stat_map(atlas_final)
+    plotting.view_img_on_surf(atlas_final, threshold="90%")
     plt.title("{}-relevant regions for aging".format(alg))
     plt.savefig("../results/"+database+
                 "/Permutation_importance_{}_{}.jpg".format(

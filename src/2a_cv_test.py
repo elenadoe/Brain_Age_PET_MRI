@@ -66,18 +66,7 @@ model_params = [{'rvr__C': cs,
                  'rvr__kernel': kernels},
                 {'svm__C': cs, 
                  'svm__degree': degree,
-                 'svm__kernel': kernels}]#,
-"""                {'gradientboost__n_estimators': n_estimators,
-                  'gradientboost__learning_rate': learning_rate,
-                  'gradientboost__max_depth': max_depth,
-                  'gradientboost__random_state': [rand_seed]}]
-
-
-res = {}
-res['model'] = []
-res['iter'] = []
-res['pred'] = []
-res['ind'] = []"""
+                 'svm__kernel': kernels}]
 
 model_results = []
 scores_results = []

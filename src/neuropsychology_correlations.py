@@ -113,5 +113,6 @@ def plot_bpad_diff(y_true, y_pred, neuropsych_var,
             plt.savefig(fname = "../results/"+database+"/plots/"+modality+"_"
                         "boxplot_BPAD"+"_"+n+".png")
             plt.show()
+    print("t-values of significant tests:")
     for key in sign:
         print(key, ":", np.round(sign[key],3))
