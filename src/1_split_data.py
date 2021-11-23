@@ -17,11 +17,6 @@ y = df['age'].values
 #%%
 y_pseudo = df['Agebins']
 
-X = X[np.where(y>65)[0]]
-id_ = df['name'][np.where(y>65)[0]]
-y_pseudo = y_pseudo[np.where(y>65)[0]]
-y = y[np.where(y>65)[0]]
-
 x_train, x_test,  y_train, y_test, id_train, id_test = train_test_split(
     X, y, id_, test_size=.2, random_state=42,
     stratify=y_pseudo)

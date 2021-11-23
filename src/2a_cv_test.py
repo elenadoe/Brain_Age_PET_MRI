@@ -1,6 +1,5 @@
 # %%
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 import neuropsychology_correlations
 import plots
@@ -16,11 +15,11 @@ import pickle
 # load and inspect data, set modality
 # TODO: read in bootstrapping samples @antogeo
 # modality = input("Which modality are you analyzing? ")
-modality = 'PET'
+modality = 'MRI'
 database = "ADNI"
 mode = "train"
 df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP.csv', sep = ";")
-df['PTGENDER'] = [1 if x == "Male" else 2 for x in df['PTGENDER']]
+#df['PTGENDER'] = [1 if x == "Male" else 2 for x in df['PTGENDER']]
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
 col = df.columns[4:-21].tolist()
@@ -86,7 +85,7 @@ for i, (model, params) in enumerate(zip(models, model_params)):
                                                data=df_train,
                                                model=model, cv=cv,
                                                seed=rand_seed,
-                                               confounds='PTGENDER',
+                                               #confounds='PTGENDER',
                                                model_params=params,
                                                return_estimator='all',
                                                scoring=['r2',
@@ -97,8 +96,8 @@ for i, (model, params) in enumerate(zip(models, model_params)):
 
 # %%
 y_true = df_train['age']
-y_pred_rvr = model_results[0].predict(df_train[col + ['PTGENDER']])
-y_pred_svr = model_results[1].predict(df_train[col + ['PTGENDER']])
+y_pred_rvr = model_results[0].predict(df_train[col])# + ['PTGENDER']])
+y_pred_svr = model_results[1].predict(df_train[col])# + ['PTGENDER']])
 
 slope_rvr, intercept_rvr, rvr_check = plots.check_bias(y_true,
                                                        y_pred_rvr,
@@ -121,7 +120,7 @@ print("Significant association between SVR-predicted age delta and CA:",
 
 # relevance Vectors Regression
 y_true = df_train['age']
-y_pred_rvr = model_results[0].predict(df_train[col + ['PTGENDER']])
+y_pred_rvr = model_results[0].predict(df_train[col])# + ['PTGENDER']])
 
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
@@ -132,7 +131,7 @@ plots.check_bias(y_true,y_pred_rvr_bc,
                  corrected=True)
 
 # SVM
-y_pred_svr = model_results[1].predict(df_train[col+['PTGENDER']])
+y_pred_svr = model_results[1].predict(df_train[col])#+['PTGENDER']])
 
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
@@ -161,7 +160,7 @@ df_test = df[df['train'] == False]
 #df_test_scaled = scaler.transform(df_test[col])
 mode = "test"
 
-X_test = df_test[col+['PTGENDER']]
+X_test = df_test[col]#+['PTGENDER']]
 y_true = df_test['age'].values
 
 # plot rvr predictions against GT in test set
@@ -213,14 +212,14 @@ pred_csv.to_csv('../results/pred_age_{}_rvr.csv'.format(modality))
 # CORRELATION NEUROPSYCHOLOGY - BRAIN AGE
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
-npt = df_test.columns[-15:].values
-neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_svr_bc, "BPA",
+npt = df_test.columns[-18:].values
+neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_rvr_bc, "BPA",
                                                     npt, 
                                                     df_test, 
                                                     modality,
                                                     database)
 # Difference between PA-CA+ and PA-CA-
-neuropsychology_correlations.plot_bpad_diff(y_true, y_pred_svr_bc, 
+neuropsychology_correlations.plot_bpad_diff(y_true, y_pred_rvr_bc, 
                                                     npt, 
                                                     df_test, 
                                                     modality,

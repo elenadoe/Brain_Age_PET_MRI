@@ -9,6 +9,7 @@ import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -34,6 +35,7 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
     
     sign = {}
     for n in neuropsych_var:
+        df_test[n] = pd.to_numeric(df_test[n])
         exc = np.isnan(df_test[n])
         pearson = stats.pearsonr(y_pred[~exc],
                                  df_test[n][~exc])
@@ -41,15 +43,16 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
             if age_or_diff == "BPA":
                 sign[n] = pearson[0]
                 fig, ax = plt.subplots(1, figsize = [12,8])
-                xmin, xmax = ax.get_xlim()
-                ymin, ymax = ax.get_ylim()
                 text = 'r = ' + str(np.round(pearson[0],3)) + ' p = ' + str(np.round(pearson[1],3))
                 plt.title('Difference BPAD - {}'.format(n))
-                plt.text(70, ymax - 0.01 * ymax, text, verticalalignment='top',
-                         horizontalalignment='right', fontsize=12)
                 sns.regplot(y_true, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, label = "Age")
                 sns.regplot(y_pred, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)
+                xmin, xmax = ax.get_xlim()
+                ymin, ymax = ax.get_ylim()
                 plt.legend()
+                plt.text(xmin + 0.01 * xmin, ymax - 0.1 * ymax, text, 
+                         fontsize=12, verticalalignment='bottom', 
+                         horizontalalignment='left')
                 plt.title(n)
             else:
                 sign[n] = pearson[0]
@@ -107,7 +110,7 @@ def plot_bpad_diff(y_true, y_pred, neuropsych_var,
             ymin, ymax = ax.get_ylim()
             text = 't = ' + str(np.round(ttest[0],3)) + ' p = ' + str(np.round(ttest[1],3))
             plt.title('Difference BPAD - {}'.format(n))
-            plt.text(0.5, ymax - 0.01 * ymax, text, verticalalignment='top',
+            plt.text(xmax - 0.01 * xmax, ymax - 0.01 * ymax, text, verticalalignment='top',
             horizontalalignment='right', fontsize=12)
 
             plt.savefig(fname = "../results/"+database+"/plots/"+modality+"_"

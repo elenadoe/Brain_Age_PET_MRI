@@ -94,7 +94,7 @@ def check_bias(y_true, y_pred, alg, modality, database, corrected=False):
                                                                   modality,
                                                                   alg))
     else:
-        plt.savefig('../results/{}/bias-corrected_{}_{}.jpg'.format(database,
+        plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(database,
                                                                   modality,
                                                                   alg))
     plt.show()
