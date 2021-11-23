@@ -3,6 +3,7 @@ import seaborn as sns
 import numpy as np
 import nibabel as nib
 import scipy.stats as stats
+import pandas as pd
 from nilearn.datasets import fetch_atlas_schaefer_2018
 from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
@@ -118,8 +119,10 @@ def permutation_imp(feature_imp, alg, modality, database):
     text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
     labels = text_file.read().split('\n')
     labels = np.append(schaefer['labels'], np.array(labels[:-1]))
-    print("Most important regions: {}".format(
-        np.array(labels)[np.where(feature_imp.importances_mean>1e-02)]))
+    df_imp = pd.DataFrame({'region': labels,
+                           'perm_importance': feature_imp.importances_mean})
+    df_imp.to_csv('../results/{}/permutation_importance_{}_{}.csv'.format(database,
+                                                                   modality, alg))
     
     atlas = '../data/schaefer200-17_Tian.nii'
     atlas = image.load_img(atlas)
