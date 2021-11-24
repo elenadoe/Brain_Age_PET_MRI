@@ -28,7 +28,8 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database,
     plt.xlabel('{}-Predicted Age ({})'.format(alg,modality))
     plt.ylabel('Chronological Age')
     plt.legend()
-    plt.savefig("../results/{}/plots/real_vs_pred_{}_{}_{}.jpg".format(database,
+    plt.savefig("../results/{}/plots/real_vs_pred_{}_{}_{}_{}.jpg".format(database,
+                                                              group,
                                                               modality,
                                                               train_test,
                                                               alg),
@@ -38,7 +39,9 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database,
     # return evaluation scores
     r2 = r2_score(y_true,y_pred)
     mae = mean_absolute_error(y_true, y_pred)
-    results = open("../results/ADNI/eval_{}_{}_{}.txt".format(modality, 
+    results = open("../results/{}/eval_{}_{}_{}_{}.txt".format(database,
+                                                               group,
+                                                                 modality, 
                                                               train_test,
                                                               alg), 'w+')
     results.write("MAE\tR2\tME\n"+str(mae)+"\t"+
