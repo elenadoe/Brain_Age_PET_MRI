@@ -28,7 +28,7 @@ df = df.reset_index(drop=True)
 # select columns with '_' which are col's with features
 col = df.columns[3:-19].tolist()
 #%%
-model_all = pickle.load(open('../results/model_rvr_PET.p',"rb"))
+model_all = pickle.load(open('../results/model_rvr_{}.p'.format(modality),"rb"))
 intercept_ = model_all['intercept']
 slope_ = model_all['slope']
 model_ = model_all['model']
@@ -36,7 +36,6 @@ model_ = model_all['model']
 # predict and apply bias correction
 pred = model_.predict(df[col])
 pred_bc = (pred - intercept_)/slope_
-mae = mean_absolute_error(df['age'],pred_bc)
 
 plots.real_vs_pred_2(df['age'], pred_bc, "rvr", mode, 
                    modality, database, group = "MCI")
