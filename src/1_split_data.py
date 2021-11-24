@@ -4,7 +4,15 @@ from sklearn.model_selection import train_test_split
 modality = 'MRI'
 df = pd.read_csv('../data/ADNI/ADNI_'+modality+'_Sch_Tian_1mm_parcels.csv',
                  sep = ",")
-df = df[df['age']>65]
+df_con = pd.read_csv('../data/ADNI/ADNI_PET_Sch_Tian_1mm_parcels.csv',
+                 sep = ";")
+print(all(df['name'] == df_con['name']))
+#%%
+df = df[df['age']>=65]
+df = df.reset_index(drop=True)
+df_con = df[df['age']>=65]
+df_con = df_con.reset_index(drop=True)
+df = df[df_con['age']>=65]
 df = df.reset_index(drop=True)
 print("Individuals younger than 65 contained in data:",any(df['age']<65))
 
@@ -21,7 +29,7 @@ y = df['age'].values
 y_pseudo = df['Agebins']
 
 x_train, x_test,  y_train, y_test, id_train, id_test = train_test_split(
-    X, y, df['name'], test_size=.2, random_state=42,
+    X, y, df['name'], test_size=.2, random_state=0,
     stratify=y_pseudo)
 
 df['train'] = [True if x in id_train.values else False for x in df[
