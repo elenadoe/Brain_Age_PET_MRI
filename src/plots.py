@@ -4,11 +4,48 @@ import numpy as np
 import nibabel as nib
 import scipy.stats as stats
 import pandas as pd
+import matplotlib
 from nilearn.datasets import fetch_atlas_schaefer_2018
 from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
 
-
+def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database):
+    y_diff = np.round(y_pred,0) - y_true
+    y_diff_cat = [0 if x < 0 else 1 if x == 0 else 2 for x in y_diff]
+    #y_diff_label = ['PA-CA negative', 'PA = CA', 'PA-CA positive']
+    cm = matplotlib.cm.get_cmap('PuOr')
+    cm_neg = cm(0.2)
+    cm_0 = 'black'
+    cm_pos = cm(0.8)
+    cm_final = np.array([cm_neg,cm_0,cm_pos])
+    plt.scatter(y_pred,y_true,c=cm_final[y_diff_cat])
+    plt.plot([np.min(y_pred),np.max(y_pred)],
+         [np.min(y_pred),np.max(y_pred)],
+         linestyle="--", color="black", label = "CA = PA")
+    plt.xlim(np.min(y_pred)-2,np.max(y_pred)+2)
+    plt.ylim(np.min(y_pred)-2,np.max(y_pred)+2)
+    plt.xlabel('{}-Predicted Age ({})'.format(alg,modality))
+    plt.ylabel('Chronological Age')
+    plt.legend()
+    plt.savefig("../results/{}/plots/real_vs_pred_{}_{}_{}.jpg".format(database,
+                                                              modality,
+                                                              train_test,
+                                                              alg),
+                bbox_inches='tight')
+    plt.show()
+    
+    # return evaluation scores
+    r2 = r2_score(y_true,y_pred)
+    mae = mean_absolute_error(y_true, y_pred)
+    results = open("../results/ADNI/eval_{}_{}_{}.txt".format(modality, 
+                                                              train_test,
+                                                              alg), 'w+')
+    results.write("MAE\tR2\tME\n"+str(mae)+"\t"+
+                  str(r2) + "\t" + str(np.mean(y_diff)))
+    print("---",alg,"---")
+    print("On average, predicted age of CN differed by {} years from their chronological age.".format(np.mean(y_diff)))
+    print("MAE = {}, R2 = {}".format(mae,r2))
+    
 # plot ground truth against predictions
 def real_vs_pred(y_true, y_pred, alg, modality, train_test, database):
     """Plots True labels against the predicted ones.
