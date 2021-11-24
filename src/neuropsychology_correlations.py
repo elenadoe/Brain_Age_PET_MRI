@@ -14,7 +14,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var, 
-                           df_test, modality, database):
+                           df_test, modality, database, group = "CN"):
     """
 
     Parameters
@@ -61,14 +61,15 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
                 plt.xlabel("PA - CA [years]")
                 plt.legend()
                 plt.title(n)
-            plt.savefig(fname = "../results/"+database+"/plots/"+modality+"_"+
+            plt.savefig(fname = "../results/"+database+"/plots/_"+group+modality+"_"+
                         age_or_diff+"_"+n+".png")
 
     for key in sign:
         print(key, ":", np.round(sign[key],3))
         
 def plot_bpad_diff(y_true, y_pred, neuropsych_var, 
-                           df_test, modality, database):
+                           df_test, modality, database,
+                           group = "CN"):
     """
     Creates boxplots of BPAD differences significant as per t-test
 
@@ -113,8 +114,8 @@ def plot_bpad_diff(y_true, y_pred, neuropsych_var,
             plt.text(xmax - 0.01 * xmax, ymax - 0.01 * ymax, text, verticalalignment='top',
             horizontalalignment='right', fontsize=12)
 
-            plt.savefig(fname = "../results/"+database+"/plots/"+modality+"_"
-                        "boxplot_BPAD"+"_"+n+".png")
+            plt.savefig(fname = "../results/"+database+"/plots/_"+group+modality+"_"
+                        "_boxplot_BPAD"+"_"+n+".png")
             plt.show()
     print("t-values of significant tests:")
     for key in sign:

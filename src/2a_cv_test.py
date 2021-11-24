@@ -13,9 +13,9 @@ import pickle
 # %%
 # LOAD DATA
 # load and inspect data, set modality
-# TODO: read in bootstrapping samples @antogeo
+# TODO: stratify by age group (young old, middle old, oldest-old)
 # modality = input("Which modality are you analyzing? ")
-modality = 'MRI'
+modality = 'PET'
 database = "ADNI"
 mode = "train"
 df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP.csv', sep = ";")
@@ -124,7 +124,7 @@ y_pred_rvr = model_results[0].predict(df_train[col])# + ['PTGENDER']])
 
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
-plots.real_vs_pred(y_true, y_pred_rvr_bc, "rvr", mode, 
+plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", mode, 
                    modality, database)
 plots.check_bias(y_true,y_pred_rvr_bc,
                  "RVR",modality,database,
@@ -135,7 +135,7 @@ y_pred_svr = model_results[1].predict(df_train[col])#+['PTGENDER']])
 
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
-plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, 
+plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", mode, 
                    modality, database)
 plots.check_bias(y_true,y_pred_svr_bc,
                  "SVR",modality,database,
@@ -149,13 +149,14 @@ model_svr = {'intercept':intercept_svr,
              'slope':slope_svr,
              'model':model_results[1]}
 
-pickle.dump(model_rvr,open("../results/model_rvr.p","wb"))
-pickle.dump(model_svr,open("../results/model_svr.p","wb"))
+pickle.dump(model_rvr,open("../results/model_rvr_"+modality+".p","wb"))
+pickle.dump(model_svr,open("../results/model_svr_"+modality+".p","wb"))
             
 # %%
 # TESTING
 # How well does the model perform on unseen data?
 df_test = df[df['train'] == False]
+df_test = df_test.reset_index(drop=True)
 # apply scale parameters from training data
 #df_test_scaled = scaler.transform(df_test[col])
 mode = "test"
@@ -167,14 +168,14 @@ y_true = df_test['age'].values
 y_pred_rvr = model_results[0].predict(X_test)
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
-plots.real_vs_pred(y_true, y_pred_rvr_bc, "rvr", mode, 
+plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", mode, 
                    modality, database)
 
 # plot svr predictions against GT in test set
 y_pred_svr = model_results[1].predict(X_test)
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
-plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, 
+plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", mode, 
                    modality, database)
 
 #%%
@@ -190,7 +191,6 @@ plots.permutation_imp(pi, 'rvr', modality, database)
 # Create table of (corrected) predicted and chronological age in this modality
 # rvr had better performance in both MAE and R2 --> take rvr as final model
 y_diff = y_pred_svr_bc - y_true
-df_test = df_test.reset_index(drop=True)
 pred_csv = pd.concat((df_test["name"],
                       pd.DataFrame(y_true, columns=["age"]),
                       pd.DataFrame(y_pred_svr, columns=["RawPredAge"]),

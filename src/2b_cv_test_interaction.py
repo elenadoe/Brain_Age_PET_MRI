@@ -145,13 +145,13 @@ intercept_rvr, slope_rvr, y_pred_rvr_bc = bias_correction(y_pred_rvr,
 plots.real_vs_pred(y_true, y_pred_rvr, "rvr", mode, 
                    modality, database)
 
-# SVM
+"""# SVM
 y_pred_svr = df_ages[df_ages['model'] == 'svm']['pred']
 
 intercept_svr, slope_svr, y_pred_svr_bc = bias_correction(y_pred_svr,
                                                           y_true)
 plots.real_vs_pred(y_true, y_pred_svr_bc, "svr", mode, 
-                   modality, database)
+                   modality, database)"""
 
 # %%
 # TESTING

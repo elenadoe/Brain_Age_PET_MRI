@@ -9,7 +9,8 @@ from nilearn.datasets import fetch_atlas_schaefer_2018
 from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
 
-def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database):
+def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database, 
+                   group = "CN"):
     y_diff = np.round(y_pred,0) - y_true
     y_diff_cat = [0 if x < 0 else 1 if x == 0 else 2 for x in y_diff]
     #y_diff_label = ['PA-CA negative', 'PA = CA', 'PA-CA positive']
@@ -46,41 +47,6 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database):
     print("On average, predicted age of CN differed by {} years from their chronological age.".format(np.mean(y_diff)))
     print("MAE = {}, R2 = {}".format(mae,r2))
     
-# plot ground truth against predictions
-def real_vs_pred(y_true, y_pred, alg, modality, train_test, database):
-    """Plots True labels against the predicted ones.
-    inputs:
-    y_true: list of floating point values or integers, representing ground
-        truth values
-    y_pred: list of floating point/integers values, representing predictions
-    alg: algorithm used for current task (used for saving)
-    modality: image modality used (MRI/PET; used for saving)
-    train_test: str indicating whether train or test data is plotted
-        (used for saving)
-    database: str indicating which database was used
-    outputs: none (plots and saves plots)
-    """
-    mae = format(mean_absolute_error(y_true, y_pred), '.2f')
-    corr = format(r2_score(y_true, y_pred), '.2f')
-
-    fig, ax = plt.subplots(1, 1, figsize=(12,8))
-    sns.regplot(y_true, y_pred, ax = ax)
-    ax.set_xlim(np.min(y_true)-1, 
-                np.max(y_true)+1)
-    ax.set_ylim(np.min(y_true)-1, 
-                np.max(y_true)+1)
-    xmin, xmax = ax.get_xlim()
-    ymin, ymax = ax.get_ylim()
-    text = 'MAE: ' + str(mae) + '   CORR: ' + str(corr)
-    ax.set(xlabel='True values', ylabel='Predicted values')
-    plt.title('Actual vs Predicted {}'.format(alg))
-    plt.text(xmin + 10, ymax - 0.01 * ymax, text, verticalalignment='top',
-             horizontalalignment='right', fontsize=12)
-    plt.savefig("../results/"+database+
-                "/plots/real_vs_pred_{}_{}_{}.jpg".format(
-        train_test, modality, alg))
-    plt.show()
-
 def check_bias(y_true, y_pred, alg, modality, database, corrected=False):
     """
     checks whether there is a significant association (= bias) 
