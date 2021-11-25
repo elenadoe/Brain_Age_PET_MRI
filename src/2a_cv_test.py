@@ -18,8 +18,8 @@ import pickle
 modality = 'PET'
 database = "ADNI"
 mode = "train"
-df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP.csv', sep = ";")
-#df['PTGENDER'] = [1 if x == "Male" else 2 for x in df['PTGENDER']]
+df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP.csv')
+# df['PTGENDER'] = [1 if x == "Male" else 2 for x in df['PTGENDER']]
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
 col = df.columns[4:-21].tolist()
@@ -27,17 +27,17 @@ col = df.columns[4:-21].tolist()
 df_train = df_train.reset_index(drop=True)
 
 # plot hist with Ages of train data
-sns.displot(df_train, x = 'age', kde = True)
+sns.displot(df_train, x='age', kde=True)
 plt.title('Age distribution in train set')
 plt.xlabel('Age [years]')
 plt.ylabel('n Participants')
 plt.savefig('../results/{}/plots/{}_age_distribution.png'.format(database,
                                                                  modality),
-            bbox_inches = "tight")
+            bbox_inches="tight")
 plt.show()
 
 
-#%%
+# %%
 # PREPARATION
 rand_seed = 42
 num_bins = 5
@@ -46,30 +46,30 @@ num_bins = 5
 rvr = RVR()
 
 # models to test & names
-models = [rvr, 'svm']#, 'gradientboost']
-model_names = ['rvr', 'svm']#, 'gradientboost']
+models = [rvr, 'svm']  # , 'gradientboost']
+model_names = ['rvr', 'svm']  # , 'gradientboost']
 splits = 5
 
 # hyperparameters svr & rvr
 kernels = ['linear', 'rbf', 'poly', 'sigmoid']
-degree = [2,3]
+degree = [2, 3]
 cs = [0.001, 0.01, 0.1, 1, 10, 100, 500]
 # hyperparameters gb
 loss = ['friedman_mse', 'squared_error', 'absolute_error']
 n_estimators = [10, 100, 500]
 learning_rate = [0.0001, 0.001, 0.01, 0.1]
-max_depth = [2,3,4,5,10,15]
+max_depth = [2, 3, 4, 5, 10, 15]
 
-model_params = [{'rvr__C': cs, 
+model_params = [{'rvr__C': cs,
                  'rvr__degree': degree,
                  'rvr__kernel': kernels},
-                {'svm__C': cs, 
+                {'svm__C': cs,
                  'svm__degree': degree,
                  'svm__kernel': kernels}]
 
 model_results = []
 scores_results = []
-#%%
+# %%
 # TRAINING
 # train models using 5-fold cross-validation
 
@@ -85,29 +85,28 @@ for i, (model, params) in enumerate(zip(models, model_params)):
                                                data=df_train,
                                                model=model, cv=cv,
                                                seed=rand_seed,
-                                               #confounds='PTGENDER',
+                                               # confounds='PTGENDER',
                                                model_params=params,
                                                return_estimator='all',
                                                scoring=['r2',
-                                                'neg_mean_absolute_error'])
+                                               'neg_mean_absolute_error'])
     model_results.append(final_model.best_estimator_)
     scores_results.append(scores)
-    print(model,scores['test_neg_mean_absolute_error'].mean())
+    print(model, scores['test_neg_mean_absolute_error'].mean())
 
 # %%
 y_true = df_train['age']
-y_pred_rvr = model_results[0].predict(df_train[col])# + ['PTGENDER']])
-y_pred_svr = model_results[1].predict(df_train[col])# + ['PTGENDER']])
-
+y_pred_rvr = model_results[0].predict(df_train[col])
+y_pred_svr = model_results[1].predict(df_train[col])
 slope_rvr, intercept_rvr, rvr_check = plots.check_bias(y_true,
                                                        y_pred_rvr,
-                                                       'RVR', 
-                                                       modality, 
+                                                       'RVR',
+                                                       modality,
                                                        database)
 slope_svr, intercept_svr, svr_check = plots.check_bias(y_true,
                                                        y_pred_svr,
-                                                       'SVR', 
-                                                       modality, 
+                                                       'SVR',
+                                                       modality,
                                                        database)
 
 print("Significant association between RVR-predicted age delta and CA:",
@@ -120,71 +119,72 @@ print("Significant association between SVR-predicted age delta and CA:",
 
 # relevance Vectors Regression
 y_true = df_train['age']
-y_pred_rvr = model_results[0].predict(df_train[col])# + ['PTGENDER']])
+y_pred_rvr = model_results[0].predict(df_train[col])  # + ['PTGENDER']])
 
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
-plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", mode, 
-                   modality, database)
-plots.check_bias(y_true,y_pred_rvr_bc,
-                 "RVR",modality,database,
+plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", mode,
+                     modality, database)
+plots.check_bias(y_true, y_pred_rvr_bc,
+                 "RVR", modality, database,
                  corrected=True)
 
 # SVM
-y_pred_svr = model_results[1].predict(df_train[col])#+['PTGENDER']])
+y_pred_svr = model_results[1].predict(df_train[col])  # +['PTGENDER']])
 
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
-plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", mode, 
-                   modality, database)
-plots.check_bias(y_true,y_pred_svr_bc,
-                 "SVR",modality,database,
+plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", mode,
+                     modality, database)
+plots.check_bias(y_true, y_pred_svr_bc,
+                 "SVR", modality, database,
                  corrected=True)
-#%%
+# %%
 # SAVE MODELS
-model_rvr = {'intercept':intercept_rvr,
-             'slope':slope_rvr,
-             'model':model_results[0]}
-model_svr = {'intercept':intercept_svr,
-             'slope':slope_svr,
-             'model':model_results[1]}
+model_rvr = {'intercept': intercept_rvr,
+             'slope': slope_rvr,
+             'model': model_results[0]}
+model_svr = {'intercept': intercept_svr,
+             'slope': slope_svr,
+             'model': model_results[1]}
 
-pickle.dump(model_rvr,open("../results/model_rvr_"+modality+".p","wb"))
-pickle.dump(model_svr,open("../results/model_svr_"+modality+".p","wb"))
-            
+pickle.dump(model_rvr, open("../results/model_rvr_" + modality +
+                            ".p", "wb"))
+pickle.dump(model_svr, open("../results/model_svr_" + modality +
+                            ".p", "wb"))
 # %%
 # TESTING
 # How well does the model perform on unseen data?
 df_test = df[df['train'] == False]
 df_test = df_test.reset_index(drop=True)
 # apply scale parameters from training data
-#df_test_scaled = scaler.transform(df_test[col])
+# df_test_scaled = scaler.transform(df_test[col])
 mode = "test"
 
-X_test = df_test[col]#+['PTGENDER']]
+X_test = df_test[col]  # +['PTGENDER']]
 y_true = df_test['age'].values
 
 # plot rvr predictions against GT in test set
 y_pred_rvr = model_results[0].predict(X_test)
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
-plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", mode, 
-                   modality, database)
+plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", mode,
+                     modality, database)
 
 # plot svr predictions against GT in test set
 y_pred_svr = model_results[1].predict(X_test)
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
-plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", mode, 
-                   modality, database)
+plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", mode,
+                     modality, database)
 
-#%%
+# %%
 # PERMUTATION IMPORTANCE
 pi = permutation_importance(model_results[0],
                             X_test, y_true,
-                            n_repeats = 1000)
+                            n_repeats=1000)
 
-#%%
+# %%
 plots.permutation_imp(pi, 'rvr', modality, database)
 # %%
 # SAVE RESULTS
@@ -213,14 +213,15 @@ pred_csv.to_csv('../results/pred_age_{}_rvr.csv'.format(modality))
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
 npt = df_test.columns[-18:].values
-neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_rvr_bc, "BPA",
-                                                    npt, 
-                                                    df_test, 
+neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_rvr_bc,
+                                                    "BPA",
+                                                    npt,
+                                                    df_test,
                                                     modality,
                                                     database)
 # Difference between PA-CA+ and PA-CA-
-neuropsychology_correlations.plot_bpad_diff(y_true, y_pred_rvr_bc, 
-                                                    npt, 
-                                                    df_test, 
-                                                    modality,
-                                                    database)
+neuropsychology_correlations.plot_bpad_diff(y_true, y_pred_rvr_bc,
+                                            npt,
+                                            df_test,
+                                            modality,
+                                            database)
