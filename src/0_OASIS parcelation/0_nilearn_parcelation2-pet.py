@@ -29,8 +29,8 @@ subj_miss = []
 for sub in subj_list:
     sub_name = sub.split("_", 1)[0]
     session = sub.split("_", 1)[1]
-    
-    foi = glob(data_path + "SUV*" + sub_name + "_" +  session + "*.nii")
+
+    foi = glob(data_path + "SUV*" + sub_name + "_" + session + "*.nii")
     if foi:
         this_image = nib.load(foi[0])
         niimg = check_niimg(this_image, atleast_4d=True)
@@ -41,7 +41,7 @@ for sub in subj_list:
         parcelled = masker.fit_transform(niimg)
         image_list.append(parcelled)
         subj_succ.append(sub)
-        
+
 # exclude data that could not be pre-processed including frame issues
 age = [age[x] for x in range(len(subj_list)) if subj_list[x] in subj_succ]
 
@@ -51,8 +51,8 @@ features = features.reshape(x, z)
 df = pd.DataFrame(features, columns=labels)
 
 # combine information on subjects, age and regional data
-subs = {'Subject' : subj_succ,
-       'Age' : age}
+subs = {'Subject': subj_succ,
+        'Age': age}
 subs_pd = pd.DataFrame(subs)
 df_new = pd.concat([subs_pd, df], axis=1)
 df_new.to_csv(output_csv, index=False)
