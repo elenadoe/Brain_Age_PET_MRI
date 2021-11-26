@@ -40,13 +40,13 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     """
 
     y_diff = y_pred - y_true
+    cm = matplotlib.cm.get_cmap('PuOr')
     # uncomment if coloring in scatterplot is supposed to be
     # depending on CA-PA
     """
     y_diff = np.round(y_diff,0)
     y_diff_cat = [0 if x < 0 else 1 if x == 0 else 2 for x in y_diff]
     # y_diff_label = ['PA-CA negative', 'PA = CA', 'PA-CA positive']
-    cm = matplotlib.cm.get_cmap('PuOr')
     cm_neg = cm(0.2)
     cm_0 = 'black'
     cm_pos = cm(0.8)
