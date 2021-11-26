@@ -7,12 +7,15 @@ df_pet = pd.read_csv('../data/ADNI/ADNI_PET_Sch_Tian_1mm_parcels.csv',
                      sep=";")
 print(all(df_mri['name'] == df_pet['name']))
 # %%
-df_mri = df_mri[df_mri['age'] >= 65]
-df_pet = df_mri[df_mri['age'] >= 65]
+older_65_mri = (df_mri['age'] >= 65).tolist()
+df_pet = df_pet[older_65_mri]
+df_mri = df_mri[older_65_mri]
 df_mri = df_mri.reset_index(drop=True)
 df_pet = df_pet.reset_index(drop=True)
 
-df_mri = df_mri[df_pet['age'] >= 65]
+older_65_pet = (df_pet['age'] >= 65).tolist()
+df_mri = df_mri[older_65_pet]
+df_pet = df_pet[older_65_pet]
 df_mri = df_mri.reset_index(drop=True)
 df_pet = df_pet.reset_index(drop=True)
 print("Individuals younger than 65 contained in data:",
@@ -21,15 +24,16 @@ print("Same IDs contained in both dataframes:",
       all(df_mri['name'] == df_pet['name']))
 # %%
 # divide into age bins of "young old", "middle old" and "oldest old"
+# use mri to do so --> same age bins for both modalities
+# maybe acknowledge as weakness in discussion?
 df_mri['Ageb'] = [0 if x < 74 else 1 if x < 84 else 2 for x in df_mri['age']]
-df_pet['Ageb'] = [0 if x < 74 else 1 if x < 84 else 2 for x in df_pet['age']]
 
 col = df_mri.columns[3:-1].tolist()
 
 X = df_mri[col].values
 y = df_mri['age'].values
 # %%
-y_pseudo = df_mri['Agebins']
+y_pseudo = df_mri['Ageb']
 
 x_train, x_test,  y_train, y_test, id_train, id_test = train_test_split(
     X, y, df_mri['name'], test_size=.2, random_state=42,

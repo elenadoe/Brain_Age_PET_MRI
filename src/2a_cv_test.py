@@ -16,13 +16,13 @@ import pickle
 # TODO: stratify by age group (young old, middle old, oldest-old)
 # modality = input("Which modality are you analyzing? ")
 modality = 'PET'
-database = "ADNI"
+database = "merged"
 mode = "train"
-df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP.csv')
-# df['PTGENDER'] = [1 if x == "Male" else 2 for x in df['PTGENDER']]
+df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_withOASIS.csv',
+                 sep=";")
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
-col = df.columns[4:-21].tolist()
+col = df.columns[3:-22].tolist()
 
 df_train = df_train.reset_index(drop=True)
 
@@ -157,8 +157,7 @@ pickle.dump(model_svr, open("../results/model_svr_" + modality +
 # How well does the model perform on unseen data?
 df_test = df[df['train'] == False]
 df_test = df_test.reset_index(drop=True)
-# apply scale parameters from training data
-# df_test_scaled = scaler.transform(df_test[col])
+db_test = df_test['Dataset'].tolist()
 mode = "test"
 
 X_test = df_test[col]  # +['PTGENDER']]
@@ -169,15 +168,33 @@ y_pred_rvr = model_results[0].predict(X_test)
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
 plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", mode,
-                     modality, database)
+                     modality, database, db_test)
 
 # plot svr predictions against GT in test set
 y_pred_svr = model_results[1].predict(X_test)
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
 plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", mode,
-                     modality, database)
+                     modality, database, db_test)
 
+# %%
+plt.scatter(df_test['HIP.lh'][df_test['Dataset'] == 'OASIS'],
+            df_test['age'][df_test['Dataset'] == 'OASIS'],
+            label="OASIS")
+plt.scatter(df_test['HIP.lh'][df_test['Dataset'] == 'ADNI'],
+            df_test['age'][df_test['Dataset'] == 'ADNI'],
+            color='orange', label="ADNI")
+plt.xlabel('SUVR in left hippocampus')
+plt.ylabel('Chronological age')
+plt.legend()
+plt.show()
+
+plt.scatter(df_test['X17Networks_LH_VisCent_ExStr_1'][df_test['Dataset'] == 'OASIS'],
+            df_test['age'][df_test['Dataset'] == 'OASIS'])
+plt.scatter(df_test['X17Networks_LH_VisCent_ExStr_1'][df_test['Dataset'] == 'ADNI'],
+            df_test['age'][df_test['Dataset'] == 'ADNI'],
+            color='orange')
+plt.show()
 # %%
 # PERMUTATION IMPORTANCE
 pi = permutation_importance(model_results[0],

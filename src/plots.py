@@ -10,8 +10,8 @@ from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
 
 
-def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database,
-                   group="CN"):
+def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
+                   database_list, group="CN"):
     """
     plots predicted age against chronological age
 
@@ -38,15 +38,30 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database,
     None.
 
     """
+
     y_diff = np.round(y_pred, 0) - y_true
-    y_diff_cat = [0 if x < 0 else 1 if x == 0 else 2 for x in y_diff]
+    # uncomment if coloring in scatterplot is supposed to be
+    # depending on CA-PA
+    """y_diff_cat = [0 if x < 0 else 1 if x == 0 else 2 for x in y_diff]
     # y_diff_label = ['PA-CA negative', 'PA = CA', 'PA-CA positive']
     cm = matplotlib.cm.get_cmap('PuOr')
     cm_neg = cm(0.2)
     cm_0 = 'black'
     cm_pos = cm(0.8)
     cm_final = np.array([cm_neg, cm_0, cm_pos])
-    plt.scatter(y_pred, y_true, c=cm_final[y_diff_cat])
+    plt.scatter(y_pred, y_true, c=cm_final[y_diff_cat])"""
+    if train_test == 'test':
+        y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]
+        cm = matplotlib.cm.get_cmap('PuOr')
+        cm_0 = cm(0.2)
+        cm_1 = cm(0.8)
+        cm_final = np.array([cm_0, cm_1])
+        plt.scatter(y_pred, y_true, c=cm_final[y_db_cat])
+        print("Purple color representing ADNI, " +
+              "orange color representing OASIS")
+    else:
+        plt.scatter(y_pred, y_true)
+
     plt.plot([np.min(y_pred), np.max(y_pred)],
              [np.min(y_pred), np.max(y_pred)],
              linestyle="--", color="black", label="CA = PA")
@@ -55,7 +70,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database,
     plt.xlabel('{}-Predicted Age ({})'.format(alg, modality))
     plt.ylabel('Chronological Age')
     plt.legend()
-    plt.savefig("../results/{}/plots/real_vs_pred".format(database) +
+    plt.savefig("../results/{}/plots/real_vs_pred".format(database_name) +
                 "_{}_{}_{}_{}.jpg".format(group,
                                           modality,
                                           train_test,
@@ -66,7 +81,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database,
     # return evaluation scores
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
-    results = open("../results/{}/eval_{}_{}_{}_{}.txt".format(database,
+    results = open("../results/{}/eval_{}_{}_{}_{}.txt".format(database_name,
                                                                group,
                                                                modality,
                                                                train_test,
