@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import neuropsychology_correlations
 import plots
-import matplotlib
 from skrvm import RVR
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
@@ -14,10 +13,7 @@ import pickle
 
 # %%
 # matplotlib config
-cm = matplotlib.cm.get_cmap('PuOr')
-cm_OASIS = cm(0.8)
-cm_ADNI = cm(0.2)
-cm_all = np.array([cm_OASIS, cm_ADNI])
+cm_all = pickle.load(open("../data/config/plotting_config.p", "rb"))
 
 # %%
 # LOAD DATA
@@ -37,7 +33,7 @@ col = df.columns[3:-22].tolist()
 df_train = df_train.reset_index(drop=True)
 
 # plot hist with Ages of train data
-sns.displot(df_train, x='age', kde=True, color=cm_ADNI)
+sns.displot(df_train, x='age', kde=True, color=cm_all[1])
 plt.title('Age distribution in train set')
 plt.xlabel('Age [years]')
 plt.ylabel('n Participants')
@@ -52,6 +48,9 @@ plt.show()
 # plot global brain signal
 df['global'] = np.mean(df[col], axis=1)
 sns.displot(df, x='global', kind='kde', hue='Dataset', palette=cm_all)
+plt.savefig('../results/{}/plots/{}_signal_distribution.jpg'.format(database,
+                                                                    modality),
+            bbox_inches='tight')
 plt.show()
 # %%
 # PREPARATION
@@ -66,26 +65,9 @@ models = [rvr, 'svm', 'gradientboost']
 model_names = ['rvr', 'svm', 'gradientboost']
 splits = 5
 
-# hyperparameters svr & rvr
-kernels = ['linear', 'rbf', 'poly', 'sigmoid']
-degree = [2, 3]
-cs = [0.001, 0.01, 0.1, 1, 10, 100, 500]
-# hyperparameters gb
-loss = ['friedman_mse', 'squared_error', 'absolute_error']
-n_estimators = [10, 100, 500]
-learning_rate = [0.0001, 0.001, 0.01, 0.1]
-max_depth = [2, 3, 4, 5, 10, 15]
-
-model_params = [{'rvr__C': cs,
-                 'rvr__degree': degree,
-                 'rvr__kernel': kernels},
-                {'svm__C': cs,
-                 'svm__degree': degree,
-                 'svm__kernel': kernels},
-                {'gradientboost__loss': loss,
-                 # 'gradientboost__n_estimators': n_estimators,
-                 'gradientboost__learning_rate': learning_rate,
-                 'gradientboost__max_depth': max_depth}]
+# model params
+model_params = pickle.load(open("../data/config/hyperparams_allmodels.p",
+                                "rb"))
 
 model_results = []
 scores_results = []
@@ -210,24 +192,6 @@ y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", modality,
                      mode, database, db_test)
 
-# %%
-plt.scatter(df_test['HIP.lh'][df_test['Dataset'] == 'OASIS'],
-            df_test['age'][df_test['Dataset'] == 'OASIS'],
-            label="OASIS")
-plt.scatter(df_test['HIP.lh'][df_test['Dataset'] == 'ADNI'],
-            df_test['age'][df_test['Dataset'] == 'ADNI'],
-            color='orange', label="ADNI")
-plt.xlabel('SUVR in left hippocampus')
-plt.ylabel('Chronological age')
-plt.legend()
-plt.show()
-
-plt.scatter(df_test['X17Networks_LH_VisCent_ExStr_1'][df_test['Dataset'] == 'OASIS'],
-            df_test['age'][df_test['Dataset'] == 'OASIS'])
-plt.scatter(df_test['X17Networks_LH_VisCent_ExStr_1'][df_test['Dataset'] == 'ADNI'],
-            df_test['age'][df_test['Dataset'] == 'ADNI'],
-            color='orange')
-plt.show()
 # %%
 # PERMUTATION IMPORTANCE
 pi = permutation_importance(model_results[0],
