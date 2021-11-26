@@ -11,7 +11,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 
 
 def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
-                   database_list, group="CN"):
+                   database_list=None, group="CN"):
     """
     plots predicted age against chronological age
 
@@ -27,7 +27,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
         PET or MRI
     train_test : str
         train or test set
-    database : str
+    database_name : str
         the database used
     group : str, optional
         whether cognitively normal (CN) or mild cognitive impairment (MCI)
@@ -39,10 +39,12 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
 
     """
 
-    y_diff = np.round(y_pred, 0) - y_true
+    y_diff = y_pred - y_true
     # uncomment if coloring in scatterplot is supposed to be
     # depending on CA-PA
-    """y_diff_cat = [0 if x < 0 else 1 if x == 0 else 2 for x in y_diff]
+    """
+    y_diff = np.round(y_diff,0)
+    y_diff_cat = [0 if x < 0 else 1 if x == 0 else 2 for x in y_diff]
     # y_diff_label = ['PA-CA negative', 'PA = CA', 'PA-CA positive']
     cm = matplotlib.cm.get_cmap('PuOr')
     cm_neg = cm(0.2)
@@ -81,6 +83,14 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     # return evaluation scores
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
+    r2_adni = r2_score(np.array(y_true[database_list=='ADNI'], n
+                                p.array(y_pred)[database_list=='ADNI'])
+    mae_adni = mean_absolute_error(np.array(y_true[database_list=='ADNI'], 
+                                            np.array(y_pred)[database_list=='ADNI'])
+    r2_oasis = r2_score(np.array(y_true[database_list=='OASIS'], 
+                                 np.array(y_pred)[database_list=='OASIS'])
+    mae_oasis = mean_absolute_error(y_true[database_list=='OASIS'], 
+                                 np.array(y_pred)[database_list=='OASIS'])
     results = open("../results/{}/eval_{}_{}_{}_{}.txt".format(database_name,
                                                                group,
                                                                modality,
@@ -92,6 +102,8 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     print("On average, predicted age of CN differed " +
           "by {} years from their chronological age.".format(np.mean(y_diff)))
     print("MAE = {}, R2 = {}".format(mae, r2))
+    print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
+    print("OASIS:\nMAE = {}, R2 = {}".format(mae_oasis, r2_oasis))
 
 
 def check_bias(y_true, y_pred, alg, modality, database, corrected=False):

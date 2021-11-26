@@ -1,14 +1,23 @@
 # %%
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 import neuropsychology_correlations
 import plots
+import matplotlib
 from skrvm import RVR
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
 from sklearn.inspection import permutation_importance
 import seaborn as sns
 import pickle
+
+# %%
+# matplotlib config
+cm = matplotlib.cm.get_cmap('PuOr')
+cm_OASIS = cm(0.8)
+cm_ADNI = cm(0.2)
+cm_all = np.array([cm_OASIS, cm_ADNI])
 
 # %%
 # LOAD DATA
@@ -18,7 +27,8 @@ import pickle
 modality = 'PET'
 database = "merged"
 mode = "train"
-df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_withOASIS.csv',
+df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_' +
+                 'withOASIS_olderthan65.csv',
                  sep=";")
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
@@ -27,16 +37,22 @@ col = df.columns[3:-22].tolist()
 df_train = df_train.reset_index(drop=True)
 
 # plot hist with Ages of train data
-sns.displot(df_train, x='age', kde=True)
+sns.displot(df_train, x='age', kde=True, color=cm_ADNI)
 plt.title('Age distribution in train set')
 plt.xlabel('Age [years]')
 plt.ylabel('n Participants')
-plt.savefig('../results/{}/plots/{}_age_distribution.png'.format(database,
-                                                                 modality),
-            bbox_inches="tight")
+plt.savefig('../results/{}/plots/{}_age_distribution'.format(database,
+                                                             modality) +
+            '_train.png', bbox_inches="tight")
 plt.show()
 
-
+# %%
+# DATA INVESTIGATION
+# how are brain signals distributed in OASIS and ADNI?
+# plot global brain signal
+df['global'] = np.mean(df[col], axis=1)
+sns.displot(df, x='global', kind='kde', hue='Dataset', palette=cm_all)
+plt.show()
 # %%
 # PREPARATION
 rand_seed = 42
@@ -46,8 +62,8 @@ num_bins = 5
 rvr = RVR()
 
 # models to test & names
-models = [rvr, 'svm']  # , 'gradientboost']
-model_names = ['rvr', 'svm']  # , 'gradientboost']
+models = [rvr, 'svm', 'gradientboost']
+model_names = ['rvr', 'svm', 'gradientboost']
 splits = 5
 
 # hyperparameters svr & rvr
@@ -65,7 +81,11 @@ model_params = [{'rvr__C': cs,
                  'rvr__kernel': kernels},
                 {'svm__C': cs,
                  'svm__degree': degree,
-                 'svm__kernel': kernels}]
+                 'svm__kernel': kernels},
+                {'gradientboost__loss': loss,
+                 # 'gradientboost__n_estimators': n_estimators,
+                 'gradientboost__learning_rate': learning_rate,
+                 'gradientboost__max_depth': max_depth}]
 
 model_results = []
 scores_results = []
@@ -123,8 +143,8 @@ y_pred_rvr = model_results[0].predict(df_train[col])  # + ['PTGENDER']])
 
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
-plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", mode,
-                     modality, database)
+plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", modality,
+                     mode, database)
 plots.check_bias(y_true, y_pred_rvr_bc,
                  "RVR", modality, database,
                  corrected=True)
@@ -134,8 +154,8 @@ y_pred_svr = model_results[1].predict(df_train[col])  # +['PTGENDER']])
 
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
-plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", mode,
-                     modality, database)
+plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", modality,
+                     mode, database)
 plots.check_bias(y_true, y_pred_svr_bc,
                  "SVR", modality, database,
                  corrected=True)
@@ -154,11 +174,24 @@ pickle.dump(model_svr, open("../results/model_svr_" + modality +
                             ".p", "wb"))
 # %%
 # TESTING
+
 # How well does the model perform on unseen data?
 df_test = df[df['train'] == False]
 df_test = df_test.reset_index(drop=True)
 db_test = df_test['Dataset'].tolist()
 mode = "test"
+
+# investigate age distribution
+# plot hist with Ages of train data
+sns.displot(df_test, x='age', kde=True, hue='Dataset')
+plt.title('Age distribution in test set')
+plt.xlabel('Age [years]')
+plt.ylabel('n Participants')
+plt.savefig('../results/{}/plots/{}_age_distribution'.format(database,
+                                                             modality) +
+            '_test.png',
+            bbox_inches="tight")
+plt.show()
 
 X_test = df_test[col]  # +['PTGENDER']]
 y_true = df_test['age'].values
@@ -167,15 +200,15 @@ y_true = df_test['age'].values
 y_pred_rvr = model_results[0].predict(X_test)
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
-plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", mode,
-                     modality, database, db_test)
+plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", modality,
+                     mode, database, db_test)
 
 # plot svr predictions against GT in test set
 y_pred_svr = model_results[1].predict(X_test)
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
-plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", mode,
-                     modality, database, db_test)
+plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", modality,
+                     mode, database, db_test)
 
 # %%
 plt.scatter(df_test['HIP.lh'][df_test['Dataset'] == 'OASIS'],
