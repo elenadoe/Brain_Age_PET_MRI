@@ -69,8 +69,8 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     if train_test == 'test':
         y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]
         plt.scatter(y_true, y_pred, c=cm[y_db_cat])
-        print("Purple color representing ADNI, " +
-              "orange color representing OASIS")
+        print("Orange color representing ADNI, " +
+              "purple color representing OASIS")
 
         r2_oasis = r2_score(
             np.array(y_true)[np.array(database_list) == 'OASIS'],
@@ -90,16 +90,16 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     else:
         plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
         plt.fill([50, 50, 100], [50, 100, 100],
-                 zorder=0, color=cm[0], alpha=0.2)
-        plt.fill([50, 100, 100], [50, 50, 100],
                  zorder=0, color=cm[0], alpha=0.4)
+        plt.fill([50, 100, 100], [50, 50, 100],
+                 zorder=0, color=cm[0], alpha=0.2)
         database_list = ['ADNI']*np.array(y_true).shape[0]
 
     plt.plot([np.min(y_pred), np.max(y_pred)],
              [np.min(y_pred), np.max(y_pred)],
              linestyle="--", color="black", label="CA = PA")
-    plt.xlim(np.min(y_pred)-2, np.max(y_pred)+2)
-    plt.ylim(np.min(y_pred)-2, np.max(y_pred)+2)
+    plt.xlim(50, 100)
+    plt.ylim(50, 100)
     plt.ylabel('{}-Predicted Age ({})'.format(alg, modality))
     plt.xlabel('Chronological Age')
     plt.legend()
@@ -118,7 +118,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
                                                                modality,
                                                                train_test,
                                                                alg), 'w+')
-    results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS"
+    results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS" + "\n"
                   + str(mae) + "\t" + str(r2) + "\t" + str(np.mean(y_diff))
                   + "\t" + str(mae_adni) + "\t" + str(r2_adni)
                   + "\t" + str(mae_oasis) + "\t" + str(r2_oasis))

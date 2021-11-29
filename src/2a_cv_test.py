@@ -20,7 +20,7 @@ cm_all = pickle.load(open("../data/config/plotting_config.p", "rb"))
 # load and inspect data, set modality
 # TODO: stratify by age group (young old, middle old, oldest-old)
 # modality = input("Which modality are you analyzing? ")
-modality = 'PET'
+modality = 'MRI'
 database = "merged"
 mode = "train"
 df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_' +
@@ -33,7 +33,8 @@ col = df.columns[3:-22].tolist()
 df_train = df_train.reset_index(drop=True)
 
 # plot hist with Ages of train data
-sns.displot(df_train, x='age', kde=True, color=cm_all[1])
+sns.displot(df_train, x='age', kde=True, color=cm_all[0])
+plt.ylim(0,70)
 plt.title('Age distribution in train set')
 plt.xlabel('Age [years]')
 plt.ylabel('n Participants')
@@ -52,6 +53,7 @@ plt.savefig('../results/{}/plots/{}_signal_distribution.jpg'.format(database,
                                                                     modality),
             bbox_inches='tight')
 plt.show()
+
 # %%
 # PREPARATION
 rand_seed = 42
@@ -61,8 +63,8 @@ num_bins = 5
 rvr = RVR()
 
 # models to test & names
-models = [rvr, 'svm' , 'gradientboost']
-model_names = ['rvr', 'svm' , 'gradientboost']
+models = ['gauss', rvr, 'svm', 'gradientboost']
+model_names = ['gauss', 'rvr', 'svm', 'gradientboost']
 splits = 5
 
 # model params
@@ -147,7 +149,7 @@ plots.check_bias(y_true, y_pred_svr_bc,
                  "SVR", modality, database,
                  corrected=True)
 
-# Gradbost
+# Gradboost
 y_pred_gb_bc = (y_pred_gb - intercept_gb)/slope_gb
 
 plots.real_vs_pred_2(y_true, y_pred_gb_bc, "gradboost", modality,
@@ -220,7 +222,7 @@ plots.real_vs_pred_2(y_true, y_pred_gb_bc, "gradboost", modality,
 
 # %%
 # PERMUTATION IMPORTANCE
-pi = permutation_importance(model_results[2],
+pi = permutation_importance(model_results[1],
                             X_test, y_true,
                             n_repeats=1000)
 

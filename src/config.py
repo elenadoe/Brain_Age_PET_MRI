@@ -11,9 +11,9 @@ import numpy as np
 # plotting
 # matplotlib config
 cm = matplotlib.cm.get_cmap('PuOr')
-cm_OASIS = cm(0.8)
 cm_ADNI = cm(0.2)
-cm_all = np.array([cm_OASIS, cm_ADNI])
+cm_OASIS = cm(0.8)
+cm_all = np.array([cm_ADNI, cm_OASIS])
 pickle.dump(cm_all, open('../data/config/plotting_config.p', 'wb'))
 
 random_state = 42
@@ -29,8 +29,7 @@ max_depth = [2, 3, 4, 5, 10, 15]
 # hyperparameter gpr
 alpha = [1e-10, 1e-5]
 
-model_params = [{'gauss__alpha': alpha},
-                {'rvr__C': cs,
+model_params = [{'rvr__C': cs,
                  'rvr__degree': degree,
                  'rvr__kernel': kernels},
                 {'svm__C': cs,
