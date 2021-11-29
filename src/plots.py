@@ -4,10 +4,14 @@ import numpy as np
 import nibabel as nib
 import scipy.stats as stats
 import pandas as pd
-import matplotlib
+import pickle
 from nilearn.datasets import fetch_atlas_schaefer_2018
 from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
+
+# %%
+# matplotlib config
+cm = pickle.load(open("../data/config/plotting_config.p", "rb"))
 
 
 def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
@@ -40,7 +44,6 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     """
 
     y_diff = y_pred - y_true
-    cm = matplotlib.cm.get_cmap('PuOr')
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
     mae_adni = np.nan
@@ -65,11 +68,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     plt.scatter(y_pred, y_true, c=cm_final[y_diff_cat])"""
     if train_test == 'test':
         y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]
-        cm = matplotlib.cm.get_cmap('PuOr')
-        cm_0 = cm(0.2)
-        cm_1 = cm(0.8)
-        cm_final = np.array([cm_0, cm_1])
-        plt.scatter(y_pred, y_true, c=cm_final[y_db_cat])
+        plt.scatter(y_true, y_pred, c=cm[y_db_cat])
         print("Purple color representing ADNI, " +
               "orange color representing OASIS")
 
@@ -80,7 +79,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
             y_true[np.array(database_list) == 'OASIS'],
             np.array(y_pred)[np.array(database_list) == 'OASIS'])
         print("OASIS:\nMAE = {}, R2 = {}".format(mae_oasis, r2_oasis))
-        
+
         # return evaluation scores
         r2_adni = r2_score(np.array(y_true)[np.array(database_list) == 'ADNI'],
                            np.array(y_pred)[np.array(database_list) == 'ADNI'])
@@ -89,7 +88,11 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
             np.array(y_pred)[np.array(database_list) == 'ADNI'])
         print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
     else:
-        plt.scatter(y_pred, y_true)
+        plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
+        plt.fill([50, 50, 100], [50, 100, 100],
+                 zorder=0, color=cm[0], alpha=0.2)
+        plt.fill([50, 100, 100], [50, 50, 100],
+                 zorder=0, color=cm[0], alpha=0.4)
         database_list = ['ADNI']*np.array(y_true).shape[0]
 
     plt.plot([np.min(y_pred), np.max(y_pred)],
@@ -97,8 +100,8 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
              linestyle="--", color="black", label="CA = PA")
     plt.xlim(np.min(y_pred)-2, np.max(y_pred)+2)
     plt.ylim(np.min(y_pred)-2, np.max(y_pred)+2)
-    plt.xlabel('{}-Predicted Age ({})'.format(alg, modality))
-    plt.ylabel('Chronological Age')
+    plt.ylabel('{}-Predicted Age ({})'.format(alg, modality))
+    plt.xlabel('Chronological Age')
     plt.legend()
     plt.savefig("../results/{}/plots/real_vs_pred".format(database_name) +
                 "_{}_{}_{}_{}.jpg".format(group,

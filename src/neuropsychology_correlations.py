@@ -13,8 +13,10 @@ import pandas as pd
 import warnings
 
 warnings.filterwarnings("ignore")
-def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var, 
-                           df_test, modality, database, group = "CN"):
+
+
+def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
+                           df_test, modality, database, group="CN"):
     """
 
     Parameters
@@ -31,8 +33,9 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
     None.
 
     """
-    print("Significant correlations between {} and Neuropsychology".format(age_or_diff))
-    
+    print("Significant correlations between {}".format(age_or_diff) +
+          "and Neuropsychology")
+
     sign = {}
     for n in neuropsych_var:
         df_test[n] = pd.to_numeric(df_test[n])
@@ -42,34 +45,40 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
         if pearson[1] < 0.05:
             if age_or_diff == "BPA":
                 sign[n] = pearson[0]
-                fig, ax = plt.subplots(1, figsize = [12,8])
-                text = 'r = ' + str(np.round(pearson[0],3)) + ' p = ' + str(np.round(pearson[1],3))
+                fig, ax = plt.subplots(1, figsize=[12, 8])
+                text = 'r = ' + str(np.round(pearson[0], 3)) + ' p = ' + str(np.round(pearson[1], 3))
                 plt.title('Difference BPAD - {}'.format(n))
-                sns.regplot(y_true, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, label = "Age")
-                sns.regplot(y_pred, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)
+                sns.regplot(y_true, df_test[n], ax=ax,
+                            scatter_kws={'alpha': 0.3}, label="Age")
+                sns.regplot(y_pred, df_test[n], ax=ax,
+                            scatter_kws={'alpha': 0.3},
+                            color="red", label=age_or_diff)
                 xmin, xmax = ax.get_xlim()
                 ymin, ymax = ax.get_ylim()
                 plt.legend()
-                plt.text(xmin + 0.01 * xmin, ymax - 0.1 * ymax, text, 
+                plt.text(xmin + 0.01 * xmin, ymax - 0.1 * ymax, text,
                          fontsize=12, verticalalignment='bottom', 
                          horizontalalignment='left')
                 plt.title(n)
             else:
                 sign[n] = pearson[0]
-                fig, ax = plt.subplots(1, figsize = [12,8])
-                sns.regplot(y_pred, df_test[n], ax = ax, scatter_kws = {'alpha' : 0.3}, color = "red", label = age_or_diff)
+                fig, ax = plt.subplots(1, figsize=[12, 8])
+                sns.regplot(y_pred, df_test[n], ax=ax,
+                            scatter_kws={'alpha': 0.3}, color="red",
+                            label=age_or_diff)
                 plt.xlabel("PA - CA [years]")
                 plt.legend()
                 plt.title(n)
-            plt.savefig(fname = "../results/"+database+"/plots/_"+group+modality+"_"+
-                        age_or_diff+"_"+n+".png")
+            plt.savefig(fname="../results/" + database + "/plots/" + group +
+                        "/" + modality + "_" + age_or_diff+"_"+n+".png")
 
     for key in sign:
-        print(key, ":", np.round(sign[key],3))
-        
-def plot_bpad_diff(y_true, y_pred, neuropsych_var, 
-                           df_test, modality, database,
-                           group = "CN"):
+        print(key, ":", np.round(sign[key], 3))
+
+
+def plot_bpad_diff(y_true, y_pred, neuropsych_var,
+                   df_test, modality, database,
+                   group="CN"):
     """
     Creates boxplots of BPAD differences significant as per t-test
 
@@ -111,11 +120,13 @@ def plot_bpad_diff(y_true, y_pred, neuropsych_var,
             ymin, ymax = ax.get_ylim()
             text = 't = ' + str(np.round(ttest[0],3)) + ' p = ' + str(np.round(ttest[1],3))
             plt.title('Difference BPAD - {}'.format(n))
-            plt.text(xmax - 0.01 * xmax, ymax - 0.01 * ymax, text, verticalalignment='top',
-            horizontalalignment='right', fontsize=12)
+            plt.text(xmax - 0.01 * xmax, ymax - 0.01 * ymax,
+                     text, verticalalignment='top',
+                     horizontalalignment='right', fontsize=12)
 
-            plt.savefig(fname = "../results/"+database+"/plots/_"+group+modality+"_"
-                        "_boxplot_BPAD"+"_"+n+".png")
+            plt.savefig(fname="../results/" + database + "/plots/" +
+                        group + "/" + modality +
+                        "_boxplot_BPAD" + "_" + n + ".png")
             plt.show()
     print("t-values of significant tests:")
     for key in sign:
