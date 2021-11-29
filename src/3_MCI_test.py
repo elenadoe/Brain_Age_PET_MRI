@@ -26,7 +26,7 @@ df = df.reset_index(drop=True)
 col = df.columns[3:-19].tolist()
 
 # %%
-model_all = pickle.load(open('../results/model_svr_{}.p'.format(
+model_all = pickle.load(open('../results/model_rvr_{}.p'.format(
     modality), "rb"))
 intercept_ = model_all['intercept']
 slope_ = model_all['slope']
@@ -37,22 +37,22 @@ model_ = model_all['model']
 pred = model_.predict(df[col])
 pred_bc = (pred - intercept_)/slope_
 
-plots.real_vs_pred_2(df['Age'], pred_bc, "svr", mode,
-                   modality, database, group="MCI")
+plots.real_vs_pred_2(df['Age'], pred_bc, "rvr", mode,
+                     modality, database, group="MCI")
 
 # %%
 # CORRELATION NEUROPSYCHOLOGY - BRAIN AGE
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
 npt = df.columns[-18:]
-neuropsychology_correlations.neuropsych_correlation(df['Age'], pred_bc, "BPA",
+neuropsychology_correlations.neuropsych_correlation(df['age'], pred_bc, "BPA",
                                                     npt,
                                                     df,
                                                     modality,
                                                     database,
                                                     group='MCI')
 # Difference between PA-CA+ and PA-CA-
-neuropsychology_correlations.plot_bpad_diff(df['Age'], pred_bc,
+neuropsychology_correlations.plot_bpad_diff(df['age'], pred_bc,
                                             npt,
                                             df,
                                             modality,
