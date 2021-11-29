@@ -61,8 +61,8 @@ num_bins = 5
 rvr = RVR()
 
 # models to test & names
-models = [rvr, 'svm', 'gradientboost']
-model_names = ['rvr', 'svm', 'gradientboost']
+models = [rvr, 'svm' , 'gradientboost']
+model_names = ['rvr', 'svm' , 'gradientboost']
 splits = 5
 
 # model params
@@ -100,6 +100,7 @@ for i, (model, params) in enumerate(zip(models, model_params)):
 y_true = df_train['age']
 y_pred_rvr = model_results[0].predict(df_train[col])
 y_pred_svr = model_results[1].predict(df_train[col])
+y_pred_gb = model_results[2].predict(df_train[col])
 slope_rvr, intercept_rvr, rvr_check = plots.check_bias(y_true,
                                                        y_pred_rvr,
                                                        'RVR',
@@ -110,36 +111,49 @@ slope_svr, intercept_svr, svr_check = plots.check_bias(y_true,
                                                        'SVR',
                                                        modality,
                                                        database)
+slope_gb, intercept_gb, gb_check = plots.check_bias(y_true,
+                                                       y_pred_gb,
+                                                       'gradbost',
+                                                       modality,
+                                                       database)
 
 print("Significant association between RVR-predicted age delta and CA:",
       rvr_check)
 print("Significant association between SVR-predicted age delta and CA:",
       svr_check)
+print("Significant association between gradboost-predicted age delta and CA:",
+      gb_check)
 # %%
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age delta and chronological age
 
 # relevance Vectors Regression
 y_true = df_train['age']
-y_pred_rvr = model_results[0].predict(df_train[col])  # + ['PTGENDER']])
-
 y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 
 plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", modality,
-                     mode, database)
+                     mode, database_name=database)
 plots.check_bias(y_true, y_pred_rvr_bc,
                  "RVR", modality, database,
                  corrected=True)
 
-# SVM
-y_pred_svr = model_results[1].predict(df_train[col])  # +['PTGENDER']])
 
+# SVM
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
 plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", modality,
                      mode, database)
 plots.check_bias(y_true, y_pred_svr_bc,
                  "SVR", modality, database,
+                 corrected=True)
+
+# Gradbost
+y_pred_gb_bc = (y_pred_gb - intercept_gb)/slope_gb
+
+plots.real_vs_pred_2(y_true, y_pred_gb_bc, "gradboost", modality,
+                     mode, database)
+plots.check_bias(y_true, y_pred_svr_bc,
+                 "gradboost", modality, database,
                  corrected=True)
 # %%
 # SAVE MODELS
@@ -149,10 +163,15 @@ model_rvr = {'intercept': intercept_rvr,
 model_svr = {'intercept': intercept_svr,
              'slope': slope_svr,
              'model': model_results[1]}
+model_gb = {'intercept': intercept_gb,
+             'slope': slope_gb,
+             'model': model_results[2]}
 
 pickle.dump(model_rvr, open("../results/model_rvr_" + modality +
                             ".p", "wb"))
 pickle.dump(model_svr, open("../results/model_svr_" + modality +
+                            ".p", "wb"))
+pickle.dump(model_gb, open("../results/model_gb_" + modality +
                             ".p", "wb"))
 # %%
 # TESTING
@@ -165,7 +184,7 @@ mode = "test"
 
 # investigate age distribution
 # plot hist with Ages of train data
-sns.displot(df_test, x='age', kde=True, hue='Dataset')
+sns.displot(df_test, x='age', kde=True, hue='Dataset', palette=cm_all)
 plt.title('Age distribution in test set')
 plt.xlabel('Age [years]')
 plt.ylabel('n Participants')
@@ -192,14 +211,21 @@ y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", modality,
                      mode, database, db_test)
 
+# plot gradboost predictions against GT in test set
+y_pred_gb = model_results[2].predict(X_test)
+y_pred_gb_bc = (y_pred_gb - intercept_gb)/slope_gb
+
+plots.real_vs_pred_2(y_true, y_pred_gb_bc, "gradboost", modality,
+                     mode, database, db_test)
+
 # %%
 # PERMUTATION IMPORTANCE
-pi = permutation_importance(model_results[0],
+pi = permutation_importance(model_results[2],
                             X_test, y_true,
                             n_repeats=1000)
 
 # %%
-plots.permutation_imp(pi, 'rvr', modality, database)
+plots.permutation_imp(pi, 'gradboost', modality, database)
 # %%
 # SAVE RESULTS
 # Create table of (corrected) predicted and chronological age in this modality
@@ -222,19 +248,28 @@ pred_csv = pd.concat((df_test["name"],
 
 pred_csv.to_csv('../results/pred_age_{}_rvr.csv'.format(modality))
 
+y_diff = y_pred_gb_bc - y_true
+pred_csv = pd.concat((df_test["name"],
+                      pd.DataFrame(y_true, columns=["age"]),
+                      pd.DataFrame(y_pred_gb, columns=["RawPredAge"]),
+                      pd.DataFrame(y_pred_gb_bc, columns=["CorrPredAge"]),
+                      pd.DataFrame(y_diff, columns=["BPAD"])), axis=1)
+
+pred_csv.to_csv('../results/pred_age_{}_gradboost.csv'.format(modality))
+
 # %%
 # CORRELATION NEUROPSYCHOLOGY - BRAIN AGE
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
-npt = df_test.columns[-18:].values
-neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_rvr_bc,
+npt = df_test.columns[-19:].values
+neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_gb_bc,
                                                     "BPA",
                                                     npt,
                                                     df_test,
                                                     modality,
                                                     database)
 # Difference between PA-CA+ and PA-CA-
-neuropsychology_correlations.plot_bpad_diff(y_true, y_pred_rvr_bc,
+neuropsychology_correlations.plot_bpad_diff(y_true, y_pred_gb_bc,
                                             npt,
                                             df_test,
                                             modality,

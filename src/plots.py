@@ -41,6 +41,17 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
 
     y_diff = y_pred - y_true
     cm = matplotlib.cm.get_cmap('PuOr')
+    r2 = r2_score(y_true, y_pred)
+    mae = mean_absolute_error(y_true, y_pred)
+    mae_adni = np.nan
+    r2_adni = np.nan
+    mae_oasis = np.nan
+    r2_oasis = np.nan
+
+    print("---", alg, "---")
+    print("On average, predicted age of CN differed " +
+          "by {} years from their chronological age.".format(np.mean(y_diff)))
+    print("MAE = {}, R2 = {}".format(mae, r2))
     # uncomment if coloring in scatterplot is supposed to be
     # depending on CA-PA
     """
@@ -61,8 +72,25 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
         plt.scatter(y_pred, y_true, c=cm_final[y_db_cat])
         print("Purple color representing ADNI, " +
               "orange color representing OASIS")
+
+        r2_oasis = r2_score(
+            np.array(y_true)[np.array(database_list) == 'OASIS'],
+            np.array(y_pred)[np.array(database_list) == 'OASIS'])
+        mae_oasis = mean_absolute_error(
+            y_true[np.array(database_list) == 'OASIS'],
+            np.array(y_pred)[np.array(database_list) == 'OASIS'])
+        print("OASIS:\nMAE = {}, R2 = {}".format(mae_oasis, r2_oasis))
+        
+        # return evaluation scores
+        r2_adni = r2_score(np.array(y_true)[np.array(database_list) == 'ADNI'],
+                           np.array(y_pred)[np.array(database_list) == 'ADNI'])
+        mae_adni = mean_absolute_error(
+            np.array(y_true)[np.array(database_list) == 'ADNI'],
+            np.array(y_pred)[np.array(database_list) == 'ADNI'])
+        print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
     else:
         plt.scatter(y_pred, y_true)
+        database_list = ['ADNI']*np.array(y_true).shape[0]
 
     plt.plot([np.min(y_pred), np.max(y_pred)],
              [np.min(y_pred), np.max(y_pred)],
@@ -80,30 +108,20 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
                 bbox_inches='tight')
     plt.show()
 
-    # return evaluation scores
-    r2 = r2_score(y_true, y_pred)
-    mae = mean_absolute_error(y_true, y_pred)
-    r2_adni = r2_score(np.array(y_true[database_list=='ADNI'], n
-                                p.array(y_pred)[database_list=='ADNI'])
-    mae_adni = mean_absolute_error(np.array(y_true[database_list=='ADNI'], 
-                                            np.array(y_pred)[database_list=='ADNI'])
-    r2_oasis = r2_score(np.array(y_true[database_list=='OASIS'], 
-                                 np.array(y_pred)[database_list=='OASIS'])
-    mae_oasis = mean_absolute_error(y_true[database_list=='OASIS'], 
-                                 np.array(y_pred)[database_list=='OASIS'])
+
+
     results = open("../results/{}/eval_{}_{}_{}_{}.txt".format(database_name,
                                                                group,
                                                                modality,
                                                                train_test,
                                                                alg), 'w+')
-    results.write("MAE\tR2\tME\n" + str(mae) + "\t" +
-                  str(r2) + "\t" + str(np.mean(y_diff)))
-    print("---", alg, "---")
-    print("On average, predicted age of CN differed " +
-          "by {} years from their chronological age.".format(np.mean(y_diff)))
-    print("MAE = {}, R2 = {}".format(mae, r2))
-    print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
-    print("OASIS:\nMAE = {}, R2 = {}".format(mae_oasis, r2_oasis))
+    results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS"
+                  + str(mae) + "\t" + str(r2) + "\t" + str(np.mean(y_diff))
+                  + "\t" + str(mae_adni) + "\t" + str(r2_adni)
+                  + "\t" + str(mae_oasis) + "\t" + str(r2_oasis))
+
+
+    
 
 
 def check_bias(y_true, y_pred, alg, modality, database, corrected=False):
@@ -178,30 +196,30 @@ def permutation_imp(feature_imp, alg, modality, database):
 
     outputs: none (plots and saves plots)
     """
-    schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
-    text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
-    labels = text_file.read().split('\n')
-    labels = np.append(schaefer['labels'], np.array(labels[:-1]))
-    df_imp = pd.DataFrame({'region': labels,
-                           'perm_importance': feature_imp.importances_mean})
+    schaefer=fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
+    text_file=open('../data/Tian_Subcortex_S1_3T_label.txt')
+    labels=text_file.read().split('\n')
+    labels=np.append(schaefer['labels'], np.array(labels[:-1]))
+    df_imp=pd.DataFrame({'region': labels,
+                         'perm_importance': feature_imp.importances_mean})
     df_imp.to_csv('../results/{}/'.format(database) +
                   'permutation_importance_{}_{}.csv'.format(modality, alg))
 
-    atlas = '../data/schaefer200-17_Tian.nii'
-    atlas = image.load_img(atlas)
-    atlas_matrix = image.get_data(atlas)
+    atlas='../data/schaefer200-17_Tian.nii'
+    atlas=image.load_img(atlas)
+    atlas_matrix=image.get_data(atlas)
 
     # create statistical map where each voxel value coresponds to permutation
     # importance
-    imp = feature_imp.importances_mean
-    atlas_matrix_stat = atlas_matrix.copy()
+    imp=feature_imp.importances_mean
+    atlas_matrix_stat=atlas_matrix.copy()
 
     for x in range(217):
         if x == 0:
             pass
         else:
-            atlas_matrix_stat[atlas_matrix_stat == x] = imp[x-1]
-    atlas_final = image.new_img_like(atlas, atlas_matrix_stat)
+            atlas_matrix_stat[atlas_matrix_stat == x]=imp[x-1]
+    atlas_final=image.new_img_like(atlas, atlas_matrix_stat)
 
     plotting.plot_stat_map(atlas_final)
     plotting.view_img_on_surf(atlas_final, threshold="90%")
