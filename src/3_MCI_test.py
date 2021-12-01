@@ -15,18 +15,18 @@ import plots
 # %%
 # LOAD DATA
 # load and inspect data, set modality
-modality = 'MRI'
+modality = 'PET'
 database = "ADNI"
 mode = "test"
 df = pd.read_csv('../data/ADNI/ADNI_MCI_{}_Sch_Tian_1mm_parcels_NP.csv'.format(
     modality), sep=";")
-df = df[df['Age'] > 65]
+df = df[df['age'] > 65]
 df = df.reset_index(drop=True)
 # select columns with '_' which are col's with features
 col = df.columns[3:-19].tolist()
 
 # %%
-model_all = pickle.load(open('../results/model_rvr_{}.p'.format(
+model_all = pickle.load(open('../results/model_gb_{}.p'.format(
     modality), "rb"))
 intercept_ = model_all['intercept']
 slope_ = model_all['slope']
@@ -37,7 +37,7 @@ model_ = model_all['model']
 pred = model_.predict(df[col])
 pred_bc = (pred - intercept_)/slope_
 
-plots.real_vs_pred_2(df['Age'], pred_bc, "rvr", mode,
+plots.real_vs_pred_2(df['age'], pred_bc, "gb", mode,
                      modality, database, group="MCI")
 
 # %%
