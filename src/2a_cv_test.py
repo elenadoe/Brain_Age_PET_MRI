@@ -102,18 +102,18 @@ for i, (model, params) in enumerate(zip(models, model_params)):
 # %%
 y_true = df_train['age']
 y_pred_rvr = model_results[0].predict(df_train[col])
-#y_pred_svr = model_results[1].predict(df_train[col])
-y_pred_gb = model_results[1].predict(df_train[col])
+y_pred_svr = model_results[1].predict(df_train[col])
+y_pred_gb = model_results[2].predict(df_train[col])
 slope_rvr, intercept_rvr, rvr_check = plots.check_bias(y_true,
                                                        y_pred_rvr,
                                                        'RVR',
                                                        modality,
                                                        database)
-"""slope_svr, intercept_svr, svr_check = plots.check_bias(y_true,
+slope_svr, intercept_svr, svr_check = plots.check_bias(y_true,
                                                        y_pred_svr,
                                                        'SVR',
                                                        modality,
-                                                       database)"""
+                                                       database)
 slope_gb, intercept_gb, gb_check = plots.check_bias(y_true,
                                                        y_pred_gb,
                                                        'gradbost',
@@ -122,8 +122,8 @@ slope_gb, intercept_gb, gb_check = plots.check_bias(y_true,
 
 print("Significant association between RVR-predicted age delta and CA:",
       rvr_check)
-"""print("Significant association between SVR-predicted age delta and CA:",
-      svr_check)"""
+print("Significant association between SVR-predicted age delta and CA:",
+      svr_check)
 print("Significant association between gradboost-predicted age delta and CA:",
       gb_check)
 # %%
@@ -141,14 +141,14 @@ plots.check_bias(y_true, y_pred_rvr_bc,
                  corrected=True)
 
 
-"""# SVM
+# SVM
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
 plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", modality,
                      mode, database)
 plots.check_bias(y_true, y_pred_svr_bc,
                  "SVR", modality, database,
-                 corrected=True)"""
+                 corrected=True)
 
 # Gradboost
 y_pred_gb_bc = (y_pred_gb - intercept_gb)/slope_gb
@@ -163,10 +163,10 @@ plots.check_bias(y_true, y_pred_gb_bc,
 # SAVE MODELS
 model_rvr = {'intercept': intercept_rvr,
              'slope': slope_rvr,
-             'model': model_results[0]}
-"""model_svr = {'intercept': intercept_svr,
+             'model': model_results[0]}#
+model_svr = {'intercept': intercept_svr,
              'slope': slope_svr,
-             'model': model_results[1]}"""
+             'model': model_results[1]}
 model_gb = {'intercept': intercept_gb,
              'slope': slope_gb,
              'model': model_results[1]}
@@ -208,12 +208,12 @@ y_pred_rvr_bc = (y_pred_rvr - intercept_rvr)/slope_rvr
 plots.real_vs_pred_2(y_true, y_pred_rvr_bc, "rvr", modality,
                      mode, database, db_test)
 
-"""# plot svr predictions against GT in test set
+# plot svr predictions against GT in test set
 y_pred_svr = model_results[1].predict(X_test)
 y_pred_svr_bc = (y_pred_svr - intercept_svr)/slope_svr
 
 plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", modality,
-                     mode, database, db_test)"""
+                     mode, database, db_test)
 
 # plot gradboost predictions against GT in test set
 y_pred_gb = model_results[1].predict(X_test)
