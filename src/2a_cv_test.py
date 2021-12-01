@@ -63,8 +63,8 @@ num_bins = 5
 rvr = RVR()
 
 # models to test & names
-models = [rvr, 'gradientboost', 'svm']
-model_names = ['rvr', 'gradientboost', 'svm']
+models = [rvr, 'svm', 'gradientboost']
+model_names = ['rvr', 'svm', 'gradientboost']
 
 splits = 5
 
