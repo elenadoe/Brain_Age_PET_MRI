@@ -63,15 +63,14 @@ num_bins = 5
 rvr = RVR()
 
 # models to test & names
-models = [rvr, 'gradientboost']  # 'svm']
-model_names = ['rvr', 'gradientboost']  # 'svm']
+models = [rvr, 'gradientboost', 'svm']
+model_names = ['rvr', 'gradientboost', 'svm']
 
 splits = 5
 
 # model params
 model_params = pickle.load(open("../data/config/hyperparams_allmodels.p",
                                 "rb"))
-model_params = np.array(model_params)[[0,2]].tolist()
 model_results = []
 scores_results = []
 # %%
