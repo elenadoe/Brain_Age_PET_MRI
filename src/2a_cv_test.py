@@ -20,7 +20,7 @@ cm_all = pickle.load(open("../data/config/plotting_config.p", "rb"))
 # load and inspect data, set modality
 # TODO: stratify by age group (young old, middle old, oldest-old)
 # modality = input("Which modality are you analyzing? ")
-modality = 'MRI'
+modality = 'PET'
 database = "merged"
 mode = "train"
 df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_' +
@@ -63,14 +63,14 @@ num_bins = 5
 rvr = RVR()
 
 # models to test & names
-models = ['gauss', rvr, 'svm', 'gradientboost']
-model_names = ['gauss', 'rvr', 'svm', 'gradientboost']
+models = [rvr, 'svm', 'gradientboost']
+model_names = ['rvr', 'svm', 'gradientboost']
+
 splits = 5
 
 # model params
 model_params = pickle.load(open("../data/config/hyperparams_allmodels.p",
                                 "rb"))
-
 model_results = []
 scores_results = []
 # %%
@@ -154,25 +154,26 @@ y_pred_gb_bc = (y_pred_gb - intercept_gb)/slope_gb
 
 plots.real_vs_pred_2(y_true, y_pred_gb_bc, "gradboost", modality,
                      mode, database)
-plots.check_bias(y_true, y_pred_svr_bc,
+plots.check_bias(y_true, y_pred_gb_bc,
                  "gradboost", modality, database,
                  corrected=True)
+
 # %%
 # SAVE MODELS
 model_rvr = {'intercept': intercept_rvr,
              'slope': slope_rvr,
-             'model': model_results[0]}
+             'model': model_results[0]}#
 model_svr = {'intercept': intercept_svr,
              'slope': slope_svr,
              'model': model_results[1]}
 model_gb = {'intercept': intercept_gb,
              'slope': slope_gb,
-             'model': model_results[2]}
+             'model': model_results[1]}
 
 pickle.dump(model_rvr, open("../results/model_rvr_" + modality +
                             ".p", "wb"))
-pickle.dump(model_svr, open("../results/model_svr_" + modality +
-                            ".p", "wb"))
+#pickle.dump(model_svr, open("../results/model_svr_" + modality +
+#                           ".p", "wb"))
 pickle.dump(model_gb, open("../results/model_gb_" + modality +
                             ".p", "wb"))
 # %%
@@ -214,7 +215,7 @@ plots.real_vs_pred_2(y_true, y_pred_svr_bc, "svr", modality,
                      mode, database, db_test)
 
 # plot gradboost predictions against GT in test set
-y_pred_gb = model_results[2].predict(X_test)
+y_pred_gb = model_results[1].predict(X_test)
 y_pred_gb_bc = (y_pred_gb - intercept_gb)/slope_gb
 
 plots.real_vs_pred_2(y_true, y_pred_gb_bc, "gradboost", modality,
@@ -222,7 +223,7 @@ plots.real_vs_pred_2(y_true, y_pred_gb_bc, "gradboost", modality,
 
 # %%
 # PERMUTATION IMPORTANCE
-pi = permutation_importance(model_results[1],
+pi = permutation_importance(model_results[0],
                             X_test, y_true,
                             n_repeats=1000)
 

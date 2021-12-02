@@ -37,6 +37,7 @@ model_params = [{'rvr__C': cs,
                  'svm__kernel': kernels},
                 {'gradientboost__n_estimators': n_estimators,
                  'gradientboost__learning_rate': learning_rate,
-                 'gradientboost__max_depth': max_depth}]
+                 'gradientboost__max_depth': max_depth,
+                 'gradientboost__random_state': [random_state]}]
 
 pickle.dump(model_params, open("../data/config/hyperparams_allmodels.p", "wb"))
