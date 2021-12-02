@@ -69,6 +69,10 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     if train_test == 'test':
         y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]
         plt.scatter(y_true, y_pred, c=cm[y_db_cat])
+        plt.fill([50, 50, 100], [50, 100, 100],
+                 zorder=0, color='gray', alpha=0.4)
+        plt.fill([50, 100, 100], [50, 50, 100],
+                 zorder=0, color='gray', alpha=0.2)
         print("Orange color representing ADNI, " +
               "purple color representing OASIS")
 
