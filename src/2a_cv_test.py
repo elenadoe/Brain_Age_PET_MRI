@@ -23,12 +23,14 @@ cm_all = pickle.load(open("../data/config/plotting_config.p", "rb"))
 modality = 'PET'
 database = "merged"
 mode = "train"
-df = pd.read_csv('../data/ADNI/test_train_' + modality + '_NP_' +
-                 'withOASIS_olderthan65.csv',
-                 sep=";")
+df = pd.read_csv('../data/ADNI/test_train_' + modality + '.csv')
 df_train = df[df['train'] == True]
 # select columns with '_' which are col's with features
-col = df.columns[3:-22].tolist()
+col = df.columns[4:-22].tolist()
+print("First column: {}".format(col[0] ) +
+      "\n(should be 'X17Networks_LH_VisCent_ExStr_1')" +
+      "\nLast column: {}".format(col[-1]) +
+      " (should be 'CAU.lh)")
 
 df_train = df_train.reset_index(drop=True)
 
@@ -80,7 +82,7 @@ scores_results = []
 for i, (model, params) in enumerate(zip(models, model_params)):
     # split data using age-bins instead of real age
     cv = StratifiedKFold(n_splits=splits).split(df_train[col],
-                                                df_train['Agebins'])
+                                                df_train['Ageb'])
     cv = list(cv)
     # run julearn function
     scores, final_model = run_cross_validation(X=col, y='age',
@@ -162,18 +164,18 @@ plots.check_bias(y_true, y_pred_gb_bc,
 # SAVE MODELS
 model_rvr = {'intercept': intercept_rvr,
              'slope': slope_rvr,
-             'model': model_results[0]}#
+             'model': model_results[0]}
 model_svr = {'intercept': intercept_svr,
              'slope': slope_svr,
              'model': model_results[1]}
 model_gb = {'intercept': intercept_gb,
-             'slope': slope_gb,
-             'model': model_results[1]}
+            'slope': slope_gb,
+            'model': model_results[2]}
 
 pickle.dump(model_rvr, open("../results/model_rvr_" + modality +
                             ".p", "wb"))
-#pickle.dump(model_svr, open("../results/model_svr_" + modality +
-#                           ".p", "wb"))
+pickle.dump(model_svr, open("../results/model_svr_" + modality +
+                            ".p", "wb"))
 pickle.dump(model_gb, open("../results/model_gb_" + modality +
                             ".p", "wb"))
 # %%
@@ -223,12 +225,13 @@ plots.real_vs_pred_2(y_true, y_pred_gb_bc, "gradboost", modality,
 
 # %%
 # PERMUTATION IMPORTANCE
-pi = permutation_importance(model_results[0],
+pi = permutation_importance(model_results[2],
                             X_test, y_true,
                             n_repeats=1000)
 
+
 # %%
-plots.permutation_imp(pi, 'gradboost', modality, database)
+plots.permutation_imp(pi, 'rvr', modality, database)
 # %%
 # SAVE RESULTS
 # Create table of (corrected) predicted and chronological age in this modality
@@ -265,14 +268,14 @@ pred_csv.to_csv('../results/pred_age_{}_gradboost.csv'.format(modality))
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
 npt = df_test.columns[-19:].values
-neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_gb_bc,
+neuropsychology_correlations.neuropsych_correlation(y_true, y_pred_rvr_bc,
                                                     "BPA",
                                                     npt,
                                                     df_test,
                                                     modality,
                                                     database)
 # Difference between PA-CA+ and PA-CA-
-neuropsychology_correlations.plot_bpad_diff(y_true, y_pred_gb_bc,
+neuropsychology_correlations.plot_bpad_diff(y_true, y_pred_rvr_bc,
                                             npt,
                                             df_test,
                                             modality,
