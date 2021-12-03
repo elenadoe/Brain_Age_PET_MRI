@@ -19,7 +19,7 @@ modality = 'PET'
 database = "ADNI"
 mode = "test"
 df = pd.read_csv('../data/ADNI/ADNI_MCI_{}_Sch_Tian_1mm_parcels_NP.csv'.format(
-    modality), sep=";")
+    modality), sep=",")
 df = df[df['age'] > 65]
 df = df.reset_index(drop=True)
 # select columns with '_' which are col's with features
@@ -45,16 +45,10 @@ plots.real_vs_pred_2(df['age'], pred_bc, "gb", mode,
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
 npt = df.columns[-18:]
-neuropsychology_correlations.neuropsych_correlation(df['age'], pred_bc, "BPA",
+
+neuropsychology_correlations.neuropsych_correlation(df['age'], pred_bc, "BPAD",
                                                     npt,
                                                     df,
                                                     modality,
                                                     database,
                                                     group='MCI')
-# Difference between PA-CA+ and PA-CA-
-neuropsychology_correlations.plot_bpad_diff(df['age'], pred_bc,
-                                            npt,
-                                            df,
-                                            modality,
-                                            database,
-                                            group='MCI')

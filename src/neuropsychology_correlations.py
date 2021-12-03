@@ -11,9 +11,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import warnings
+import pickle
 
 warnings.filterwarnings("ignore")
-
+# matplotlib config
+cm = pickle.load(open("../data/config/plotting_config.p", "rb"))
 
 def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
                            df_test, modality, database, group="CN"):
@@ -33,17 +35,17 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
     None.
 
     """
-    print("Significant correlations between {}".format(age_or_diff) +
+    print("Significant correlations between {} ".format(age_or_diff) +
           "and Neuropsychology")
 
     sign = {}
     for n in neuropsych_var:
         df_test[n] = pd.to_numeric(df_test[n])
         exc = np.isnan(df_test[n])
-        pearson = stats.pearsonr(y_pred[~exc],
-                                 df_test[n][~exc])
-        if pearson[1] < 0.05:
-            if age_or_diff == "BPA":
+        if age_or_diff == "BPA":
+            pearson = stats.pearsonr(y_pred[~exc],
+                                     df_test[n][~exc])
+            if pearson[1] < 0.05:
                 sign[n] = pearson[0]
                 fig, ax = plt.subplots(1, figsize=[12, 8])
                 text = 'r = ' + str(np.round(pearson[0], 3)) + ' p = ' + str(np.round(pearson[1], 3))
@@ -57,20 +59,34 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
                 ymin, ymax = ax.get_ylim()
                 plt.legend()
                 plt.text(xmin + 0.01 * xmin, ymax - 0.1 * ymax, text,
-                         fontsize=12, verticalalignment='bottom', 
+                         fontsize=12, verticalalignment='bottom',
                          horizontalalignment='left')
                 plt.title(n)
-            else:
+
+        elif age_or_diff == "BPAD":
+            y_pred_rnd = np.round(y_pred,0)
+            y_diff = y_pred_rnd - y_true
+            y_diff_cat = ["negative" if x < 0 else "BPAD = 0" if x == 0 else "positive" for x in y_diff]
+            df_test["y_pred_rnd"] = y_pred_rnd
+            df_test["y_diff"] = y_diff
+            df_test["BPAD Category"] = y_diff_cat
+            pearson = stats.pearsonr(y_diff[~exc],
+                                     df_test[n][~exc])
+            if pearson[1] < 0.05:
                 sign[n] = pearson[0]
-                fig, ax = plt.subplots(1, figsize=[12, 8])
-                sns.regplot(y_pred, df_test[n], ax=ax,
-                            scatter_kws={'alpha': 0.3}, color="red",
-                            label=age_or_diff)
+                slope, intercept = np.polyfit(y_diff[~exc], df_test[n][~exc],
+                                              1)
+                sns.lmplot("y_diff", n, data=df_test,
+                           scatter_kws={'alpha': 0.3},
+                           palette="YlOrBr", hue="BPAD Category")
+                plt.plot(y_diff, slope*y_diff+intercept, linestyle="--",
+                         label="all", color = "gray", zorder=0, alpha=0.3)
                 plt.xlabel("PA - CA [years]")
-                plt.legend()
                 plt.title(n)
-            plt.savefig(fname="../results/" + database + "/plots/" + group +
-                        "/" + modality + "_" + age_or_diff+"_"+n+".png")
+                plt.savefig(fname="../results/" + database + "/plots/" +
+                            group + "/" + modality + "_" + age_or_diff +
+                            "_" + n + ".png")
+                plt.show()
 
     for key in sign:
         print(key, ":", np.round(sign[key], 3))

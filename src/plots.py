@@ -52,7 +52,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     r2_oasis = np.nan
 
     print("---", alg, "---")
-    print("On average, predicted age of CN differed " +
+    print("On average, predicted age of {} differed ".format(group) +
           "by {} years from their chronological age.".format(np.mean(y_diff)))
     print("MAE = {}, R2 = {}".format(mae, r2))
     # uncomment if coloring in scatterplot is supposed to be
