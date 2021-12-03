@@ -85,7 +85,7 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
                 plt.title(n)
                 plt.savefig(fname="../results/" + database + "/plots/" +
                             group + "/" + modality + "_" + age_or_diff +
-                            "_" + n + ".png")
+                            "_" + n + ".png", bbox_inches="tight")
                 plt.show()
 
     for key in sign:
