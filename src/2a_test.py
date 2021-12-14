@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Dec  3 11:02:12 2021
-
+*
 @author: doeringe
 """
 import seaborn as sns
@@ -25,14 +25,15 @@ cm_all = pickle.load(open("../data/config/plotting_config.p", "rb"))
 # TODO: stratify by age group (young old, middle old, oldest-old)
 # modality = input("Which modality are you analyzing? ")
 modality = 'MRI'
-database = "merged"
-mode = "train"
+database = "1_CN_ADNI_OASIS"
+mode = "test"
 df = pd.read_csv('../data/ADNI/test_train_' + modality + '.csv')
 final_model = ['gb' if modality == 'PET' else 'rvr' if modality == "MRI" else "NAN"][0]
 
 # during cross-validation, gb was best for PET
 # and rvr was best for MRI
-model_all = pickle.load(open('../results/model_{}_{}.p'.format(
+model_all = pickle.load(open('../results/' + database +
+                             '/model_{}_{}.p'.format(
     final_model, modality), "rb"))
 intercept_ = model_all['intercept']
 slope_ = model_all['slope']
@@ -44,6 +45,7 @@ print("First column: {}".format(col[0]) +
       "\n(should be 'X17Networks_LH_VisCent_ExStr_1')" +
       "\nLast column: {}".format(col[-1]) +
       " (should be 'CAU.lh)")
+
 # %%
 # TESTING
 
@@ -71,19 +73,18 @@ y_true = df_test['age'].values
 # plot model predictions against GT in test set
 y_pred = model_.predict(X_test)
 y_pred_bc = (y_pred - intercept_)/slope_
+#y_pred_bc = y_pred - (slope_*y_true + intercept_)
 
 plots.real_vs_pred_2(y_true, y_pred_bc, final_model, modality,
                      mode, database, db_test)
 
 # %%
-# PERMUTATION IMPORTANCE
-pi = permutation_importance(model_,
-                            X_test, y_true,
-                            n_repeats=1000)
+# CHECK BIAS
+plots.check_bias(y_true, y_pred, final_model, "{}_test".format(modality),
+                 database=database)
 
-# %%
-plots.permutation_imp(pi, 'rvr', modality, database)
-
+plots.check_bias(y_true, y_pred_bc, final_model, "{}_test".format(modality),
+                 database=database, corrected=True)
 # %%
 # SAVE RESULTS
 # Create table of (corrected) predicted and chronological age in this modality
@@ -97,15 +98,26 @@ pred_csv = pd.concat((df_test["name"],
 
 pred_csv.to_csv('../results/pred_age_{}_{}.csv'.format(modality, final_model))
 
+
 # %%
 # CORRELATION NEUROPSYCHOLOGY - BRAIN AGE
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
-npt = df_test.columns[-21:-3].values
+npt = df_test.columns[-20:-2].values
 
-neuropsychology_correlations.neuropsych_correlation(df['age'], y_pred_bc,
+neuropsychology_correlations.neuropsych_correlation(df_test['age'], y_pred_bc,
                                                     "BPAD",
                                                     npt,
-                                                    df,
+                                                    df_test,
                                                     modality,
                                                     database)
+
+# %%
+# PERMUTATION IMPORTANCE
+pi = permutation_importance(model_,
+                            X_test, y_true,
+                            n_repeats=1000)
+
+
+# %%
+plots.permutation_imp(pi, 'rvr', modality, database)

@@ -1,10 +1,8 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-df_mri = pd.read_csv('../data/ADNI/MRI_parcels_withNP_nooutliers.csv',
-                     sep=";")
-df_pet = pd.read_csv('../data/ADNI/PET_parcels_withNP_nooutliers.csv',
-                     sep=";")
+df_mri = pd.read_csv('../data/ADNI/MRI_parcels_withNP_nooutliers.csv')
+df_pet = pd.read_csv('../data/ADNI/PET_parcels_withNP_nooutliers.csv')
 print(all(df_mri['name'] == df_pet['name']))
 
 # %%
@@ -42,7 +40,7 @@ y_pseudo = df_mri['Ageb'][df_mri['Dataset'] == "ADNI"]
 
 x_train, x_test,  y_train, y_test, id_train, id_test = train_test_split(
     X, y, df_mri['name'][df_mri['Dataset'] == "ADNI"], 
-    test_size=.2, random_state=42,
+    test_size=.25, random_state=42,
     stratify=y_pseudo)
 
 df_mri['train'] = [True if x in id_train.values else False for x in df_mri[

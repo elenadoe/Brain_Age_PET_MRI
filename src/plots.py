@@ -8,6 +8,7 @@ import pickle
 from nilearn.datasets import fetch_atlas_schaefer_2018
 from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.linear_model import LinearRegression
 
 # %%
 # matplotlib config
@@ -15,7 +16,7 @@ cm = pickle.load(open("../data/config/plotting_config.p", "rb"))
 
 
 def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
-                   database_list=None, group="CN"):
+                   database_list=None):
     """
     plots predicted age against chronological age
 
@@ -33,9 +34,6 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
         train or test set
     database_name : str
         the database used
-    group : str, optional
-        whether cognitively normal (CN) or mild cognitive impairment (MCI)
-        was investigated. The default is "CN".
 
     Returns
     -------
@@ -52,7 +50,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     r2_oasis = np.nan
 
     print("---", alg, "---")
-    print("On average, predicted age of {} differed ".format(group) +
+    print("On average, predicted age of {} differed ".format(database_name) +
           "by {} years from their chronological age.".format(np.mean(y_diff)))
     print("MAE = {}, R2 = {}".format(mae, r2))
     # uncomment if coloring in scatterplot is supposed to be
@@ -108,17 +106,15 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     plt.xlabel('Chronological Age')
     plt.legend()
     plt.savefig("../results/{}/plots/real_vs_pred".format(database_name) +
-                "_{}_{}_{}_{}.jpg".format(group,
-                                          modality,
-                                          train_test,
-                                          alg),
+                "_{}_{}_{}.jpg".format(modality,
+                                       train_test,
+                                       alg),
                 bbox_inches='tight')
     plt.show()
 
 
 
-    results = open("../results/{}/eval_{}_{}_{}_{}.txt".format(database_name,
-                                                               group,
+    results = open("../results/{}/eval_{}_{}_{}.txt".format(database_name,
                                                                modality,
                                                                train_test,
                                                                alg), 'w+')
@@ -128,10 +124,8 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
                   + "\t" + str(mae_oasis) + "\t" + str(r2_oasis))
 
 
-    
-
-
-def check_bias(y_true, y_pred, alg, modality, database, corrected=False):
+def check_bias(y_true, y_pred, alg, modality, database,
+               corr_with_CA=False, corrected=False):
     """
     checks whether there is a significant association (= bias)
     between chronological age (CA) and brain-age delta
@@ -143,9 +137,11 @@ def check_bias(y_true, y_pred, alg, modality, database, corrected=False):
     y_pred: list of floating point/integers values, representing predictions
     alg: algorithm used for current task (used for saving)
     modality: image modality used (MRI/PET; used for saving)
-    train_test: str indicating whether train or test data is plotted
-        (used for saving)
     database: str indicating which database was used
+    corr_with_CA: boolean indicating whether to use (True) chronological
+        age for brain age correction. Default is False.
+    corrected: boolean indicating whether y_pred is corrected (True) or not.
+        Default is False.
 
     Returns
     -------
@@ -155,24 +151,33 @@ def check_bias(y_true, y_pred, alg, modality, database, corrected=False):
         association between CA and brain-age delta with p < 0.05
 
     """
-    # linear regression between CA and predicted age
-    # slope and intercept are needed for bias correction
-    linreg_pa_ca = stats.linregress(y_true, y_pred)
-    slope = linreg_pa_ca[0]
-    intercept = linreg_pa_ca[1]
+    y_diff = y_pred-y_true
+    linreg = LinearRegression()
+    if corr_with_CA:
+        # linear regression between CA and age delta
+        # slope and intercept are needed for bias correction
+        # source: Population-based neuroimaging reveals traces of childbirth
+        linreg.fit(np.array(y_true).reshape(-1, 1), y_diff)
+        slope = linreg.coef_[0]
+        intercept = linreg.intercept_
 
-    # linear regression between brain-age delta and CA
-    # to check whether there is a significant correlation
-    linreg = stats.linregress(y_pred-y_true, y_true)
-    r = linreg[2]
-    p = linreg[3]
-    check = p < 0.05
+    else:
+        # linear regression between CA and predicted age
+        linreg.fit(np.array(y_true).reshape(-1, 1), y_pred)
+        slope = linreg.coef_[0]
+        intercept = linreg.intercept_
 
-    sns.regplot(y_pred-y_true, y_true,
-                line_kws={'label': "r = {}, p = {}".format(np.round(r, 2),
-                                                           np.round(p, 5))})
-    plt.xlabel('True Age [years]')
-    plt.ylabel('brain-age delta')
+    linreg_plotting = stats.linregress(y_true, y_diff)
+    r_plotting = linreg_plotting[2]
+    p_plotting = linreg_plotting[3]
+    check = p_plotting < 0.05
+    sns.regplot(y_diff, y_true,
+                line_kws={'label': "r = {}, p = {}".format(np.round(
+                                                    r_plotting, 2),
+                                                           np.round(
+                                                    p_plotting, 5))})
+    plt.ylabel('True Age [years]')
+    plt.xlabel('brain-age delta')
     plt.legend()
     plt.title('Association between brain-age ' +
               'delta and chronological age {}'.format(alg))

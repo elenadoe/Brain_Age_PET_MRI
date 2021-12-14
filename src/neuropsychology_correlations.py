@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore")
 cm = pickle.load(open("../data/config/plotting_config.p", "rb"))
 
 def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
-                           df_test, modality, database, group="CN"):
+                           df_test, modality, database):
     """
 
     Parameters
@@ -84,7 +84,7 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
                 plt.xlabel("PA - CA [years]")
                 plt.title(n)
                 plt.savefig(fname="../results/" + database + "/plots/" +
-                            group + "/" + modality + "_" + age_or_diff +
+                            modality + "_" + age_or_diff +
                             "_" + n + ".png", bbox_inches="tight")
                 plt.show()
 

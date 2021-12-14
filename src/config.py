@@ -18,7 +18,7 @@ pickle.dump(cm_all, open('../data/config/plotting_config.p', 'wb'))
 
 random_state = 42
 # hyperparameters
-kernels = ['linear', 'rbf', 'poly', 'sigmoid']
+kernels = ['linear', 'rbf', 'poly']
 degree = [2, 3]
 cs = [0.001, 0.01, 0.1, 1, 10, 100, 500]
 # hyperparameters gb
