@@ -90,18 +90,29 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
             np.array(y_pred)[np.array(database_list) == 'ADNI'])
         print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
     else:
-        plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
-        plt.fill([50, 50, 100], [50, 100, 100],
-                 zorder=0, color=cm[0], alpha=0.4)
-        plt.fill([50, 100, 100], [50, 50, 100],
-                 zorder=0, color=cm[0], alpha=0.2)
+        if database_name == "2_MCI_ADNI":
+            plt.xlim(45, 105)
+            plt.ylim(45, 105)
+            plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
+            plt.fill([45, 45, 105], [45, 105, 105],
+                     zorder=0, color=cm[0], alpha=0.4)
+            plt.fill([45, 105, 105], [45, 45, 105],
+                     zorder=0, color=cm[0], alpha=0.2)
+        else:
+            plt.xlim(50, 100)
+            plt.ylim(50, 100)
+            plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
+            plt.fill([50, 50, 100], [50, 100, 100],
+                     zorder=0, color=cm[0], alpha=0.4)
+            plt.fill([50, 100, 100], [50, 50, 100],
+                     zorder=0, color=cm[0], alpha=0.2)
+        
         database_list = ['ADNI']*np.array(y_true).shape[0]
 
     plt.plot([np.min(y_pred), np.max(y_pred)],
              [np.min(y_pred), np.max(y_pred)],
              linestyle="--", color="black", label="CA = PA")
-    plt.xlim(50, 100)
-    plt.ylim(50, 100)
+    
     plt.ylabel('{}-Predicted Age ({})'.format(alg, modality))
     plt.xlabel('Chronological Age')
     plt.legend()
