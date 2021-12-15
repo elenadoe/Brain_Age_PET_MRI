@@ -146,7 +146,6 @@ print("Significant association between gradboost-predicted age delta and CA:",
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age delta and chronological age
 
-# relevance Vectors Regression
 y_true = df_train['age']
 
 if correct_with_CA:

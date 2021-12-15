@@ -35,6 +35,7 @@ col = df_mri.columns[3:-21].tolist()
 
 X = df_mri[col][df_mri['Dataset'] == "ADNI"].values
 y = df_mri['age'][df_mri['Dataset'] == "ADNI"].values
+
 # %%
 y_pseudo = df_mri['Ageb'][df_mri['Dataset'] == "ADNI"]
 
