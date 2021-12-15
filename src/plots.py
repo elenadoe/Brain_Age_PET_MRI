@@ -106,13 +106,13 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
                      zorder=0, color=cm[0], alpha=0.4)
             plt.fill([50, 100, 100], [50, 50, 100],
                      zorder=0, color=cm[0], alpha=0.2)
-        
+
         database_list = ['ADNI']*np.array(y_true).shape[0]
 
     plt.plot([np.min(y_pred), np.max(y_pred)],
              [np.min(y_pred), np.max(y_pred)],
              linestyle="--", color="black", label="CA = PA")
-    
+
     plt.ylabel('{}-Predicted Age ({})'.format(alg, modality))
     plt.xlabel('Chronological Age')
     plt.legend()
@@ -123,12 +123,10 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
                 bbox_inches='tight')
     plt.show()
 
-
-
     results = open("../results/{}/eval_{}_{}_{}.txt".format(database_name,
-                                                               modality,
-                                                               train_test,
-                                                               alg), 'w+')
+                                                            modality,
+                                                            train_test,
+                                                            alg), 'w+')
     results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS" + "\n"
                   + str(mae) + "\t" + str(r2) + "\t" + str(np.mean(y_diff))
                   + "\t" + str(mae_adni) + "\t" + str(r2_adni)
@@ -219,30 +217,30 @@ def permutation_imp(feature_imp, alg, modality, database):
 
     outputs: none (plots and saves plots)
     """
-    schaefer=fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
-    text_file=open('../data/Tian_Subcortex_S1_3T_label.txt')
-    labels=text_file.read().split('\n')
-    labels=np.append(schaefer['labels'], np.array(labels[:-1]))
-    df_imp=pd.DataFrame({'region': labels,
-                         'perm_importance': feature_imp.importances_mean})
+    schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
+    text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
+    labels = text_file.read().split('\n')
+    labels = np.append(schaefer['labels'], np.array(labels[:-1]))
+    df_imp = pd.DataFrame({'region': labels,
+                          'perm_importance': feature_imp.importances_mean})
     df_imp.to_csv('../results/{}/'.format(database) +
                   'permutation_importance_{}_{}.csv'.format(modality, alg))
 
-    atlas='../data/schaefer200-17_Tian.nii'
-    atlas=image.load_img(atlas)
-    atlas_matrix=image.get_data(atlas)
+    atlas = '../data/schaefer200-17_Tian.nii'
+    atlas = image.load_img(atlas)
+    atlas_matrix = image.get_data(atlas)
 
     # create statistical map where each voxel value coresponds to permutation
     # importance
-    imp=feature_imp.importances_mean
-    atlas_matrix_stat=atlas_matrix.copy()
+    imp = feature_imp.importances_mean
+    atlas_matrix_stat = atlas_matrix.copy()
 
     for x in range(217):
         if x == 0:
             pass
         else:
-            atlas_matrix_stat[atlas_matrix_stat == x]=imp[x-1]
-    atlas_final=image.new_img_like(atlas, atlas_matrix_stat)
+            atlas_matrix_stat[atlas_matrix_stat == x] = imp[x-1]
+    atlas_final = image.new_img_like(atlas, atlas_matrix_stat)
 
     plotting.plot_stat_map(atlas_final)
     plotting.view_img_on_surf(atlas_final, threshold="90%")
