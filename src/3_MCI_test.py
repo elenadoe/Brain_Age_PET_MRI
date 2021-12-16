@@ -9,6 +9,7 @@ Created on Wed Nov 24 15:14:53 2021
 import pickle
 import pandas as pd
 import numpy as np
+import scipy.stats as stats
 
 import neuropsychology_correlations
 import plots
@@ -61,15 +62,36 @@ plots.check_bias(y_true, pred_bc, final_model, "{}_test_MCI".format(modality),
                  database="merged", corrected=True)
 y_diff = pred_bc - y_true
 print("Range of BPAD: ", np.min(y_diff), np.max(y_diff))
+
 # %%
 # CORRELATION NEUROPSYCHOLOGY - BRAIN AGE
 # Inspect correlation of neuropsychological scores and predicted/corrected
 # brain age
 npt = df.columns[-18:]
 
-neuropsychology_correlations.neuropsych_correlation(y_true, pred_bc, "BPAD",
-                                                    npt,
-                                                    df,
-                                                    modality,
-                                                    database)
+sign_npt = neuropsychology_correlations.neuropsych_correlation(y_true,
+                                                               pred_bc, "BPAD",
+                                                               npt,
+                                                               df,
+                                                               modality,
+                                                               database)
 
+# %%
+# INTERACTION EFFECTS
+y_diff = pred_bc - y_true
+for k in sign_npt:
+    exc = np.isnan(df[k])
+    pos = df['BPAD Category']=='positive'
+    neg = df['BPAD Category']=='negative'
+    
+    pos_bool = np.array(~exc) & np.array(pos)
+    neg_bool = np.array(~exc) & np.array(neg)
+    pearson_pos = stats.pearsonr(y_diff[pos_bool],
+                                 df[k][pos_bool])
+    pearson_neg = stats.pearsonr(y_diff[neg_bool],
+                                 df[k][neg_bool])
+    print(k, "\033[1msignificant in positive BPAD: ", pearson_pos[1] < 0.05,
+          "\033[0m", pearson_pos,
+          "\n\033[1msignificant in negative BPAD: ", pearson_neg[1] < 0.05,
+          "\033[0m", pearson_neg)
+    

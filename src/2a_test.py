@@ -26,7 +26,7 @@ cm_all = pickle.load(open("../data/config/plotting_config.p", "rb"))
 # load and inspect data, set modality
 # TODO: stratify by age group (young old, middle old, oldest-old)
 # modality = input("Which modality are you analyzing? ")
-modality = 'PET'
+modality = 'MRI'
 database = "1_CN_ADNI_OASIS"
 mode = "test"
 df = pd.read_csv('../data/ADNI/test_train_' + modality + '.csv')
@@ -48,7 +48,6 @@ print("First column: {}".format(col[0]) +
       "\n(should be 'X17Networks_LH_VisCent_ExStr_1')" +
       "\nLast column: {}".format(col[-1]) +
       " (should be 'CAU.lh)")
-
 
 # %%
 # TESTING
