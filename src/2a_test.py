@@ -9,6 +9,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import scipy.stats as stats
 
 import pickle
 
@@ -37,7 +38,7 @@ final_model = ['svr' if modality == 'PET' else 'svr' if modality == "MRI" else "
 # and rvr was best for MRI
 model_all = pickle.load(open('../results/' + database +
                              '/model_{}_{}.p'.format(
-    final_model, modality), "rb"))
+                                 final_model, modality), "rb"))
 intercept_ = model_all['intercept']
 slope_ = model_all['slope']
 model_ = model_all['model']
@@ -115,12 +116,71 @@ pred_csv.to_csv('../results/pred_age_{}_{}.csv'.format(modality, final_model))
 # brain age
 npt = df_test.columns[-19:-2].values
 
-neuropsychology_correlations.neuropsych_correlation(df_test['age'], y_pred_bc,
-                                                    "BPAD",
-                                                    npt,
-                                                    df_test,
-                                                    modality,
-                                                    database)
+sign_npt = neuropsychology_correlations.neuropsych_correlation(df_test['age'], y_pred_bc,
+                                                               "BPAD",
+                                                               npt,
+                                                               df_test,
+                                                               modality,
+                                                               database)
+
+# %%
+# INTERACTION EFFECTS WITH BPAD
+for k in sign_npt:
+    exc = np.isnan(df_test[k])
+    pos = df_test['BPAD Category'] == 'positive'
+    neg = df_test['BPAD Category'] == 'negative'
+    
+    pos_bool = np.array(~exc) & np.array(pos)
+    neg_bool = np.array(~exc) & np.array(neg)
+    pearson_pos = stats.pearsonr(y_diff[pos_bool],
+                                 df_test[k][pos_bool])
+    pearson_neg = stats.pearsonr(y_diff[neg_bool],
+                                 df_test[k][neg_bool])
+    print(k, "\033[1msignificant in positive BPAD: ", pearson_pos[1] < 0.05,
+          "\033[0m", pearson_pos,
+          "\n\033[1msignificant in negative BPAD: ", pearson_neg[1] < 0.05,
+          "\033[0m", pearson_neg)
+# %%
+# interaction with amyloid status?
+
+for k in sign_npt:
+    exc = np.array(np.isnan(df_test[k]))
+    pet_exc = np.isnan(df_test['AV45'])
+    pet_pos = df_test['AV45'] >= 1.11
+    pet_neg = df_test['AV45'] < 1.11
+    pet_pos = np.array(pet_pos) & np.array(~pet_exc)
+    pet_neg = np.array(pet_neg) & np.array(~pet_exc)
+
+    csf_exc = np.isnan(df_test['ABETA'])
+    csf_pos = df_test['ABETA'] < 977
+    csf_neg = df_test['ABETA'] >= 977
+    csf_pos = np.array(csf_pos) & np.array(~csf_exc)
+    csf_neg = np.array(csf_neg) & np.array(~csf_exc)
+
+    pos_bool = pet_pos | csf_pos & ~(pet_neg | csf_neg)
+    neg_bool = pet_neg | csf_neg & ~(pet_pos | csf_pos)
+
+    pearson_pos = stats.pearsonr(y_diff[pos_bool & np.array(~exc)],
+                                 df_test[k][pos_bool  & np.array(~exc)])
+    pearson_neg = stats.pearsonr(y_diff[neg_bool  & np.array(~exc)],
+                                 df_test[k][neg_bool  & np.array(~exc)])
+    print(k, "\033[1msignificant in amyloid positives: ", 
+          pearson_pos[1] < 0.05,
+          "\033[0m", pearson_pos,
+          "\n\033[1msignificant in amyloid negatives: ", 
+          pearson_neg[1] < 0.05,
+          "\033[0m", pearson_neg)
+    plt.scatter(y_diff[pos_bool & np.array(~exc)],
+                df_test[k][pos_bool  & np.array(~exc)],
+                color=cm_all[0], alpha=1, label="AB+")
+    plt.scatter(y_diff[neg_bool & np.array(~exc)],
+                df_test[k][neg_bool  & np.array(~exc)],
+                color=cm_all[0], alpha=0.5, label="AB-")
+    plt.xlabel("PA - CA [years]")
+    plt.ylabel(k)
+    plt.title("{} by BPAD".format(k))
+    plt.legend()
+    plt.show()
 # %%
 # PERMUTATION IMPORTANCE
 pi = permutation_importance(model_,

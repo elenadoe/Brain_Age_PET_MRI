@@ -18,7 +18,7 @@ import plots
 # %%
 # LOAD DATA
 # load and inspect data, set modality
-modality = 'PET'
+modality = 'MRI'
 database = "2_MCI_ADNI"
 mode = "test_MCI"
 df = pd.read_csv('../data/ADNI/ADNI_MCI_{}_Sch_Tian_1mm_parcels_NP.csv'.format(
