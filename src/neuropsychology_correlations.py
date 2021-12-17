@@ -90,6 +90,8 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
 
     for key in sign:
         print(key, ":", np.round(sign[key], 3))
+        
+    return sign
 
 
 def plot_bpad_diff(y_true, y_pred, neuropsych_var,

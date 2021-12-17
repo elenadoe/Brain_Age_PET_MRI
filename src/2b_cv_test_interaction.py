@@ -13,8 +13,8 @@ from sklearn.linear_model import LinearRegression
 modality = "multimodal_div"
 mode = "train"
 database = "ADNI"
-mri = pd.read_csv('../data/ADNI/test_train_PET_NP.csv', sep = ";")
-pet = pd.read_csv('../data/ADNI/test_train_MRI_NP.csv', sep = ";")
+mri = pd.read_csv('../data/ADNI/test_train_PET.csv')
+pet = pd.read_csv('../data/ADNI/test_train_MRI.csv')
 
 mri_train = mri[mri['train'] == True]
 pet_train = pet[pet['train'] == True]
