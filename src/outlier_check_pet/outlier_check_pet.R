@@ -1,11 +1,17 @@
 rm(list=ls())
-data.pet <- read.csv2("BrainAge/PET_MRI_age/data/ADNI/PET_parcels_withNP.csv",
+
+library(dplyr)
+
+data.pet <- read.csv("BrainAge/PET_MRI_age/data/ADNI/test_train_PET.csv",
                       dec = ".")
-data.mri <- read.csv2("BrainAge/PET_MRI_age/data/ADNI/MRI_parcels_withNP.csv",
+data.mri <- read.csv("BrainAge/PET_MRI_age/data/ADNI/test_train_MRI.csv",
                       dec = ".")
 
-col <- colnames(data.pet)[4:219]
-ids <- data.pet$name
+data.pet.train <- data.pet %>% filter(train == "True")
+data.mri.train <- data.mri %>% filter(train == "True")
+
+col <- colnames(data.pet.train)[5:220]
+ids <- data.pet.train$name
 iqr_val <- 3
 
 outliers.pet <- list()
@@ -15,13 +21,13 @@ outliers.mri <- list()
 outlier_hubs.mri <- data.frame(matrix(NA,nrow = length(col)))
 outlier_hubs.mri$ROI <- col
 for (i in 1:length(col)){
-  d.pet <- subset(data.pet, select=col[i])
+  d.pet <- subset(data.pet.train, select=col[i])
   b.pet <- boxplot(d.pet, range = iqr_val)
   roi_outliers <- length(which(t(d.pet) %in% b.pet$out))
   outlier_hubs.pet$n[outlier_hubs.pet$ROI == col[i]] <- roi_outliers
   outliers.pet <- c(outliers.pet, ids[which(t(d.pet) %in% b.pet$out)])
   
-  d.mri <- subset(data.mri, select=col[i])
+  d.mri <- subset(data.mri.train, select=col[i])
   b.mri <- boxplot(d.mri, range = iqr_val)
   roi_outliers <- length(which(t(d.mri) %in% b.mri$out))
   outlier_hubs.mri$n[outlier_hubs.mri$ROI == col[i]] <- roi_outliers
@@ -72,7 +78,7 @@ any(mri_wo_outliers$name %in% outliers.mri)
 nrow(mri_wo_outliers) == nrow(pet_wo_outliers)
 all(mri_wo_outliers$name == pet_wo_outliers$name)
 
-write.csv(pet_wo_outliers,"BrainAge/PET_MRI_age/data/ADNI/PET_parcels_withNP_nooutliers.csv",
+write.csv(pet_wo_outliers,"BrainAge/PET_MRI_age/data/ADNI/MCI_PET_parcels_withNP_nooutliers.csv",
           row.names = FALSE)
-write.csv(mri_wo_outliers,"BrainAge/PET_MRI_age/data/ADNI/MRI_parcels_withNP_nooutliers.csv",
+write.csv(mri_wo_outliers,"BrainAge/PET_MRI_age/data/ADNI/MCI_MRI_parcels_withNP_nooutliers.csv",
           row.names = FALSE)
