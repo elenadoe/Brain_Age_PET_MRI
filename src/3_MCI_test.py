@@ -18,21 +18,16 @@ import plots
 # %%
 # LOAD DATA
 # load and inspect data, set modality
-modality = 'MRI'
+modality = 'PET'
 database = "2_MCI_ADNI"
 mode = "test_MCI"
-df = pd.read_csv('../data/ADNI/ADNI_MCI_{}_Sch_Tian_1mm_parcels_NP.csv'.format(
+df = pd.read_csv('../data/ADNI/MCI_{}_parcels_withNP_nooutliers.csv'.format(
     modality), sep=",")
-df = df[df['age'] > 65]
+df = df[df['QC'] == True]
 df = df.reset_index(drop=True)
 
-# index 182 is estimated to be over 1000 years old by PET classifier
-# remove this outlier for further analyses
-# discuss in limitations!!
-df = df.drop(index=182)
-df = df.reset_index(drop=True)
-# select columns with '_' which are col's with features
-col = df.columns[3:-19].tolist()
+# select columns 
+col = df.columns[4:-19].tolist()
 
 final_model = ['svr' if modality == 'PET' else 'svr' if modality == "MRI" else "NAN"][0]
 

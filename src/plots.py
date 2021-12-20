@@ -66,11 +66,11 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     plt.scatter(y_pred, y_true, c=cm_final[y_diff_cat])"""
     if train_test == 'test':
         y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]
-        plt.scatter(y_true, y_pred, c=cm[y_db_cat])
-        plt.fill([50, 50, 100], [50, 100, 100],
-                 zorder=0, color='gray', alpha=0.4)
-        plt.fill([50, 100, 100], [50, 50, 100],
-                 zorder=0, color='gray', alpha=0.2)
+        plt.scatter(y_true, y_pred, c=cm[y_db_cat], alpha=0.8)
+        plt.fill([60, 60, 90], [60, 90, 90],
+                 zorder=0, color='gray', alpha=0.3)
+        plt.fill([60, 90, 90], [60, 60, 90],
+                 zorder=0, color='gray', alpha=0.1)
         print("Orange color representing ADNI, " +
               "purple color representing OASIS")
 
@@ -91,20 +91,20 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
         print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
     else:
         if database_name == "2_MCI_ADNI":
-            plt.xlim(45, 105)
-            plt.ylim(45, 105)
+            plt.xlim(55, 95)
+            plt.ylim(55, 95)
             plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
-            plt.fill([45, 45, 105], [45, 105, 105],
+            plt.fill([55, 55, 95], [55, 95, 95],
                      zorder=0, color=cm[0], alpha=0.4)
-            plt.fill([45, 105, 105], [45, 45, 105],
+            plt.fill([55, 95, 95], [55, 55, 95],
                      zorder=0, color=cm[0], alpha=0.2)
         else:
-            plt.xlim(50, 100)
-            plt.ylim(50, 100)
+            plt.xlim(60, 90)
+            plt.ylim(60, 90)
             plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
-            plt.fill([50, 50, 100], [50, 100, 100],
+            plt.fill([60, 60, 90], [60, 90, 90],
                      zorder=0, color=cm[0], alpha=0.4)
-            plt.fill([50, 100, 100], [50, 50, 100],
+            plt.fill([60, 90, 90], [60, 60, 90],
                      zorder=0, color=cm[0], alpha=0.2)
 
         database_list = ['ADNI']*np.array(y_true).shape[0]
@@ -114,13 +114,13 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
              linestyle="--", color="black", label="CA = PA")
 
     plt.ylabel('{}-Predicted Age ({})'.format(alg, modality))
-    plt.xlabel('Chronological Age')
+    plt.xlabel('Chronological Age [Years]')
     plt.legend()
     plt.savefig("../results/{}/plots/real_vs_pred".format(database_name) +
                 "_{}_{}_{}.jpg".format(modality,
                                        train_test,
                                        alg),
-                bbox_inches='tight')
+                bbox_inches='tight', dpi=300)
     plt.show()
 
     results = open("../results/{}/eval_{}_{}_{}.txt".format(database_name,
@@ -185,8 +185,8 @@ def check_bias(y_true, y_pred, alg, modality, database,
                                                     r_plotting, 2),
                                                            np.round(
                                                     p_plotting, 5))})
-    plt.ylabel('True Age [years]')
-    plt.xlabel('brain-age delta')
+    plt.ylabel('Chronological Age [years]')
+    plt.xlabel('BPAD [years]')
     plt.legend()
     plt.title('Association between brain-age ' +
               'delta and chronological age {}'.format(alg))
@@ -195,11 +195,13 @@ def check_bias(y_true, y_pred, alg, modality, database,
     if corrected:
         plt.savefig('../results/{}/bias-corrected_{}_{}.jpg'.format(database,
                                                                     modality,
-                                                                    alg))
+                                                                    alg),
+                    dpi=300)
     else:
         plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(database,
                                                                       modality,
-                                                                      alg))
+                                                                      alg),
+                    dpi=300)
     plt.show()
     return slope, intercept, check
 

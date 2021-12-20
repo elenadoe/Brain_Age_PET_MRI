@@ -73,7 +73,7 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
             pearson = stats.pearsonr(y_diff[~exc],
                                      df_test[n][~exc])
             if pearson[1] < 0.05:
-                sign[n] = pearson[0]
+                sign[n] = pearson
                 slope, intercept = np.polyfit(y_diff[~exc], df_test[n][~exc],
                                               1)
                 sns.lmplot("y_diff", n, data=df_test,
@@ -81,15 +81,15 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
                            palette="YlOrBr", hue="BPAD Category")
                 plt.plot(y_diff, slope*y_diff+intercept, linestyle="--",
                          label="all", color = "gray", zorder=0, alpha=0.3)
-                plt.xlabel("PA - CA [years]")
+                plt.xlabel("BPAD [years]")
                 plt.title(n)
                 plt.savefig(fname="../results/" + database + "/plots/" +
                             modality + "_" + age_or_diff +
-                            "_" + n + ".png", bbox_inches="tight")
+                            "_" + n + ".png", bbox_inches="tight", dpi=300)
                 plt.show()
 
     for key in sign:
-        print(key, ":", np.round(sign[key], 3))
+        print(key, ":", np.round(sign[key][0], 3), sign[key][1])
         
     return sign
 
@@ -132,7 +132,7 @@ def plot_bpad_diff(y_true, y_pred, neuropsych_var,
             fig, ax = plt.subplots(1, figsize = [12,8])
             sns.boxplot(x=y_diff_cat,y=df_test[n], 
                         palette = 'PuOr')
-            plt.xlabel('BPAD')
+            plt.xlabel('BPAD [years]')
             plt.xticks((0,1,2),('-','o','+'))
             xmin, xmax = ax.get_xlim()
             ymin, ymax = ax.get_ylim()
@@ -144,7 +144,7 @@ def plot_bpad_diff(y_true, y_pred, neuropsych_var,
 
             plt.savefig(fname="../results/" + database + "/plots/" +
                         group + "/" + modality +
-                        "_boxplot_BPAD" + "_" + n + ".png")
+                        "_boxplot_BPAD" + "_" + n + ".png", dpi=300)
             plt.show()
     print("t-values of significant tests:")
     for key in sign:
