@@ -15,6 +15,22 @@ from sklearn.linear_model import LinearRegression
 cm = pickle.load(open("../data/config/plotting_config.p", "rb"))
 
 
+def plot_hist(df_train, train_test, modality, database_list, y='age'):
+    if train_test == 'train':
+        # plot hist with Ages of train data
+        sns.displot(df_train, x='age', kde=True, color=cm[0])
+    else:
+        sns.displot(df_train, x='age', kde=True, hue=database_list,
+                    color=cm)
+        plt.ylim(0, 70)
+        plt.title('Age distribution in {} set'.format(train_test))
+        plt.xlabel('Age [years]')
+        plt.ylabel('n Participants')
+        plt.savefig('../results/{}/plots/{}_age_distribution'.format(
+            train_test, modality) + '.png', bbox_inches="tight")
+        plt.show()
+
+
 def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
                    database_list=None):
     """
