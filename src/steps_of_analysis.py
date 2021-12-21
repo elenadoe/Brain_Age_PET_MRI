@@ -14,11 +14,11 @@ from sklearn.model_selection import StratifiedKFold
 import plots
 
 import numpy as np
-import pickle
 import warnings
 warnings.filterwarnings("ignore")
 
-def split_data(df_mri, df_pet, col, test_size=0.3, train_data = "ADNI",
+
+def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
                older_65=True, rand_seed=42):
     """
 
@@ -55,12 +55,12 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data = "ADNI",
     # raise error if not all individuals are the same across modalities
     if same_ids is False:
         raise ValueError("IDs between modalities don't match.")
-        
+
     print("First column: {}".format(col[0]) +
-      " (should be 'X17Networks_LH_VisCent_ExStr_1')" +
-      "\nLast column: {}".format(col[-1]) +
-      " (should be 'CAU.lh)")
-    
+          " (should be 'X17Networks_LH_VisCent_ExStr_1')" +
+          "\nLast column: {}".format(col[-1]) +
+          " (should be 'CAU.lh)")
+
     # exclude individuals younger than 65 if older_65 == True
     if older_65:
         older_65_mri = df_mri['age'] >= 65
@@ -125,7 +125,7 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data = "ADNI",
 def cross_validate(df_train, col, models, model_params, splits, scoring,
                    rand_seed=42, y='age'):
     """
-    
+
 
     Parameters
     ----------
@@ -185,7 +185,7 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
 def bias_correct(df_train, y_pred_uncorr, model_names, modality, database,
                  y='age', correct_with_CA=True):
     """
-    
+
 
     Parameters
     ----------
@@ -202,7 +202,7 @@ def bias_correct(df_train, y_pred_uncorr, model_names, modality, database,
     y : pd.Series, optional
         Column to be considered as output feature. The default is age.
     correct_with_CA : boolean, optional
-        whether or not to correct bias with chronological age. 
+        whether or not to correct bias with chronological age.
         The default is True.
 
     Returns
