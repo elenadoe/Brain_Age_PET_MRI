@@ -150,23 +150,33 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
 
 
 def check_bias(y_true, y_pred, alg, modality, database,
-               corr_with_CA=False, corrected=False):
+               corr_with_CA=False, corrected=False, plotting=True):
     """
     checks whether there is a significant association (= bias)
     between chronological age (CA) and brain-age delta
 
     Parameters
     ----------
-    y_true: list of floating point values or integers, representing ground
-        truth values
-    y_pred: list of floating point/integers values, representing predictions
-    alg: algorithm used for current task (used for saving)
-    modality: image modality used (MRI/PET; used for saving)
-    database: str indicating which database was used
-    corr_with_CA: boolean indicating whether to use (True) chronological
-        age for brain age correction. Default is False.
-    corrected: boolean indicating whether y_pred is corrected (True) or not.
+    y_true : list of floating point/integer values
+        ground truth values
+    y_pred : list of floating point/integers values
+        predictions
+    alg : str
+        algorithm used for current task (used for saving)
+    modality : str
+        image modality used (MRI/PET; used for saving)
+    database : str
+        database in use
+    corr_with_CA : boolean, optional
+        whether to use (True) chronological age for brain age
+        correction. Default is False.
+    corrected : boolean, optional
+        whether y_pred is corrected (True) or not
         Default is False.
+    plotting : boolean, optional
+        whether or not to create and save plots
+        Default is True.
+
 
     Returns
     -------
@@ -196,29 +206,28 @@ def check_bias(y_true, y_pred, alg, modality, database,
     r_plotting = linreg_plotting[2]
     p_plotting = linreg_plotting[3]
     check = p_plotting < 0.05
-    sns.regplot(y_diff, y_true,
-                line_kws={'label': "r = {}, p = {}".format(np.round(
-                                                    r_plotting, 2),
-                                                           np.round(
-                                                    p_plotting, 5))})
-    plt.ylabel('Chronological Age [years]')
-    plt.xlabel('BPAD [years]')
-    plt.legend()
-    plt.title('Association between brain-age ' +
-              'delta and chronological age {}'.format(alg))
+    if plotting:
+        sns.regplot(y_diff, y_true,
+                    line_kws={'label': "r = {}, p = {}".format(np.round(
+                                                        r_plotting, 2),
+                                                               np.round(
+                                                        p_plotting, 5))})
+        plt.ylabel('Chronological Age [years]')
+        plt.xlabel('BPAD [years]')
+        plt.legend()
+        plt.title('Association between brain-age ' +
+                  'delta and chronological age {}'.format(alg))
 
-    # save figures
-    if corrected:
-        plt.savefig('../results/{}/bias-corrected_{}_{}.jpg'.format(database,
-                                                                    modality,
-                                                                    alg),
-                    dpi=300)
-    else:
-        plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(database,
-                                                                      modality,
-                                                                      alg),
-                    dpi=300)
-    plt.show()
+        # save figures
+        if corrected:
+            plt.savefig('../results/{}/bias-corrected_{}_{}.jpg'.format(
+                database, modality, alg),
+                        dpi=300)
+        else:
+            plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(
+                database, modality, alg),
+                        dpi=300)
+        plt.show()
     return slope, intercept, check
 
 

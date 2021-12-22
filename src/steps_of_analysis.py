@@ -10,15 +10,41 @@ from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import r2_score, mean_absolute_error
 
 import plots
 
 import numpy as np
+import pickle
 import warnings
 warnings.filterwarnings("ignore")
 
 
 def outlier_check(df_mri, df_pet, col, threshold=3):
+    """
+    Checks for outliers, where outliers are defined as
+    individuals whose brain signal in one or more regions is
+    outside of threshold*interquartile range of this/these regions.
+
+    Parameters
+    ----------
+    data_mri : pd.dataframe
+        parcels derived from MRI data
+    data_pet : pd.dataframe
+        parcels derived from PET data
+    col : list or np.array
+        columns to consider for brain age prediction
+    threshold : TYPE, optional
+        DESCRIPTION. The default is 3.
+
+    Returns
+    -------
+    df_mri : TYPE
+        DESCRIPTION.
+    df_pet : TYPE
+        DESCRIPTION.
+
+    """
     mri_train = df_mri[df_mri['train']]
     pet_train = df_pet[df_pet['train']]
 
@@ -48,7 +74,7 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
 def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
                older_65=True, check_outliers=True, rand_seed=42):
     """
-
+    Splits data into train and test sets.
 
     Parameters
     ----------
@@ -121,39 +147,15 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
     y_pseudo = df_mri['Ageb'][split_data]
 
     # make len(rand_seed) train-test splits
-    if isinstance(rand_seed, (list, np.ndarray)):
-        for r in rand_seed:
-            x_tr, x_te,  y_tr, y_te, id_tr, id_te = train_test_split(
+    if isinstance(rand_seed, int):
+        rand_seed = [rand_seed]
+        imp = 'main'
+    else:
+        imp = 'validation_random_seeds'
+    for r in rand_seed:
+        x_tr, x_te,  y_tr, y_te, id_tr, id_te = train_test_split(
                 X, y, df_mri['name'][split_data],
                 test_size=test_size, random_state=r, stratify=y_pseudo)
-            df_mri['train'] = [True if x in id_tr.values
-                               else False for x in df_mri['name']]
-            df_pet['train'] = [True if x in id_tr.values
-                               else False for x in df_pet['name']]
-
-            if check_outliers:
-                df_mri, df_pet = outlier_check(df_mri, df_pet, col)
-                print(len(df_mri) - sum(df_mri['IQR']), "outliers discarded.")
-                print("Outliers in train set: ",
-                      sum(df_mri['train']) -
-                      sum(df_mri['IQR'][df_mri['train']])
-                      )
-                print("Outliers in test set: ",
-                      sum(~df_mri['train']) -
-                      sum(df_mri['IQR'][~df_mri['train']])
-                      )
-            else:
-                df_mri['IQR'] = True
-                df_pet['IQR'] = True
-            df_mri.to_csv('../data/merged/validation_random_seeds/' +
-                          'test_train_MRI_{}.csv'.format(str(r)))
-            df_pet.to_csv('../data/merged/validation_random_seeds/' +
-                          'test_train_PET_{}.csv'.format(str(r)))
-
-    if isinstance(rand_seed, int):
-        x_tr, x_te,  y_tr, y_te, id_tr, id_te = train_test_split(
-            X, y, df_mri['name'][df_mri['Dataset'] == "ADNI"],
-            test_size=test_size, random_state=rand_seed, stratify=y_pseudo)
         df_mri['train'] = [True if x in id_tr.values
                            else False for x in df_mri['name']]
         df_pet['train'] = [True if x in id_tr.values
@@ -164,26 +166,24 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
             print(len(df_mri) - sum(df_mri['IQR']), "outliers discarded.")
             print("Outliers in train set: ",
                   sum(df_mri['train']) -
-                  sum(df_mri['IQR'][df_mri['train']])
-                      )
+                  sum(df_mri['IQR'][df_mri['train']]))
             print("Outliers in test set: ",
                   sum(~df_mri['train']) -
-                  sum(df_mri['IQR'][~df_mri['train']])
-                      )
+                  sum(df_mri['IQR'][~df_mri['train']]))
         else:
             df_mri['IQR'] = True
             df_pet['IQR'] = True
-
-        df_mri.to_csv('../data/merged/' +
-                      'test_train_MRI_{}.csv'.format(str(rand_seed)))
-        df_pet.to_csv('../data/merged/' +
-                      'test_train_PET_{}.csv'.format(str(rand_seed)))
+        df_mri.to_csv('../data/{}/'.format(imp) +
+                      'test_train_MRI_{}.csv'.format(str(r)))
+        df_pet.to_csv('../data/{}/'.format(imp) +
+                      'test_train_PET_{}.csv'.format(str(r)))
 
 
 def cross_validate(df_train, col, models, model_params, splits, scoring,
                    rand_seed=42, y='age'):
     """
-
+    Applies cross-validation on training data using models and parameters
+    provided by user
 
     Parameters
     ----------
@@ -240,8 +240,9 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
 
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age delta and chronological age
-def bias_correct(df_train, y_pred_uncorr, model_names, modality, database,
-                 y='age', correct_with_CA=True):
+def bias_correct(df_train, col, model_results, model_names,
+                 modality, database, y='age', correct_with_CA=True,
+                 plotting=True):
     """
 
 
@@ -262,26 +263,35 @@ def bias_correct(df_train, y_pred_uncorr, model_names, modality, database,
     correct_with_CA : boolean, optional
         whether or not to correct bias with chronological age.
         The default is True.
+    plotting : boolean, optional
+        whether or not to create and save plots. The default is True.
 
     Returns
     -------
-    pred_param : TYPE
-        DESCRIPTION.
+    pred_param : dict
+        dictionary containing bias-corrected age, slope, intercept,
+        and pearson r value of bias between BPAD and CA
 
     """
     # BIAS CORRECTION
     y_true = df_train['age']
+    y_pred_rvr = model_results[0].predict(df_train[col])
+    y_pred_svr = model_results[1].predict(df_train[col])
+
+    y_pred_uncorr = [y_pred_rvr, y_pred_svr]
 
     pred_param = {}
     pred_param['withCA'] = correct_with_CA
 
     for y in range(len(y_pred_uncorr)):
+        pred_param[model_names[y] + '_uncorr'] = y_pred_uncorr[y]
         check_bias = plots.check_bias(y_true,
                                       y_pred_uncorr[y],
                                       model_names[y],
                                       modality,
                                       database,
-                                      correct_with_CA)
+                                      correct_with_CA,
+                                      plotting=plotting)
         slope_ = check_bias[0]
         intercept_ = check_bias[1]
         check_ = check_bias[2]
@@ -299,8 +309,75 @@ def bias_correct(df_train, y_pred_uncorr, model_names, modality, database,
             bc = (y_pred_uncorr[y] - intercept_)/slope_
             pred_param[model_names[y] + '_bc'] = bc
 
+        r2_corr = r2_score(y_true, bc)
+        mae_corr = mean_absolute_error(y_true, bc)
+        r2_uncorr = r2_score(y_true, y_pred_uncorr)
+        mae_uncorr = mean_absolute_error(y_true, y_pred_uncorr)
         pred_param[model_names[y] + '_slope'] = slope_
         pred_param[model_names[y] + '_intercept'] = intercept_
         pred_param[model_names[y] + '_check'] = check_
+        pred_param[model_names[y] + '_r2'] = r2_corr
+        pred_param[model_names[y] + '_mae'] = mae_corr
+        pred_param[model_names[y] + '_r2_uncorr'] = r2_uncorr
+        pred_param[model_names[y] + '_mae_uncorr'] = mae_uncorr
 
-    return pred_param
+        pickle.dump(pred_param, open("../results/" + database +
+                                     "/models_and_params_" + modality +
+                                     ".p", "wb"))
+    final_model_idx = np.argmax([v for k, v in pred_param.items()
+                                 if '_r2' in k])
+    final_model_r2 = np.max([v for k, v in pred_param.items()
+                             if '_r2' in k])
+    final_model_mae = [v for k, v in pred_param.items()
+                       if '_mae' in k][final_model_idx]
+    final_model = model_names[final_model_idx]
+    print("Final model (highest R2): {}\nMAE: {}, R2: {}".format(
+        final_model, final_model_mae, final_model_r2))
+
+    return final_model, pred_param
+
+
+def predict(df_test, col, model_, final_model_name,
+            slope_, intercept_, modality, train_test, 
+            database, y='age', plotting=True):
+    """
+    Predicts brain age using trained algorithms.
+
+    Parameters
+    ----------
+    df_test : TYPE
+        DESCRIPTION.
+    col : TYPE
+        DESCRIPTION.
+    model_ : ExtendedDataFramePipeline
+        final model to be used for prediction
+    final_model_name : str
+        name of final model to be used for saving of plots
+    y : TYPE
+        DESCRIPTION.
+    slope_ : TYPE
+        DESCRIPTION.
+    intercept_ : TYPE
+        DESCRIPTION.
+    modality : TYPE
+        DESCRIPTION.
+    train_test : str
+        Whether train or test data is predicted
+    database : str
+        CN or MCI
+    plotting : boolean, optional
+        whether or not to create and save plots. The default is True.
+
+    Returns
+    -------
+    y_pred_bc : np.ndarray
+        Bias-corrected brain age of individuals from test set
+
+    """
+    # plot model predictions against GT in test set
+    y_pred = model_.predict(df_test[col])
+    y_pred_bc = y_pred - (slope_*df_test[y] + intercept_)
+
+    plots.real_vs_pred_2(df_test[y], y_pred_bc, final_model_name, modality,
+                         train_test, database, df_test['Dataset'])
+    return y_pred_bc
