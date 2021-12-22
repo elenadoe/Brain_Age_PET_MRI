@@ -17,7 +17,8 @@ RAND_SEED = 42
 df_mri = pd.read_csv('../data/merged/MRI_parcels_all.csv')
 df_pet = pd.read_csv('../data/merged/PET_parcels_all.csv')
 col = df_mri.columns[3:-1].tolist()
-steps_of_analysis.split_data(df_mri, df_pet, col, rand_seed=RAND_SEED)
+steps_of_analysis.split_data(df_mri, df_pet, col, 
+                             rand_seed=RAND_SEED)
 
 # %%
 # LOAD DATA
@@ -27,6 +28,7 @@ database = "1_CN_ADNI_OASIS"
 mode = "train"
 df = pd.read_csv('../data/merged/test_train_' + modality +
                  '_' + str(RAND_SEED) + '.csv')
+df = df[df['AGE_CHECK'] & df['IQR']]
 df_train = df[df['train']]
 df_train = df_train.reset_index(drop=True)
 
@@ -38,7 +40,6 @@ models = [RVR(), 'svm', 'gradientboost']
 model_names = ['rvr', 'svm', 'gradientboost']
 SPLITS = 5
 
-# model params
 model_params = pickle.load(open("../data/config/hyperparams_allmodels.p",
                                 "rb"))
 

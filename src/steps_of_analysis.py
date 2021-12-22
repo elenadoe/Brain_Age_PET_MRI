@@ -18,8 +18,35 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
+def outlier_check(df_mri, df_pet, col, threshold=3):
+    mri_train = df_mri[df_mri['train']]
+    pet_train = df_pet[df_pet['train']]
+
+    q1_mri = mri_train.quantile(0.25)
+    q1_pet = pet_train.quantile(0.25)
+    q3_mri = mri_train.quantile(0.75)
+    q3_pet = pet_train.quantile(0.75)
+    IQR_mri = q3_mri - q1_mri
+    IQR_pet = q3_pet - q1_pet
+
+    low_out_mri = q1_mri - IQR_mri*threshold
+    high_out_mri = q3_mri + IQR_mri*threshold
+    low_out_pet = q1_pet - IQR_pet*threshold
+    high_out_pet = q3_pet + IQR_pet*threshold
+
+    insiderange = (~((df_mri[col] < low_out_mri) |
+                     (df_mri[col] > high_out_mri) |
+                     (df_pet[col] < low_out_pet) |
+                     (df_pet[col] > high_out_pet)).any(axis=1))
+
+    df_mri['IQR'] = insiderange
+    df_pet['IQR'] = insiderange
+
+    return df_mri, df_pet
+
+
 def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
-               older_65=True, rand_seed=42):
+               older_65=True, check_outliers=True, rand_seed=42):
     """
 
 
@@ -40,6 +67,8 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
         Which dataset to use for training
     older_65 : boolean, optional
         Whether to consider only individuals over age 65. The default is True.
+    check_outliers : boolean, optional
+        Whether to check for and exclude outliers. The default is True.
     rand_seed : int, optional
         Controls the shuffling applied to the data before applying the split.
 
@@ -102,6 +131,20 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
             df_pet['train'] = [True if x in id_tr.values
                                else False for x in df_pet['name']]
 
+            if check_outliers:
+                df_mri, df_pet = outlier_check(df_mri, df_pet, col)
+                print(len(df_mri) - sum(df_mri['IQR']), "outliers discarded.")
+                print("Outliers in train set: ",
+                      sum(df_mri['train']) -
+                      sum(df_mri['IQR'][df_mri['train']])
+                      )
+                print("Outliers in test set: ",
+                      sum(~df_mri['train']) -
+                      sum(df_mri['IQR'][~df_mri['train']])
+                      )
+            else:
+                df_mri['IQR'] = True
+                df_pet['IQR'] = True
             df_mri.to_csv('../data/merged/validation_random_seeds/' +
                           'test_train_MRI_{}.csv'.format(str(r)))
             df_pet.to_csv('../data/merged/validation_random_seeds/' +
@@ -115,6 +158,21 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
                            else False for x in df_mri['name']]
         df_pet['train'] = [True if x in id_tr.values
                            else False for x in df_pet['name']]
+
+        if check_outliers:
+            df_mri, df_pet = outlier_check(df_mri, df_pet, col)
+            print(len(df_mri) - sum(df_mri['IQR']), "outliers discarded.")
+            print("Outliers in train set: ",
+                  sum(df_mri['train']) -
+                  sum(df_mri['IQR'][df_mri['train']])
+                      )
+            print("Outliers in test set: ",
+                  sum(~df_mri['train']) -
+                  sum(df_mri['IQR'][~df_mri['train']])
+                      )
+        else:
+            df_mri['IQR'] = True
+            df_pet['IQR'] = True
 
         df_mri.to_csv('../data/merged/' +
                       'test_train_MRI_{}.csv'.format(str(rand_seed)))
