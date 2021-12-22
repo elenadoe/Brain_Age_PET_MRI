@@ -7,7 +7,6 @@ Created on Tue Dec 21 16:27:41 2021
 """
 
 from sklearn.model_selection import train_test_split
-from tqdm import tqdm
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import r2_score, mean_absolute_error
@@ -71,8 +70,9 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
     return df_mri, df_pet
 
 
-def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
-               older_65=True, check_outliers=True, rand_seed=42):
+def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
+               older_65=True, check_outliers=True, plotting=True,
+               rand_seed=42):
     """
     Splits data into train and test sets.
 
@@ -84,6 +84,8 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
         parcels derived from PET data
     col : list or np.array
         columns to consider for brain age prediction
+    imp : str
+        main analysis or validation_random_seeds
     test_size : float, optional
         If float, should be between 0.0 and 1.0 and represent
         the proportion of the dataset to include in the test split.
@@ -111,10 +113,11 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
     if same_ids is False:
         raise ValueError("IDs between modalities don't match.")
 
-    print("First column: {}".format(col[0]) +
-          " (should be 'X17Networks_LH_VisCent_ExStr_1')" +
-          "\nLast column: {}".format(col[-1]) +
-          " (should be 'CAU.lh)")
+    if plotting:
+        print("First column: {}".format(col[0]) +
+              " (should be 'X17Networks_LH_VisCent_ExStr_1')" +
+              "\nLast column: {}".format(col[-1]) +
+              " (should be 'CAU.lh)")
 
     # exclude individuals younger than 65 if older_65 == True
     if older_65:
@@ -123,8 +126,9 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
 
         df_pet['AGE_CHECK'] = older_65_mri & older_65_pet
         df_mri['AGE_CHECK'] = older_65_mri & older_65_pet
-        print(sum(df_pet['AGE_CHECK'])-len(df_pet),
-              "individuals younger than 65 years discarded.")
+        if plotting:
+            print(sum(df_pet['AGE_CHECK'])-len(df_pet),
+                  "individuals younger than 65 years discarded.")
     else:
         df_pet['AGE_CHECK'] = True
         df_mri['AGE_CHECK'] = True
@@ -147,36 +151,35 @@ def split_data(df_mri, df_pet, col, test_size=0.3, train_data="ADNI",
     y_pseudo = df_mri['Ageb'][split_data]
 
     # make len(rand_seed) train-test splits
-    if isinstance(rand_seed, int):
-        rand_seed = [rand_seed]
-        imp = 'main'
-    else:
-        imp = 'validation_random_seeds'
-    for r in rand_seed:
-        x_tr, x_te,  y_tr, y_te, id_tr, id_te = train_test_split(
+    x_tr, x_te,  y_tr, y_te, id_tr, id_te = train_test_split(
                 X, y, df_mri['name'][split_data],
-                test_size=test_size, random_state=r, stratify=y_pseudo)
-        df_mri['train'] = [True if x in id_tr.values
-                           else False for x in df_mri['name']]
-        df_pet['train'] = [True if x in id_tr.values
-                           else False for x in df_pet['name']]
+                test_size=test_size, random_state=rand_seed, stratify=y_pseudo)
+    df_mri['train'] = [True if x in id_tr.values
+                       else False for x in df_mri['name']]
+    df_pet['train'] = [True if x in id_tr.values
+                       else False for x in df_pet['name']]
 
-        if check_outliers:
-            df_mri, df_pet = outlier_check(df_mri, df_pet, col)
-            print(len(df_mri) - sum(df_mri['IQR']), "outliers discarded.")
+    if check_outliers:
+        df_mri, df_pet = outlier_check(df_mri, df_pet, col)
+        n_outliers = len(df_mri) - sum(df_mri['IQR'])
+        if plotting:
+            print(n_outliers, "outliers discarded.")
             print("Outliers in train set: ",
                   sum(df_mri['train']) -
                   sum(df_mri['IQR'][df_mri['train']]))
             print("Outliers in test set: ",
                   sum(~df_mri['train']) -
                   sum(df_mri['IQR'][~df_mri['train']]))
-        else:
-            df_mri['IQR'] = True
-            df_pet['IQR'] = True
-        df_mri.to_csv('../data/{}/'.format(imp) +
-                      'test_train_MRI_{}.csv'.format(str(r)))
-        df_pet.to_csv('../data/{}/'.format(imp) +
-                      'test_train_PET_{}.csv'.format(str(r)))
+    else:
+        n_outliers = 0
+        df_mri['IQR'] = True
+        df_pet['IQR'] = True
+    df_mri.to_csv('../data/{}/'.format(imp) +
+                  'test_train_MRI_{}.csv'.format(str(rand_seed)))
+    df_pet.to_csv('../data/{}/'.format(imp) +
+                  'test_train_PET_{}.csv'.format(str(rand_seed)))
+
+    return n_outliers
 
 
 def cross_validate(df_train, col, models, model_params, splits, scoring,
@@ -216,8 +219,7 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
     scores_results = []
     scaler = 'scaler_robust'
 
-    for i, (model, params) in enumerate(tqdm(zip(models, model_params),
-                                             total=len(models))):
+    for i, (model, params) in enumerate(zip(models, model_params)):
         # split data using age-bins
         cv = StratifiedKFold(n_splits=splits).split(df_train[col],
                                                     df_train['Ageb'])
@@ -311,8 +313,8 @@ def bias_correct(df_train, col, model_results, model_names,
 
         r2_corr = r2_score(y_true, bc)
         mae_corr = mean_absolute_error(y_true, bc)
-        r2_uncorr = r2_score(y_true, y_pred_uncorr)
-        mae_uncorr = mean_absolute_error(y_true, y_pred_uncorr)
+        r2_uncorr = r2_score(y_true, y_pred_uncorr[y])
+        mae_uncorr = mean_absolute_error(y_true, y_pred_uncorr[y])
         pred_param[model_names[y] + '_slope'] = slope_
         pred_param[model_names[y] + '_intercept'] = intercept_
         pred_param[model_names[y] + '_check'] = check_
@@ -338,7 +340,7 @@ def bias_correct(df_train, col, model_results, model_names,
 
 
 def predict(df_test, col, model_, final_model_name,
-            slope_, intercept_, modality, train_test, 
+            slope_, intercept_, modality, train_test,
             database, y='age', plotting=True):
     """
     Predicts brain age using trained algorithms.
@@ -378,6 +380,10 @@ def predict(df_test, col, model_, final_model_name,
     y_pred = model_.predict(df_test[col])
     y_pred_bc = y_pred - (slope_*df_test[y] + intercept_)
 
+    mae = mean_absolute_error(df_test[y], y_pred_bc)
+    r2 = r2_score(df_test[y], y_pred_bc)
+
     plots.real_vs_pred_2(df_test[y], y_pred_bc, final_model_name, modality,
-                         train_test, database, df_test['Dataset'])
-    return y_pred_bc
+                         train_test, database,
+                         plotting=plotting, database_list=df_test['Dataset'])
+    return y_pred_bc, mae, r2
