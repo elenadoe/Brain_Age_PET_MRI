@@ -278,10 +278,10 @@ def bias_correct(df_train, col, model_results, model_names,
     """
     # BIAS CORRECTION
     y_true = df_train['age']
-    y_pred_rvr = cross_val_prediction(df_train, col,
+    y_pred_rvr = cross_val_prediction(df_train, col, 'age',
                                       model_results[0],
                                       splits)
-    y_pred_svr = cross_val_prediction(df_train, col,
+    y_pred_svr = cross_val_prediction(df_train, col, 'age',
                                       model_results[1],
                                       splits)
     y_pred_uncorr = [y_pred_rvr, y_pred_svr]
@@ -345,11 +345,11 @@ def bias_correct(df_train, col, model_results, model_names,
     return final_model, pred_param
 
 
-def cross_val_prediction(df_train, col, model_, splits):
+def cross_val_prediction(df_train, col, y, model_, splits):
     cv = StratifiedKFold(n_splits=splits).split(df_train[col],
                                                 df_train['Ageb'])
     cv = list(cv)
-    pred = cross_val_predict(model_, df_train[col], cv=cv)
+    pred = cross_val_predict(model_, df_train[col], df_train[y], cv=cv)
 
     return pred
 

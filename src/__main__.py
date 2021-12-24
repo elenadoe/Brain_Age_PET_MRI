@@ -59,7 +59,8 @@ def main(modality, rand_seed=42, imp='main', plotting=True):
                                                              model_names,
                                                              modality,
                                                              database,
-                                                             plotting=plotting)
+                                                             plotting=plotting,
+                                                             splits=SPLITS)
 
     slope_ = pred_param[final_model + "_slope"]
     intercept_ = pred_param[final_model + "_intercept"]
