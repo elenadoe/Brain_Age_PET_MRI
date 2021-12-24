@@ -19,6 +19,7 @@ def plot_hist(df_train, train_test, modality, database_list, y='age'):
     if train_test == 'train':
         # plot hist with Ages of train data
         sns.displot(df_train, x='age', kde=True, color=cm[0])
+        plt.show()
     else:
         sns.displot(df_train, x='age', kde=True, hue=database_list,
                     color=cm)

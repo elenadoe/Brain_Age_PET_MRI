@@ -84,12 +84,12 @@ def main(modality, rand_seed=42, imp='main', plotting=True):
 
 
 if __name__ == "__main__":
-    mae_range = []
+    """mae_range = []
     r2_range = []
     n_outliers_range = []
     for i in tqdm(range(50)):
         n_outliers, pred, mae, r2 = main('MRI', rand_seed=i, plotting=False)
         n_outliers_range.append(n_outliers)
         mae_range.append(mae)
-        r2_range.append(r2)
-    # main('MRI')
+        r2_range.append(r2)"""
+    main('MRI')

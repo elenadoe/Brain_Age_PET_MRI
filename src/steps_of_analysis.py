@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import r2_score, mean_absolute_error
+from sklearn.model_selection import cross_val_predict
 
 import plots
 
@@ -243,7 +244,7 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age delta and chronological age
 def bias_correct(df_train, col, model_results, model_names,
-                 modality, database, y='age', correct_with_CA=True,
+                 modality, database, splits, y='age', correct_with_CA=True,
                  plotting=True):
     """
 
@@ -277,9 +278,12 @@ def bias_correct(df_train, col, model_results, model_names,
     """
     # BIAS CORRECTION
     y_true = df_train['age']
-    y_pred_rvr = model_results[0].predict(df_train[col])
-    y_pred_svr = model_results[1].predict(df_train[col])
-
+    y_pred_rvr = cross_val_prediction(df_train, col,
+                                      model_results[0],
+                                      splits)
+    y_pred_svr = cross_val_prediction(df_train, col,
+                                      model_results[1],
+                                      splits)
     y_pred_uncorr = [y_pred_rvr, y_pred_svr]
 
     pred_param = {}
@@ -320,14 +324,16 @@ def bias_correct(df_train, col, model_results, model_names,
         pred_param[model_names[y] + '_check'] = check_
         pred_param[model_names[y] + '_r2'] = r2_corr
         pred_param[model_names[y] + '_mae'] = mae_corr
-        pred_param[model_names[y] + '_r2_uncorr'] = r2_uncorr
-        pred_param[model_names[y] + '_mae_uncorr'] = mae_uncorr
+        pred_param[model_names[y] + '_rsq_uncorr'] = r2_uncorr
+        pred_param[model_names[y] + '_ma_uncorr'] = mae_uncorr
 
         pickle.dump(pred_param, open("../results/" + database +
                                      "/models_and_params_" + modality +
                                      ".p", "wb"))
+
     final_model_idx = np.argmax([v for k, v in pred_param.items()
                                  if '_r2' in k])
+
     final_model_r2 = np.max([v for k, v in pred_param.items()
                              if '_r2' in k])
     final_model_mae = [v for k, v in pred_param.items()
@@ -337,6 +343,15 @@ def bias_correct(df_train, col, model_results, model_names,
         final_model, final_model_mae, final_model_r2))
 
     return final_model, pred_param
+
+
+def cross_val_prediction(df_train, col, model_, splits):
+    cv = StratifiedKFold(n_splits=splits).split(df_train[col],
+                                                df_train['Ageb'])
+    cv = list(cv)
+    pred = cross_val_predict(model_, df_train[col], cv=cv)
+
+    return pred
 
 
 def predict(df_test, col, model_, final_model_name,
