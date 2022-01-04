@@ -13,6 +13,7 @@ from sklearn.linear_model import LinearRegression
 # %%
 # matplotlib config
 cm = pickle.load(open("../data/config/plotting_config.p", "rb"))
+sns.set_palette(cm)
 
 
 def plot_hist(df_train, train_test, modality, database_list, y='age'):
@@ -21,9 +22,8 @@ def plot_hist(df_train, train_test, modality, database_list, y='age'):
         sns.displot(df_train, x='age', kde=True, color=cm[0])
         plt.show()
     else:
-        sns.displot(df_train, x='age', kde=True, hue=database_list,
-                    color=cm)
-        plt.ylim(0, 70)
+        sns.displot(df_train, x='age', kde=True, hue=database_list)
+        plt.ylim(0, 40)
         plt.title('Age distribution in {} set'.format(train_test))
         plt.xlabel('Age [years]')
         plt.ylabel('n Participants')
@@ -33,7 +33,7 @@ def plot_hist(df_train, train_test, modality, database_list, y='age'):
 
 
 def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
-                   plotting, database_list=None):
+                   info, database_list=None):
     """
     plots predicted age against chronological age
 
@@ -65,11 +65,13 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     r2_adni = np.nan
     mae_oasis = np.nan
     r2_oasis = np.nan
-
-    print("---", alg, "---")
-    print("On average, predicted age of {} differed ".format(database_name) +
-          "by {} years from their chronological age.".format(np.mean(y_diff)))
-    print("MAE = {}, R2 = {}".format(mae, r2))
+    if info:
+        print("---", alg, "---")
+        print("On average, predicted age of",
+              database_name,
+              "differed by ", np.mean(y_diff),
+              " years from their chronological age.")
+        print("MAE = {}, R2 = {}".format(mae, r2))
     # uncomment if coloring in scatterplot is supposed to be
     # depending on CA-PA
     """
@@ -83,7 +85,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     plt.scatter(y_pred, y_true, c=cm_final[y_diff_cat])"""
     if train_test == 'test':
         y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]
-        if plotting:
+        if info:
             plt.scatter(y_true, y_pred, c=cm[y_db_cat], alpha=0.8)
             plt.fill([60, 60, 90], [60, 90, 90],
                      zorder=0, color='gray', alpha=0.3)
@@ -96,7 +98,6 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
         mae_oasis = mean_absolute_error(
             y_true[np.array(database_list) == 'OASIS'],
             np.array(y_pred)[np.array(database_list) == 'OASIS'])
-        print("OASIS:\nMAE = {}, R2 = {}".format(mae_oasis, r2_oasis))
 
         # return evaluation scores
         r2_adni = r2_score(np.array(y_true)[np.array(database_list) == 'ADNI'],
@@ -104,10 +105,12 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
         mae_adni = mean_absolute_error(
             np.array(y_true)[np.array(database_list) == 'ADNI'],
             np.array(y_pred)[np.array(database_list) == 'ADNI'])
-        print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
+        if info:
+            print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
+            print("OASIS:\nMAE = {}, R2 = {}".format(mae_oasis, r2_oasis))
     else:
         if database_name == "MCI":
-            if plotting:
+            if info:
                 plt.xlim(55, 95)
                 plt.ylim(55, 95)
                 plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
@@ -116,7 +119,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
                 plt.fill([55, 95, 95], [55, 55, 95],
                          zorder=0, color=cm[0], alpha=0.2)
         else:
-            if plotting:
+            if info:
                 plt.xlim(60, 90)
                 plt.ylim(60, 90)
                 plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
@@ -127,11 +130,11 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
 
         database_list = ['ADNI']*np.array(y_true).shape[0]
 
-    if plotting:
+    if info:
         plt.plot([np.min(y_pred), np.max(y_pred)],
                  [np.min(y_pred), np.max(y_pred)],
                  linestyle="--", color="black", label="CA = PA")
-    
+
         plt.ylabel('{}-Predicted Age ({})'.format(alg, modality))
         plt.xlabel('Chronological Age [Years]')
         plt.legend()
@@ -146,14 +149,15 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
                                                                 modality,
                                                                 train_test,
                                                                 alg), 'w+')
-        results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS" + "\n"
-                      + str(mae) + "\t" + str(r2) + "\t" + str(np.mean(y_diff))
-                      + "\t" + str(mae_adni) + "\t" + str(r2_adni)
-                      + "\t" + str(mae_oasis) + "\t" + str(r2_oasis))
+        results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS" +
+                      "\n" + str(mae) + "\t" + str(r2) + "\t" +
+                      str(np.mean(y_diff)) +
+                      "\t" + str(mae_adni) + "\t" + str(r2_adni) +
+                      "\t" + str(mae_oasis) + "\t" + str(r2_oasis))
 
 
 def check_bias(y_true, y_pred, alg, modality, database,
-               corr_with_CA=False, corrected=False, plotting=True):
+               corr_with_CA=False, corrected=False, info=True):
     """
     checks whether there is a significant association (= bias)
     between chronological age (CA) and brain-age delta
@@ -176,7 +180,7 @@ def check_bias(y_true, y_pred, alg, modality, database,
     corrected : boolean, optional
         whether y_pred is corrected (True) or not
         Default is False.
-    plotting : boolean, optional
+    info : boolean, optional
         whether or not to create and save plots
         Default is True.
 
@@ -209,7 +213,7 @@ def check_bias(y_true, y_pred, alg, modality, database,
     r_plotting = linreg_plotting[2]
     p_plotting = linreg_plotting[3]
     check = p_plotting < 0.05
-    if plotting:
+    if info:
         sns.regplot(y_diff, y_true,
                     line_kws={'label': "r = {}, p = {}".format(np.round(
                                                         r_plotting, 2),

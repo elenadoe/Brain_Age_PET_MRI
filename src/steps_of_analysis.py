@@ -72,7 +72,7 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
 
 
 def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
-               older_65=True, check_outliers=True, plotting=True,
+               older_65=True, check_outliers=True, info=True,
                rand_seed=42):
     """
     Splits data into train and test sets.
@@ -114,11 +114,11 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
     if same_ids is False:
         raise ValueError("IDs between modalities don't match.")
 
-    if plotting:
+    if info:
         print("First column: {}".format(col[0]) +
               " (should be 'X17Networks_LH_VisCent_ExStr_1')" +
               "\nLast column: {}".format(col[-1]) +
-              " (should be 'CAU.lh)")
+              " (should be 'CAU-lh)")
 
     # exclude individuals younger than 65 if older_65 == True
     if older_65:
@@ -127,7 +127,7 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
 
         df_pet['AGE_CHECK'] = older_65_mri & older_65_pet
         df_mri['AGE_CHECK'] = older_65_mri & older_65_pet
-        if plotting:
+        if info:
             print(sum(df_pet['AGE_CHECK'])-len(df_pet),
                   "individuals younger than 65 years discarded.")
     else:
@@ -163,7 +163,7 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
     if check_outliers:
         df_mri, df_pet = outlier_check(df_mri, df_pet, col)
         n_outliers = len(df_mri) - sum(df_mri['IQR'])
-        if plotting:
+        if info:
             print(n_outliers, "outliers discarded.")
             print("Outliers in train set: ",
                   sum(df_mri['train']) -
@@ -245,7 +245,7 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
 # Eliminate linear correlation of brain age delta and chronological age
 def bias_correct(df_train, col, model_results, model_names,
                  modality, database, splits, y='age', correct_with_CA=True,
-                 plotting=True):
+                 info=True):
     """
 
 
@@ -266,7 +266,7 @@ def bias_correct(df_train, col, model_results, model_names,
     correct_with_CA : boolean, optional
         whether or not to correct bias with chronological age.
         The default is True.
-    plotting : boolean, optional
+    info : boolean, optional
         whether or not to create and save plots. The default is True.
 
     Returns
@@ -297,14 +297,15 @@ def bias_correct(df_train, col, model_results, model_names,
                                       modality,
                                       database,
                                       correct_with_CA,
-                                      plotting=plotting)
+                                      info=info)
         slope_ = check_bias[0]
         intercept_ = check_bias[1]
         check_ = check_bias[2]
 
-        print("Significant association between ", model_names[y],
-              "-predicted age delta and CA:",
-              check_bias[2])
+        if info:
+            print("Significant association between ", model_names[y],
+                  "-predicted age delta and CA:",
+                  check_bias[2])
 
         if correct_with_CA:
             # for age correction WITH chronological age
@@ -339,8 +340,10 @@ def bias_correct(df_train, col, model_results, model_names,
     final_model_mae = [v for k, v in pred_param.items()
                        if '_mae' in k][final_model_idx]
     final_model = model_names[final_model_idx]
-    print("Final model (highest R2): {}\nMAE: {}, R2: {}".format(
-        final_model, final_model_mae, final_model_r2))
+
+    if info:
+        print("Final model (highest R2): {}\nMAE: {}, R2: {}".format(
+                final_model, final_model_mae, final_model_r2))
 
     return final_model, pred_param
 
@@ -356,7 +359,7 @@ def cross_val_prediction(df_train, col, y, model_, splits):
 
 def predict(df_test, col, model_, final_model_name,
             slope_, intercept_, modality, train_test,
-            database, y='age', plotting=True):
+            database, y='age', info=True):
     """
     Predicts brain age using trained algorithms.
 
@@ -382,7 +385,7 @@ def predict(df_test, col, model_, final_model_name,
         Whether train or test data is predicted
     database : str
         CN or MCI
-    plotting : boolean, optional
+    info : boolean, optional
         whether or not to create and save plots. The default is True.
 
     Returns
@@ -400,5 +403,5 @@ def predict(df_test, col, model_, final_model_name,
 
     plots.real_vs_pred_2(df_test[y], y_pred_bc, final_model_name, modality,
                          train_test, database,
-                         plotting=plotting, database_list=df_test['Dataset'])
+                         info=info, database_list=df_test['Dataset'])
     return y_pred_bc, mae, r2
