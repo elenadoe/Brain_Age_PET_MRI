@@ -8,6 +8,9 @@ n = 370
 5. perform train/test split on ADNI data (100 randomly generated, pickle saved seeds)
    file also excludes individuals younger than 65 in either modality automatically
    file automatically sets OASIS as test set
-6. perform outlier exclusion on train set (outliers = outside 2.5xIQR)
+6. perform outlier exclusion on train set (outliers = outside 3xIQR)
 7. merge train-test csv with neuropsychology/neuropathology
 8. apply outlier exclusion to both (ADNI + OASIS) test sets
+9. run 2a_cv_train
+# TODO
+10. re-run cross-validation + bias correction with best model using 100 different train-test splits

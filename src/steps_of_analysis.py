@@ -11,10 +11,12 @@ from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn.model_selection import cross_val_predict
+from skrvm import RVR
 
 import plots
 
 import numpy as np
+import pandas as pd
 import pickle
 import warnings
 warnings.filterwarnings("ignore")
@@ -39,10 +41,10 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
 
     Returns
     -------
-    df_mri : TYPE
-        DESCRIPTION.
-    df_pet : TYPE
-        DESCRIPTION.
+    df_mri : pd.dataframe
+        parcels derived from MRI data without outliers
+    df_pet : pd.dataframe
+        parcels derived from PET data without outliers
 
     """
     mri_train = df_mri[df_mri['train']]
@@ -153,8 +155,8 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
 
     # make len(rand_seed) train-test splits
     x_tr, x_te,  y_tr, y_te, id_tr, id_te = train_test_split(
-                X, y, df_mri['name'][split_data],
-                test_size=test_size, random_state=rand_seed, stratify=y_pseudo)
+        X, y, df_mri['name'][split_data],
+        test_size=test_size, random_state=rand_seed, stratify=y_pseudo)
     df_mri['train'] = [True if x in id_tr.values
                        else False for x in df_mri['name']]
     df_pet['train'] = [True if x in id_tr.values
@@ -241,13 +243,46 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
     return model_results, scores
 
 
+def pred_uncorr(df_train, col, model_results, splits=5):
+    """
+    # TODO.
+
+    Parameters
+    ----------
+    y_true : TYPE
+        DESCRIPTION.
+    df_train : TYPE
+        DESCRIPTION.
+    col : TYPE
+        DESCRIPTION.
+    model_results : TYPE
+        DESCRIPTION.
+    splits : TYPE, optional
+        DESCRIPTION. The default is 5.
+
+    Returns
+    -------
+    None.
+
+    """
+    y_pred_rvr = cross_val_prediction(df_train, col, 'age',
+                                      model_results[0],
+                                      splits)
+    y_pred_svr = cross_val_prediction(df_train, col, 'age',
+                                      model_results[1],
+                                      splits)
+    y_pred_uncorr = [y_pred_rvr, y_pred_svr]
+
+    return y_pred_uncorr
+
+
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age delta and chronological age
 def bias_correct(df_train, col, model_results, model_names,
                  modality, database, splits, y='age', correct_with_CA=True,
-                 info=True):
+                 return_model='final', info=True):
     """
-
+    # TODO.
 
     Parameters
     ----------
@@ -271,6 +306,8 @@ def bias_correct(df_train, col, model_results, model_names,
 
     Returns
     -------
+    final_model : sklearn model
+        # TODO
     pred_param : dict
         dictionary containing bias-corrected age, slope, intercept,
         and pearson r value of bias between BPAD and CA
@@ -278,14 +315,7 @@ def bias_correct(df_train, col, model_results, model_names,
     """
     # BIAS CORRECTION
     y_true = df_train['age']
-    y_pred_rvr = cross_val_prediction(df_train, col, 'age',
-                                      model_results[0],
-                                      splits)
-    y_pred_svr = cross_val_prediction(df_train, col, 'age',
-                                      model_results[1],
-                                      splits)
-    y_pred_uncorr = [y_pred_rvr, y_pred_svr]
-
+    y_pred_uncorr = pred_uncorr(df_train, col, model_results, splits=splits)
     pred_param = {}
     pred_param['withCA'] = correct_with_CA
 
@@ -307,7 +337,10 @@ def bias_correct(df_train, col, model_results, model_names,
                   "-predicted age delta and CA:",
                   check_bias[2])
 
-        if correct_with_CA:
+        if correct_with_CA is None:
+            # TODO. Must also change check_bias
+            pass
+        elif correct_with_CA:
             # for age correction WITH chronological age
             bc = y_pred_uncorr[y] - (slope_*y_true + intercept_)
             pred_param[model_names[y] + '_bc'] = bc
@@ -318,36 +351,106 @@ def bias_correct(df_train, col, model_results, model_names,
 
         r2_corr = r2_score(y_true, bc)
         mae_corr = mean_absolute_error(y_true, bc)
-        r2_uncorr = r2_score(y_true, y_pred_uncorr[y])
-        mae_uncorr = mean_absolute_error(y_true, y_pred_uncorr[y])
+
         pred_param[model_names[y] + '_slope'] = slope_
         pred_param[model_names[y] + '_intercept'] = intercept_
         pred_param[model_names[y] + '_check'] = check_
         pred_param[model_names[y] + '_r2'] = r2_corr
         pred_param[model_names[y] + '_mae'] = mae_corr
+        r2_uncorr = r2_score(y_true, y_pred_uncorr[y])
+        mae_uncorr = mean_absolute_error(y_true, y_pred_uncorr[y])
         pred_param[model_names[y] + '_rsq_uncorr'] = r2_uncorr
         pred_param[model_names[y] + '_ma_uncorr'] = mae_uncorr
 
         pickle.dump(pred_param, open("../results/" + database +
                                      "/models_and_params_" + modality +
                                      ".p", "wb"))
+        df = pd.DataFrame(pred_param)
+        df.to_csv("../results/" + database +
+                  "/models_and_params_" + modality + ".csv")
+    if return_model == 'final':
+        final_model, final_mae, final_r2 = find_final_model(pred_param,
+                                                            model_names)
 
-    final_model_idx = np.argmin([v for k, v in pred_param.items()
-                                 if '_mae' in k])
-    final_model_r2 = [v for k, v in pred_param.items()
-                      if '_r2' in k][final_model_idx]
-    final_model_mae = [v for k, v in pred_param.items()
-                      if '_mae' in k][final_model_idx]
+        return final_model, pred_param
+    elif return_model == 'all':
+        return model_results, pred_param
+
+
+def find_final_model(y_true, y_pred_uncorr,
+                     pred_param, model_names,
+                     correct_with_CA=True, info=True):
+    """
+    # TODO.
+
+    Parameters
+    ----------
+    y_true : TYPE
+        DESCRIPTION.
+    y_pred_uncorr : TYPE
+        DESCRIPTION.
+    pred_param : TYPE
+        DESCRIPTION.
+    model_names : TYPE
+        DESCRIPTION.
+    info : TYPE, optional
+        DESCRIPTION. The default is True.
+
+    Returns
+    -------
+    final_model : TYPE
+        DESCRIPTION.
+    final_mae : TYPE
+        DESCRIPTION.
+    final_r2 : TYPE
+        DESCRIPTION.
+
+    """
+    if correct_with_CA is not None:
+        final_model_idx = np.argmin([v for k, v in pred_param.items()
+                                     if '_mae' in k])
+        final_r2 = [v for k, v in pred_param.items()
+                    if '_r2' in k][final_model_idx]
+        final_mae = [v for k, v in pred_param.items()
+                     if '_mae' in k][final_model_idx]
+    else:
+        final_model_idx = np.argmin([v for k, v in pred_param.items()
+                                     if '_ma_uncorr' in k])
+        final_r2 = [v for k, v in pred_param.items()
+                    if '_rsq_uncorr' in k][final_model_idx]
+        final_mae = [v for k, v in pred_param.items()
+                     if '_ma_uncorr' in k][final_model_idx]
     final_model = model_names[final_model_idx]
 
     if info:
         print("Final model (smallest MAE): {}\nMAE: {}, R2: {}".format(
-                final_model, final_model_mae, final_model_r2))
-
-    return final_model, pred_param
+            final_model, final_mae, final_r2))
+    return final_model, final_mae, final_r2
 
 
 def cross_val_prediction(df_train, col, y, model_, splits):
+    """
+    # TODO.
+
+    Parameters
+    ----------
+    df_train : TYPE
+        DESCRIPTION.
+    col : TYPE
+        DESCRIPTION.
+    y : TYPE
+        DESCRIPTION.
+    model_ : TYPE
+        DESCRIPTION.
+    splits : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    pred : TYPE
+        DESCRIPTION.
+
+    """
     cv = StratifiedKFold(n_splits=splits).split(df_train[col],
                                                 df_train['Ageb'])
     cv = list(cv)
@@ -372,14 +475,14 @@ def predict(df_test, col, model_, final_model_name,
         final model to be used for prediction
     final_model_name : str
         name of final model to be used for saving of plots
-    y : TYPE
+    y : str
         DESCRIPTION.
-    slope_ : TYPE
+    slope_ : float
         DESCRIPTION.
-    intercept_ : TYPE
+    intercept_ : float
         DESCRIPTION.
-    modality : TYPE
-        DESCRIPTION.
+    modality : str
+        PET or MRI
     train_test : str
         Whether train or test data is predicted
     database : str
@@ -404,3 +507,103 @@ def predict(df_test, col, model_, final_model_name,
                          train_test, database,
                          info=info, database_list=df_test['Dataset'])
     return y_pred_bc, mae, r2
+
+
+def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
+              correct_with_CA=True, rand_seed=0, cv=5, imp='main', info=True):
+    """
+    Execute brain age prediction pipeline.
+
+    Main function uses functions defined in steps_of_analysis
+    to run all steps: (1) train-test split, (2) hyperparameter
+    tuning using cross-validation, (3) bias correction using
+    cross-validated predictions, (4) prediction of test set.
+
+    Parameters
+    ----------
+    modality : str
+        MRI or PET
+    rand_seed : int, optional
+        Random seed to use throughout pipeline. The default is 42.
+    imp : str, optional
+        Main analysis with one random seed or validation
+        with several random seeds. The default is 'main'.
+    info : boolean, optional
+        Whether to print intermediate info. Recommended to set
+        to False for validation_random_seeds. The default is True.
+
+    Returns
+    -------
+    n_outliers : int
+        Number of outliers excluded prior to splitting.
+    pred : list
+        Predicted & bias-corrected age.
+    mae : float
+        Mean absolute error of pred.
+    r2 : float
+        R squared of chronological age and pred.
+
+    """
+    df_mri = pd.read_csv(dir_mri_csv)
+    df_pet = pd.read_csv(dir_pet_csv)
+    col = df_mri.columns[3:-1].tolist()
+    n_outliers = split_data(df_mri, df_pet, col, imp=imp, info=info,
+                            rand_seed=rand_seed)
+
+    # LOAD DATA
+    database = "CN"
+    mode = "train"
+    df = pd.read_csv('../data/main/test_train_' + modality +
+                     '_' + str(rand_seed) + '.csv')
+    df = df[df['AGE_CHECK'] & df['IQR']]
+    df_train = df[df['train']]
+    df_train = df_train.reset_index(drop=True)
+
+    if info:
+        plots.plot_hist(df_train, mode, modality, df_train['Dataset'], y='age')
+
+    # CROSS-VALIDATE MODELS
+    # define models and model names (some are already included in julearn)
+    models = [RVR(), 'svm']
+    model_names = ['rvr', 'svm']
+    SCORING = ['r2']
+    model_params = pickle.load(open("../data/config/hyperparams_allmodels.p",
+                                    "rb"))
+
+    model_results, scores = cross_validate(
+        df_train, col, models, model_params, splits=cv,
+        rand_seed=rand_seed, scoring=SCORING, y='age')
+
+    if bias_correct is not None:
+        final_model, pred_param = bias_correct(
+            df_train, col, model_results, model_names, modality,
+            database, correct_with_CA=correct_with_CA, info=info,
+            return_model=return_model, splits=cv)
+
+        # TODO. This won't work for bias-correction where there are
+        # multiple models emerging
+        slope_ = pred_param[final_model + "_slope"]
+        intercept_ = pred_param[final_model + "_intercept"]
+        model_ = model_results[model_names.index(final_model)]
+    else:
+        y_pred_uncorr = pred_uncorr(df_train, col, model_results)
+        final_model = find_final_model(
+            df_train['age'], y_pred_uncorr, pred_param, model_names)
+
+    # TEST
+    # How well does the model perform on unseen data?
+    df_test = df[~df['train']]
+    df_test = df_test.reset_index(drop=True)
+    mode = "test"
+
+    if info:
+        plots.plot_hist(df_test, mode, modality, df_test['Dataset'], y='age')
+
+    for f in final_model:
+        # TODO.
+        continue
+    pred, mae, r2 = predict(df_test, col, model_, final_model,
+                            slope_, intercept_, modality, mode,
+                            database, info=info)
+
+    return n_outliers, pred, mae, r2, final_model
