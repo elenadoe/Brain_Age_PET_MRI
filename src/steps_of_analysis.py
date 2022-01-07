@@ -332,17 +332,16 @@ def bias_correct(df_train, col, model_results, model_names,
                                      "/models_and_params_" + modality +
                                      ".p", "wb"))
 
-    final_model_idx = np.argmax([v for k, v in pred_param.items()
-                                 if '_r2' in k])
-
-    final_model_r2 = np.max([v for k, v in pred_param.items()
-                             if '_r2' in k])
+    final_model_idx = np.argmin([v for k, v in pred_param.items()
+                                 if '_mae' in k])
+    final_model_r2 = [v for k, v in pred_param.items()
+                      if '_r2' in k][final_model_idx]
     final_model_mae = [v for k, v in pred_param.items()
-                       if '_mae' in k][final_model_idx]
+                      if '_mae' in k][final_model_idx]
     final_model = model_names[final_model_idx]
 
     if info:
-        print("Final model (highest R2): {}\nMAE: {}, R2: {}".format(
+        print("Final model (smallest MAE): {}\nMAE: {}, R2: {}".format(
                 final_model, final_model_mae, final_model_r2))
 
     return final_model, pred_param

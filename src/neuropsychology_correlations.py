@@ -117,7 +117,7 @@ def plot_bpad_diff(y_true, y_pred, neuropsych_var,
 
     """
     print('---BPAD---')
-    y_pred = np.round(y_pred,0)
+    y_pred = np.round(y_pred, 0)
     y_diff = y_pred - y_true
     y_diff_cat = [-1 if x < 0 else 0 if x == 0 else 1 for x in y_diff]
     

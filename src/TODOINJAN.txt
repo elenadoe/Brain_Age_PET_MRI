@@ -1,0 +1,2 @@
+- add neuropsychology merge to main if plotting == False
+- rename plotting into main_analysis
