@@ -24,9 +24,11 @@ warnings.filterwarnings("ignore")
 
 def outlier_check(df_mri, df_pet, col, threshold=3):
     """
-    Checks for outliers, where outliers are defined as
-    individuals whose brain signal in one or more regions is
-    outside of threshold*interquartile range of this/these regions.
+    Check for outliers.
+
+    Outliers are defined as individuals whose brain signal
+    in one or more regions is outside of threshold*interquartile range (IQR)
+    of this/these regions.
 
     Parameters
     ----------
@@ -36,8 +38,10 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
         parcels derived from PET data
     col : list or np.array
         columns to consider for brain age prediction
-    threshold : TYPE, optional
-        DESCRIPTION. The default is 3.
+    threshold : int or float, optional
+        threshold*IQR defines the range in which data is not considered
+        an outlier. Threshold=1.5 defines normal outliers,
+        threshold=3 defines extreme outliers. The default is 3.
 
     Returns
     -------
