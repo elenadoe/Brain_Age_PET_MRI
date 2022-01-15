@@ -6,13 +6,13 @@ import pandas as pd
 from glob import glob
 from nilearn.datasets import fetch_atlas_schaefer_2018
 
-subject_list = '../data/OASIS/OASIS_CN_IDs_Age.txt'
-data_path = '/media/projects/brain_age/OASIS_test/4_SUVR/'
-output_csv = '../data/OASIS/parcels_FDG.csv'
+subject_list = '../../data/OASIS/OASIS_CN_IDs_Age.txt'
+data_path = '/home/doeringe/Dokumente/projects/brain age/OASIS/2_SUVR_new_foranalysis/'
+output_csv = '../../data/OASIS/parcels_PET.csv'
 
 schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
-atlas = '../data/schaefer200-17_Tian.nii'
-text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
+atlas = '../../data/schaefer200-17_Tian.nii'
+text_file = open('../../data/Tian_Subcortex_S1_3T_label.txt')
 labels = text_file.read().split('\n')
 labels = np.append(schaefer['labels'], np.array(labels[:-1]))
 

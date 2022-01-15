@@ -17,23 +17,43 @@ sns.set_palette(cm)
 
 
 def plot_hist(df_train, train_test, modality, database_list, y='age'):
+    """
+    # TODO.
+
+    Parameters
+    ----------
+    df_train : TYPE
+        DESCRIPTION.
+    train_test : TYPE
+        DESCRIPTION.
+    modality : TYPE
+        DESCRIPTION.
+    database_list : TYPE
+        DESCRIPTION.
+    y : TYPE, optional
+        DESCRIPTION. The default is 'age'.
+
+    Returns
+    -------
+    None.
+
+    """
     if train_test == 'train':
         # plot hist with Ages of train data
         sns.displot(df_train, x='age', kde=True, color=cm[0])
-        plt.show()
     else:
         sns.displot(df_train, x='age', kde=True, hue=database_list)
         plt.ylim(0, 40)
-        plt.title('Age distribution in {} set'.format(train_test))
-        plt.xlabel('Age [years]')
-        plt.ylabel('n Participants')
-        plt.savefig('../results/{}/plots/{}_age_distribution'.format(
-            train_test, modality) + '.png', bbox_inches="tight")
-        plt.show()
+    plt.title('Age distribution in {} set'.format(train_test))
+    plt.xlabel('Age [years]')
+    plt.ylabel('n Participants')
+    plt.savefig('../results/{}/plots/{}_age_distribution'.format(
+        train_test, modality) + '.png', bbox_inches="tight")
+    plt.show()
 
 
 def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
-                   info, database_list=None):
+                   correct_with_CA=True, info=True, database_list=None):
     """
     plots predicted age against chronological age
 
@@ -57,7 +77,6 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     None.
 
     """
-
     y_diff = y_pred - y_true
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
@@ -65,13 +84,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     r2_adni = np.nan
     mae_oasis = np.nan
     r2_oasis = np.nan
-    if info:
-        print("---", alg, "---")
-        print("On average, predicted age of",
-              database_name,
-              "differed by ", np.mean(y_diff),
-              " years from their chronological age.")
-        print("MAE = {}, R2 = {}".format(mae, r2))
+
     # uncomment if coloring in scatterplot is supposed to be
     # depending on CA-PA
     """
@@ -106,17 +119,23 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
             np.array(y_true)[np.array(database_list) == 'ADNI'],
             np.array(y_pred)[np.array(database_list) == 'ADNI'])
         if info:
+            print("\033[1m---TEST---\033[0m")
+            print("On average, predicted age of",
+                  database_name,
+                  "differed by ", np.mean(y_diff),
+                  " years from their chronological age.")
+            print("MAE = {}, R2 = {}".format(mae, r2))
             print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
-            print("OASIS:\nMAE = {}, R2 = {}".format(mae_oasis, r2_oasis))
+            print("OASIS:\nMAE = {}, R2 = {}\n\n".format(mae_oasis, r2_oasis))
     else:
         if database_name == "MCI":
             if info:
-                plt.xlim(55, 95)
-                plt.ylim(55, 95)
+                plt.xlim(50, 100)
+                plt.ylim(50, 100)
                 plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
-                plt.fill([55, 55, 95], [55, 95, 95],
+                plt.fill([50, 50, 100], [50, 100, 100],
                          zorder=0, color=cm[0], alpha=0.4)
-                plt.fill([55, 95, 95], [55, 55, 95],
+                plt.fill([50, 100, 100], [50, 50, 100],
                          zorder=0, color=cm[0], alpha=0.2)
         else:
             if info:
@@ -139,21 +158,22 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
         plt.xlabel('Chronological Age [Years]')
         plt.legend()
         plt.savefig("../results/{}/plots/real_vs_pred".format(database_name) +
-                    "_{}_{}_{}.jpg".format(modality,
+                    "_{}_{}_{}_{}.jpg".format(modality,
                                            train_test,
-                                           alg),
+                                           alg,
+                                           str(correct_with_CA)),
                     bbox_inches='tight', dpi=300)
         plt.show()
 
-        results = open("../results/{}/eval_{}_{}_{}.txt".format(database_name,
-                                                                modality,
-                                                                train_test,
-                                                                alg), 'w+')
+        results = open("../results/{}/eval_{}_{}_{}_{}.txt".format(
+            database_name, modality, train_test, alg,
+            str(correct_with_CA)), 'w+')
         results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS" +
                       "\n" + str(mae) + "\t" + str(r2) + "\t" +
                       str(np.mean(y_diff)) +
                       "\t" + str(mae_adni) + "\t" + str(r2_adni) +
                       "\t" + str(mae_oasis) + "\t" + str(r2_oasis))
+        results.close()
 
 
 def check_bias(y_true, y_pred, alg, modality, database,
@@ -195,7 +215,12 @@ def check_bias(y_true, y_pred, alg, modality, database,
     """
     y_diff = y_pred-y_true
     linreg = LinearRegression()
-    if corr_with_CA:
+
+    if corr_with_CA is None:
+        slope = np.nan
+        intercept = np.nan
+
+    elif corr_with_CA:
         # linear regression between CA and age delta
         # slope and intercept are needed for bias correction
         # source: Population-based neuroimaging reveals traces of childbirth

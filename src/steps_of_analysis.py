@@ -134,7 +134,7 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
         df_pet['AGE_CHECK'] = older_65_mri & older_65_pet
         df_mri['AGE_CHECK'] = older_65_mri & older_65_pet
         if info:
-            print(sum(df_pet['AGE_CHECK'])-len(df_pet),
+            print(len(df_pet)-sum(df_pet['AGE_CHECK']),
                   "individuals younger than 65 years discarded.")
     else:
         df_pet['AGE_CHECK'] = True
@@ -170,11 +170,14 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
         df_mri, df_pet = outlier_check(df_mri, df_pet, col)
         n_outliers = len(df_mri) - sum(df_mri['IQR'])
         if info:
-            print(n_outliers, "outliers discarded.")
+            print("Total participants: ", len(df_mri),
+                  "Inside IQR of all regions: ", len(df_mri[df_mri['IQR']]),
+                  "\n({}".format(n_outliers),
+                  "participants discarded as outliers)")
             print("Outliers in train set: ",
                   sum(df_mri['train']) -
-                  sum(df_mri['IQR'][df_mri['train']]))
-            print("Outliers in test set: ",
+                  sum(df_mri['IQR'][df_mri['train']]),
+                  "Outliers in test set: ",
                   sum(~df_mri['train']) -
                   sum(df_mri['IQR'][~df_mri['train']]))
     else:
@@ -192,8 +195,10 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
 def cross_validate(df_train, col, models, model_params, splits, scoring,
                    rand_seed=42, y='age'):
     """
-    Applies cross-validation on training data using models and parameters
-    provided by user
+    Cross-validation.
+
+    Apply cross-validation on training data using models and parameters
+    provided by user.
 
     Parameters
     ----------
@@ -317,14 +322,17 @@ def bias_correct(df_train, col, model_results, model_names,
         and pearson r value of bias between BPAD and CA
 
     """
+    print("Starting bias-correction.")
     # BIAS CORRECTION
     y_true = df_train['age']
     y_pred_uncorr = pred_uncorr(df_train, col, model_results, splits=splits)
+    predictions = {}
+    predictions['name'] = df_train['name']
     pred_param = {}
-    pred_param['withCA'] = correct_with_CA
+    pred_param['withCA'] = [str(correct_with_CA)]
 
     for y in range(len(y_pred_uncorr)):
-        pred_param[model_names[y] + '_uncorr'] = y_pred_uncorr[y]
+        predictions[model_names[y] + '_uncorr'] = y_pred_uncorr[y]
         check_bias = plots.check_bias(y_true,
                                       y_pred_uncorr[y],
                                       model_names[y],
@@ -339,41 +347,49 @@ def bias_correct(df_train, col, model_results, model_names,
         if info:
             print("Significant association between ", model_names[y],
                   "-predicted age delta and CA:",
-                  check_bias[2])
+                  check_)
 
         if correct_with_CA is None:
-            # TODO. Must also change check_bias
-            pass
+            bc = y_pred_uncorr[y]
+            predictions[model_names[y] + '_bc'] = bc
         elif correct_with_CA:
             # for age correction WITH chronological age
             bc = y_pred_uncorr[y] - (slope_*y_true + intercept_)
-            pred_param[model_names[y] + '_bc'] = bc
+            predictions[model_names[y] + '_bc'] = bc
         else:
             # for age correction WITHOUT chronological age
             bc = (y_pred_uncorr[y] - intercept_)/slope_
-            pred_param[model_names[y] + '_bc'] = bc
+            predictions[model_names[y] + '_bc'] = bc
 
         r2_corr = r2_score(y_true, bc)
         mae_corr = mean_absolute_error(y_true, bc)
 
-        pred_param[model_names[y] + '_slope'] = slope_
-        pred_param[model_names[y] + '_intercept'] = intercept_
-        pred_param[model_names[y] + '_check'] = check_
-        pred_param[model_names[y] + '_r2'] = r2_corr
-        pred_param[model_names[y] + '_mae'] = mae_corr
+        pred_param[model_names[y] + '_slope'] = [slope_]
+        pred_param[model_names[y] + '_intercept'] = [intercept_]
+        pred_param[model_names[y] + '_check'] = [check_]
+        pred_param[model_names[y] + '_r2'] = [r2_corr]
+        pred_param[model_names[y] + '_mae'] = [mae_corr]
         r2_uncorr = r2_score(y_true, y_pred_uncorr[y])
         mae_uncorr = mean_absolute_error(y_true, y_pred_uncorr[y])
-        pred_param[model_names[y] + '_rsq_uncorr'] = r2_uncorr
-        pred_param[model_names[y] + '_ma_uncorr'] = mae_uncorr
+        pred_param[model_names[y] + '_rsq_uncorr'] = [r2_uncorr]
+        pred_param[model_names[y] + '_ma_uncorr'] = [mae_uncorr]
 
         pickle.dump(pred_param, open("../results/" + database +
-                                     "/models_and_params_" + modality +
+                                     "/models_and_params_" + modality + "_" +
+                                     str(correct_with_CA) +
                                      ".p", "wb"))
+        pickle.dump(predictions, open("../results/" + database +
+                                      "/cross-val_pred_" + modality + "_" +
+                                      str(correct_with_CA) +
+                                      ".p", "wb"))
         df = pd.DataFrame(pred_param)
-        df.to_csv("../results/" + database +
-                  "/models_and_params_" + modality + ".csv")
+        df.to_csv("../results/" + database + "/models_and_params_"
+                  + modality + "_" + str(correct_with_CA) + ".csv")
+    print("Finished bias-correction.")
     if return_model == 'final':
-        final_model, final_mae, final_r2 = find_final_model(pred_param,
+        final_model, final_mae, final_r2 = find_final_model(y_true,
+                                                            y_pred_uncorr,
+                                                            pred_param,
                                                             model_names)
 
         return final_model, pred_param
@@ -427,8 +443,9 @@ def find_final_model(y_true, y_pred_uncorr,
     final_model = model_names[final_model_idx]
 
     if info:
-        print("Final model (smallest MAE): {}\nMAE: {}, R2: {}".format(
-            final_model, final_mae, final_r2))
+        print("-\033[1m--CROSS-VALIDATION---\n",
+              "Final model (smallest MAE): {}\nMAE: {}, R2: {}\033[0m".format(
+                 final_model, final_mae[0], final_r2[0]))
     return final_model, final_mae, final_r2
 
 
@@ -464,8 +481,8 @@ def cross_val_prediction(df_train, col, y, model_, splits):
 
 
 def predict(df_test, col, model_, final_model_name,
-            slope_, intercept_, modality, train_test,
-            database, y='age', info=True):
+            slope_, intercept_, modality, database,
+            train_test='test', y='age', correct_with_CA=True, info=True):
     """
     Predicts brain age using trained algorithms.
 
@@ -491,6 +508,8 @@ def predict(df_test, col, model_, final_model_name,
         Whether train or test data is predicted
     database : str
         CN or MCI
+    correct_with_CA : boolean, optional
+        DESCRIPTION
     info : boolean, optional
         whether or not to create and save plots. The default is True.
 
@@ -500,21 +519,30 @@ def predict(df_test, col, model_, final_model_name,
         Bias-corrected brain age of individuals from test set
 
     """
-    # plot model predictions against GT in test set
     y_pred = model_.predict(df_test[col])
-    y_pred_bc = y_pred - (slope_*df_test[y] + intercept_)
+
+    # plot model predictions against GT in test set
+    if correct_with_CA is None:
+        y_pred_bc = y_pred
+    elif correct_with_CA:
+        # for age correction WITH chronological age
+        y_pred_bc = y_pred - (slope_*df_test[y] + intercept_)
+    else:
+        # for age correction WITHOUT chronological age
+        y_pred_bc = (y_pred - intercept_)/slope_
 
     mae = mean_absolute_error(df_test[y], y_pred_bc)
     r2 = r2_score(df_test[y], y_pred_bc)
 
     plots.real_vs_pred_2(df_test[y], y_pred_bc, final_model_name, modality,
-                         train_test, database,
+                         train_test, database, correct_with_CA=correct_with_CA,
                          info=info, database_list=df_test['Dataset'])
     return y_pred_bc, mae, r2
 
 
 def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
-              correct_with_CA=True, rand_seed=0, cv=5, imp='main', info=True):
+              correct_with_CA=True, rand_seed=0, cv=5, imp='main', info=True,
+              info_init=False):
     """
     Execute brain age prediction pipeline.
 
@@ -548,22 +576,22 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
         R squared of chronological age and pred.
 
     """
-    df_mri = pd.read_csv(dir_mri_csv)
-    df_pet = pd.read_csv(dir_pet_csv)
+    df_mri = pd.read_csv(dir_mri_csv, sep=";")
+    df_pet = pd.read_csv(dir_pet_csv, sep=";")
     col = df_mri.columns[3:-1].tolist()
-    n_outliers = split_data(df_mri, df_pet, col, imp=imp, info=info,
+    n_outliers = split_data(df_mri, df_pet, col, imp=imp, info=info_init,
                             rand_seed=rand_seed)
 
     # LOAD DATA
     database = "CN"
     mode = "train"
-    df = pd.read_csv('../data/main/test_train_' + modality +
+    df = pd.read_csv('../data/{}/test_train_'.format(imp) + modality +
                      '_' + str(rand_seed) + '.csv')
     df = df[df['AGE_CHECK'] & df['IQR']]
     df_train = df[df['train']]
     df_train = df_train.reset_index(drop=True)
 
-    if info:
+    if info_init:
         plots.plot_hist(df_train, mode, modality, df_train['Dataset'], y='age')
 
     # CROSS-VALIDATE MODELS
@@ -578,21 +606,16 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
         df_train, col, models, model_params, splits=cv,
         rand_seed=rand_seed, scoring=SCORING, y='age')
 
-    if bias_correct is not None:
-        final_model, pred_param = bias_correct(
-            df_train, col, model_results, model_names, modality,
-            database, correct_with_CA=correct_with_CA, info=info,
-            return_model=return_model, splits=cv)
+    final_model, pred_param = bias_correct(
+        df_train, col, model_results, model_names, modality,
+        database, correct_with_CA=correct_with_CA, info=info_init,
+        return_model=return_model, splits=cv)
 
-        # TODO. This won't work for bias-correction where there are
-        # multiple models emerging
-        slope_ = pred_param[final_model + "_slope"]
-        intercept_ = pred_param[final_model + "_intercept"]
-        model_ = model_results[model_names.index(final_model)]
-    else:
-        y_pred_uncorr = pred_uncorr(df_train, col, model_results)
-        final_model = find_final_model(
-            df_train['age'], y_pred_uncorr, pred_param, model_names)
+    # TODO. This won't work for bias-correction where there are
+    # multiple models emerging
+    slope_ = pred_param[final_model + "_slope"]
+    intercept_ = pred_param[final_model + "_intercept"]
+    model_ = model_results[model_names.index(final_model)]
 
     # TEST
     # How well does the model perform on unseen data?
@@ -606,8 +629,10 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
     for f in final_model:
         # TODO.
         continue
+
     pred, mae, r2 = predict(df_test, col, model_, final_model,
-                            slope_, intercept_, modality, mode,
-                            database, info=info)
+                            slope_, intercept_, modality, database,
+                            correct_with_CA=correct_with_CA,
+                            train_test='test', info=info)
 
     return n_outliers, pred, mae, r2, final_model
