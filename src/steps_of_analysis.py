@@ -322,7 +322,6 @@ def bias_correct(df_train, col, model_results, model_names,
         and pearson r value of bias between BPAD and CA
 
     """
-    print("Starting bias-correction.")
     # BIAS CORRECTION
     y_true = df_train['age']
     y_pred_uncorr = pred_uncorr(df_train, col, model_results, splits=splits)
@@ -385,12 +384,13 @@ def bias_correct(df_train, col, model_results, model_names,
         df = pd.DataFrame(pred_param)
         df.to_csv("../results/" + database + "/models_and_params_"
                   + modality + "_" + str(correct_with_CA) + ".csv")
-    print("Finished bias-correction.")
+
     if return_model == 'final':
         final_model, final_mae, final_r2 = find_final_model(y_true,
                                                             y_pred_uncorr,
                                                             pred_param,
-                                                            model_names)
+                                                            model_names,
+                                                            info=info)
 
         return final_model, pred_param
     elif return_model == 'all':
@@ -623,7 +623,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
     df_test = df_test.reset_index(drop=True)
     mode = "test"
 
-    if info:
+    if info_init:
         plots.plot_hist(df_test, mode, modality, df_test['Dataset'], y='age')
 
     for f in final_model:

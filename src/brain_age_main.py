@@ -63,7 +63,9 @@ def main(analyze, modality):
         models = []
         for i in tqdm(range(50)):
             n_outliers, pred, mae, r2, final_model = brain_age(
-                'MRI', imp='validation_random_seeds', rand_seed=i, info=False)
+                dir_mri_csv, dir_pet_csv,
+                modality, imp='validation_random_seeds', rand_seed=i,
+                info=False)
             n_outliers_range.append(n_outliers)
             mae_range.append(mae)
             r2_range.append(r2)
