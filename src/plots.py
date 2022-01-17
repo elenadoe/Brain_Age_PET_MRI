@@ -9,6 +9,7 @@ from nilearn.datasets import fetch_atlas_schaefer_2018
 from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.linear_model import LinearRegression
+from sklearn.inspection import permutation_importance
 
 # %%
 # matplotlib config
@@ -244,9 +245,9 @@ def check_bias(y_true, y_pred, alg, modality, database,
     if info:
         sns.regplot(y_diff, y_true,
                     line_kws={'label': "r = {}, p = {}".format(np.round(
-                                                        r_plotting, 2),
-                                                               np.round(
-                                                        p_plotting, 5))})
+                        r_plotting, 2),
+                        np.round(
+                        p_plotting, 5))})
         plt.ylabel('Chronological Age [years]')
         plt.xlabel('BPAD [years]')
         plt.legend()
@@ -257,17 +258,19 @@ def check_bias(y_true, y_pred, alg, modality, database,
             if corrected:
                 plt.savefig('../results/{}/bias-corrected_{}_{}.jpg'.format(
                     database, modality, alg),
-                            dpi=300)
+                    dpi=300)
             else:
                 plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(
                     database, modality, alg),
-                            dpi=300)
+                    dpi=300)
         plt.show()
     return slope, intercept, check
 
 
-def permutation_imp(feature_imp, final_model_name, modality):
-    """Plot feature importance.
+def permutation_imp(df_test, col, final_model, final_model_name,
+                    modality, y='age', n_repeats=1000, rand_seed=0):
+    """
+    Plot feature importance.
 
     Permutation importance as evaluated on test set.
 
@@ -284,12 +287,15 @@ def permutation_imp(feature_imp, final_model_name, modality):
     -------
     none (plots and saves plots)
     """
+    feature_imp = permutation_importance(
+        final_model, df_test[col], df_test[y],
+        n_repeats=n_repeats, random_state=rand_seed)
     schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
     text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
     labels = text_file.read().split('\n')
     labels = np.append(schaefer['labels'], np.array(labels[:-1]))
     df_imp = pd.DataFrame({'region': labels,
-                          'perm_importance': feature_imp.importances_mean})
+                           'perm_importance': feature_imp.importances_mean})
     df_imp.to_csv('../results/CN/' +
                   'permutation_importance_{}_{}.csv'.format(
                       modality, final_model_name))
@@ -314,7 +320,7 @@ def permutation_imp(feature_imp, final_model_name, modality):
     plotting.view_img_on_surf(atlas_final, threshold="90%")
     plt.title("{}-relevant regions for aging".format(final_model_name))
     plt.savefig("../results/" + "/Permutation_importance_{}_{}.jpg".format(
-                    modality, final_model_name))
+        modality, final_model_name))
     nib.save(atlas_final, "../results/CN"
              "/permutation_importance_{}_{}.nii".format(
                  modality, final_model_name))
