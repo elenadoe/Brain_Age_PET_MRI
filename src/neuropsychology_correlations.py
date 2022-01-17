@@ -16,26 +16,28 @@ from transform_data import neuropsych_merge
 
 warnings.filterwarnings("ignore")
 # matplotlib config
-cm = pickle.load(open("../data/config/plotting_config.p", "rb"))
+cm = pickle.load(open("../config/plotting_config.p", "rb"))
 
 
-def neuropsych_correlation(database, age_or_diff, modality,
-                           neuropsych_ind=[4:]):
+def neuropsych_correlation(database, age_or_diff, neuropsych_ind, modality):
     """
-    # TODO.
+    Correlations between BPAD and neuropsychology/-pathology
 
     Parameters
     ----------
-    y_pred : predicted age (int or float)
-    y_true: true age (int or float)
-    neuropsych : list of str containing all neuropsychological test names
-    to be assessed
-    df_test : dataframe containing the neuropsychological test scores for all
-    subjects
+    database : str
+        CN or MCI
+    age_or_diff : str
+        Brain-predicted age (BPA) or brain-predicted age difference (BPAD)
+    neuropsych_ind : list
+        indexes of columns to consider
+    modality : str
+        PET or MRI
 
     Returns
     -------
-    None.
+    sign : dict
+        r-values of significant correlations
 
     """
     df_neuropsych = pd.read_csv(
@@ -108,63 +110,3 @@ def neuropsych_correlation(database, age_or_diff, modality,
         print(key, ":", np.round(sign[key][0], 3), sign[key][1])
 
     return sign
-
-
-def plot_bpad_diff(y_true, y_pred, neuropsych_var,
-                   df_test, modality, database,
-                   group="CN"):
-    """
-    Create boxplots of BPAD differences significant as per t-test.
-
-    Parameters
-    ----------
-    y_true: list of floating point values or integers, representing ground
-        truth values
-    y_pred: list of floating point/integers values, representing predictions
-    alg: algorithm used for current task (used for saving)
-    modality: image modality used (MRI/PET; used for saving)
-    train_test: str indicating whether train or test data is plotted
-        (used for saving)
-    database: str indicating which database was used
-
-    Returns
-    -------
-    None. (plots and saves plots)
-
-    """
-    print('---BPAD---')
-    y_pred = np.round(y_pred, 0)
-    y_diff = y_pred - y_true
-    y_diff_cat = [-1 if x < 0 else 0 if x == 0 else 1 for x in y_diff]
-
-    sign = {}
-    for n in neuropsych_var:
-        ttest = stats.ttest_ind(df_test[n][np.where(np.array(y_diff_cat) > 0)[0]],
-                                df_test[n][np.where(
-                                    np.array(y_diff_cat) < 0)[0]],
-                                nan_policy='omit')
-        print(n, "p-value: ", ttest[1])
-        if ttest[1] < 0.05:
-            sign[n] = ttest[0]
-            fig, ax = plt.subplots(1, figsize=[12, 8])
-            sns.boxplot(x=y_diff_cat, y=df_test[n],
-                        palette='PuOr')
-            plt.xlabel('BPAD [years]')
-            plt.xticks((0, 1, 2), ('-', 'o', '+'))
-            xmin, xmax = ax.get_xlim()
-            ymin, ymax = ax.get_ylim()
-            text = 't = ' + \
-                str(np.round(ttest[0], 3)) + ' p = ' + \
-                str(np.round(ttest[1], 3))
-            plt.title('Difference BPAD - {}'.format(n))
-            plt.text(xmax - 0.01 * xmax, ymax - 0.01 * ymax,
-                     text, verticalalignment='top',
-                     horizontalalignment='right', fontsize=12)
-
-            plt.savefig(fname="../results/" + database + "/plots/" +
-                        group + "/" + modality +
-                        "_boxplot_BPAD" + "_" + n + ".png", dpi=300)
-            plt.show()
-    print("t-values of significant tests:")
-    for key in sign:
-        print(key, ":", np.round(sign[key], 3))

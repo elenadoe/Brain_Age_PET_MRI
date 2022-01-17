@@ -83,34 +83,40 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
     return model_results, scores
 
 
-def pred_uncorr(df_train, col, model_results, splits=5):
+def pred_uncorr(df_train, col, model_results, y='age', splits=5):
     """
-    # TODO.
+    Yield cross-validated predictions of brain age.
+
+    To be used for bias correction.
 
     Parameters
     ----------
-    y_true : TYPE
-        DESCRIPTION.
-    df_train : TYPE
-        DESCRIPTION.
-    col : TYPE
-        DESCRIPTION.
-    model_results : TYPE
-        DESCRIPTION.
+    df_train : pd.DataFrame
+        Dataframe containing input and output variables
+    col : list
+        Column(s) to be used as input features
+    model_results : list
+        Best fitted estimator per algorithm
+    y : str, optional
+        Column to be considered as output feature. The default is age.
     splits : TYPE, optional
-        DESCRIPTION. The default is 5.
+        How many folds to split the data into for cross-validated predictions.
+        The default is 5.
 
     Returns
     -------
     None.
 
     """
-    y_pred_rvr = cross_val_prediction(df_train, col, 'age',
-                                      model_results[0],
-                                      splits)
-    y_pred_svr = cross_val_prediction(df_train, col, 'age',
-                                      model_results[1],
-                                      splits)
+    cv = StratifiedKFold(n_splits=splits).split(df_train[col],
+                                                df_train['Ageb'])
+    cv = list(cv)
+
+    y_pred_rvr = cross_val_predict(model_results[0], df_train[col],
+                                   df_train[y], cv=cv)
+    y_pred_svr = cross_val_predict(model_results[1], df_train[col],
+                                   df_train[y], cv=cv)
+
     y_pred_uncorr = [y_pred_rvr, y_pred_svr]
 
     return y_pred_uncorr
@@ -122,7 +128,7 @@ def bias_correct(df_train, col, model_results, model_names,
                  modality, database, splits, y='age', correct_with_CA=True,
                  return_model='final', info=True, save=True):
     """
-    # TODO.
+    Correct for bias between CA and BPA.
 
     Parameters
     ----------
@@ -136,10 +142,10 @@ def bias_correct(df_train, col, model_results, model_names,
         MRI or PET
     database : str
         CN or MCI
-    y : pd.Series, optional
+    y : str, optional
         Column to be considered as output feature. The default is age.
     correct_with_CA : boolean, optional
-        whether or not to correct bias with chronological age.
+        Whether or not to correct bias with chronological age.
         The default is True.
     info : boolean, optional
         whether or not to create and save plots. The default is True.
@@ -148,8 +154,8 @@ def bias_correct(df_train, col, model_results, model_names,
 
     Returns
     -------
-    final_model : sklearn model
-        # TODO
+    final_model : str
+        Name of final model
     pred_param : dict
         dictionary containing bias-corrected age, slope, intercept,
         and pearson r value of bias between BPAD and CA
@@ -209,8 +215,8 @@ def bias_correct(df_train, col, model_results, model_names,
 
         if save:
             pickle.dump(pred_param, open("../results/" + database +
-                                         "/models_and_params_" + modality + "_" +
-                                         str(correct_with_CA) +
+                                         "/models_and_params_" + modality +
+                                         "_" + str(correct_with_CA) +
                                          ".p", "wb"))
             pickle.dump(predictions, open("../results/" + database +
                                           "/cross-val_pred_" + modality + "_" +
@@ -237,31 +243,36 @@ def find_final_model(y_true, y_pred_uncorr,
                      pred_param, model_names, modality,
                      correct_with_CA=True, info=True):
     """
-    # TODO.
+    Compare transition models to find final model.
+
+    The transition model with the smallest mean absolute error (MAE)
+    on uncorrected brain age prediction against chronological age
+    is the final model.
 
     Parameters
     ----------
-    y_true : TYPE
-        DESCRIPTION.
-    y_pred_uncorr : TYPE
-        DESCRIPTION.
-    pred_param : TYPE
-        DESCRIPTION.
-    model_names : TYPE
-        DESCRIPTION.
-    info : TYPE, optional
-        DESCRIPTION. The default is True.
+    y_true : list
+        Chronological age
+    y_pred_uncorr : list
+        Uncorrected predicted age.
+    pred_param : dict
+        dictionary containing bias-corrected age, slope, intercept,
+        and pearson r value of bias between BPAD and CA
+    model_names : list
+        List of strings naming models to assess
+    info : boolean, optional
+        whether or not to create and save plots. The default is True.
     save : boolean, optional
-        Whether final_model should be saved
+        Whether final model should be saved
 
     Returns
     -------
-    final_model : TYPE
-        DESCRIPTION.
-    final_mae : TYPE
-        DESCRIPTION.
-    final_r2 : TYPE
-        DESCRIPTION.
+    final_model : str
+        Name of final model
+    final_mae : float
+        Mean absolute error of final model
+    final_r2 : float
+        R squared of final model
 
     """
     final_model_idx = np.argmin([v for k, v in pred_param.items()
@@ -279,37 +290,6 @@ def find_final_model(y_true, y_pred_uncorr,
     return final_model, final_mae, final_r2
 
 
-def cross_val_prediction(df_train, col, y, model_, splits):
-    """
-    # TODO.
-
-    Parameters
-    ----------
-    df_train : TYPE
-        DESCRIPTION.
-    col : TYPE
-        DESCRIPTION.
-    y : TYPE
-        DESCRIPTION.
-    model_ : TYPE
-        DESCRIPTION.
-    splits : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    pred : TYPE
-        DESCRIPTION.
-
-    """
-    cv = StratifiedKFold(n_splits=splits).split(df_train[col],
-                                                df_train['Ageb'])
-    cv = list(cv)
-    pred = cross_val_predict(model_, df_train[col], df_train[y], cv=cv)
-
-    return pred
-
-
 def predict(df_test, col, model_, final_model_name,
             slope_, intercept_, modality, database,
             train_test='test', y='age', correct_with_CA=True, info=True):
@@ -318,20 +298,20 @@ def predict(df_test, col, model_, final_model_name,
 
     Parameters
     ----------
-    df_test : TYPE
-        DESCRIPTION.
-    col : TYPE
-        DESCRIPTION.
+    df_test : pd.DataFrame
+        Dataframe containing input and output variables
+    col : list or np.ndarray
+        Column(s) to be used as input features
     model_ : ExtendedDataFramePipeline
         final model to be used for prediction
     final_model_name : str
         name of final model to be used for saving of plots
-    y : str
-        DESCRIPTION.
+    y : str, optional
+        Column to be considered as output feature. The default is age.
     slope_ : float
-        DESCRIPTION.
+        Slope of linear model for bias correction
     intercept_ : float
-        DESCRIPTION.
+        Intercept of linear model for bias correction
     modality : str
         PET or MRI
     train_test : str
@@ -339,9 +319,10 @@ def predict(df_test, col, model_, final_model_name,
     database : str
         CN or MCI
     correct_with_CA : boolean, optional
-        DESCRIPTION
+        Whether or not to correct bias with chronological age.
+        The default is True.
     info : boolean, optional
-        whether or not to create and save plots. The default is True.
+        Whether or not to create and save plots. The default is True.
 
     Returns
     -------
@@ -369,7 +350,7 @@ def predict(df_test, col, model_, final_model_name,
                          info=info, database_list=df_test['Dataset'])
 
     if info:
-        df = pd.DataFrame({'PTID': df_test['PTID'],
+        df = pd.DataFrame({'PTID': df_test['name'],
                            'Age': df_test[y],
                            'Prediction': y_pred_bc})
         df.to_csv("../results/{}/{}-predicted_age_{}.csv".format(
@@ -401,7 +382,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
         Whether to print intermediate info. Recommended to set
         to False for validation_random_seeds. The default is True.
     info_init : boolean, optional
-        DESCRIPTION
+        Whether to print initial info.
     save : boolean, optional
         Whether final model should be saved
 

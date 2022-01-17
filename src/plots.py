@@ -56,7 +56,7 @@ def plot_hist(df_train, train_test, modality, database_list, y='age'):
 def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
                    correct_with_CA=True, info=True, database_list=None):
     """
-    plots predicted age against chronological age
+    Plot predicted age against chronological age.
 
     Parameters
     ----------
@@ -187,10 +187,10 @@ def check_bias(y_true, y_pred, alg, modality, database,
 
     Parameters
     ----------
-    y_true : list of floating point/integer values
-        ground truth values
-    y_pred : list of floating point/integers values
-        predictions
+    y_true : list
+        Chronological age
+    y_pred : list
+        Predicted age
     alg : str
         algorithm used for current task (used for saving)
     modality : str

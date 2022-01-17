@@ -10,7 +10,6 @@ from collections import Counter
 from tqdm import tqdm
 from steps_of_analysis import brain_age, predict
 from neuropsychology_correlations import neuropsych_correlation
-from neuropsych_correlation import neuropsych_correlation
 import pickle
 import numpy as np
 import pandas as pd
@@ -98,7 +97,9 @@ def main(analyze, modality):
                                 slope_, intercept_, modality, "MCI")
     elif analyze == 4.1:
         group = "CN"
-        sign = neuropsych_correlation(group, "BPAD", modality)
+        neuropsych_correlation(group, "BPAD", list(range(4, 22)),
+                                      modality)
     elif analyze == 4.2:
         group = "MCI"
-        sign = neuropsych_correlation(group, "BPAD", modality)
+        neuropsych_correlation(group, "BPAD", list(range(4, 22)),
+                                      modality)
