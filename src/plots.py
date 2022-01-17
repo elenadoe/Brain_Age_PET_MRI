@@ -12,7 +12,7 @@ from sklearn.linear_model import LinearRegression
 
 # %%
 # matplotlib config
-cm = pickle.load(open("../data/config/plotting_config.p", "rb"))
+cm = pickle.load(open("../config/plotting_config.p", "rb"))
 sns.set_palette(cm)
 
 
@@ -177,7 +177,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
 
 
 def check_bias(y_true, y_pred, alg, modality, database,
-               corr_with_CA=False, corrected=False, info=True):
+               corr_with_CA=False, corrected=False, info=True, save=True):
     """
     checks whether there is a significant association (= bias)
     between chronological age (CA) and brain-age delta
@@ -203,7 +203,8 @@ def check_bias(y_true, y_pred, alg, modality, database,
     info : boolean, optional
         whether or not to create and save plots
         Default is True.
-
+    save : boolean, optional
+        DESCRIPTION
 
     Returns
     -------
@@ -250,15 +251,15 @@ def check_bias(y_true, y_pred, alg, modality, database,
         plt.title('Association between brain-age ' +
                   'delta and chronological age {}'.format(alg))
 
-        # save figures
-        if corrected:
-            plt.savefig('../results/{}/bias-corrected_{}_{}.jpg'.format(
-                database, modality, alg),
-                        dpi=300)
-        else:
-            plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(
-                database, modality, alg),
-                        dpi=300)
+        if save:
+            if corrected:
+                plt.savefig('../results/{}/bias-corrected_{}_{}.jpg'.format(
+                    database, modality, alg),
+                            dpi=300)
+            else:
+                plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(
+                    database, modality, alg),
+                            dpi=300)
         plt.show()
     return slope, intercept, check
 

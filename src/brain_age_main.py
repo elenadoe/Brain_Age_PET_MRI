@@ -8,12 +8,13 @@ Created on Tue Dec 21 18:32:44 2021
 
 from collections import Counter
 from tqdm import tqdm
-from steps_of_analysis import brain_age
-
+from steps_of_analysis import brain_age, predict
+import pickle
 import numpy as np
+import pandas as pd
 
-dir_mri_csv = '../data/main/MRI_parcels_all.csv'
-dir_pet_csv = '../data/main/PET_parcels_all.csv'
+dir_mri_csv = '../data/CN/MRI_parcels_all.csv'
+dir_pet_csv = '../data/CN/PET_parcels_all.csv'
 
 analyze = 1
 modality = 'PET'
@@ -65,7 +66,7 @@ def main(analyze, modality):
             n_outliers, pred, mae, r2, final_model = brain_age(
                 dir_mri_csv, dir_pet_csv,
                 modality, imp='validation_random_seeds', rand_seed=i,
-                info=False)
+                info=False, info_init=False, save=False)
             n_outliers_range.append(n_outliers)
             mae_range.append(mae)
             r2_range.append(r2)
@@ -79,8 +80,19 @@ def main(analyze, modality):
               "(mean: {})".format(np.mean(r2_range)),
               "\nModels: ", Counter(models))
     elif analyze == 3:
-        pass
-        # TODO
+        file_ = pd.read_csv("../data/ADNI/MCI_" + modality + "_parcels.csv")
+        col = pickle.load(open("../config/columns.p", "rb"))
+        final_model_name = "svm"
+        final_model = pickle.load(open(
+            "../results/final_model_{}_True.p".format(
+                modality), "rb"))
+        params = pd.read_csv(
+            "../results/CN/models_and_params_{}_True.csv".format(modality))
+        slope_ = params['{}_slope'.format(final_model_name)][0]
+        intercept_ = params['{}_intercept'.format(final_model_name)][0]
+
+        pred, mae, r2 = predict(file_, col, final_model, "svm",
+                                slope_, intercept_, modality, "MCI")
     elif analyze == 4:
         pass
         # TODO

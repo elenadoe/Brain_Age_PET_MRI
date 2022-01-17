@@ -289,7 +289,7 @@ def pred_uncorr(df_train, col, model_results, splits=5):
 # Eliminate linear correlation of brain age delta and chronological age
 def bias_correct(df_train, col, model_results, model_names,
                  modality, database, splits, y='age', correct_with_CA=True,
-                 return_model='final', info=True):
+                 return_model='final', info=True, save=True):
     """
     # TODO.
 
@@ -312,6 +312,8 @@ def bias_correct(df_train, col, model_results, model_names,
         The default is True.
     info : boolean, optional
         whether or not to create and save plots. The default is True.
+    save : boolean, optional
+        Whether final model should be saved
 
     Returns
     -------
@@ -338,7 +340,8 @@ def bias_correct(df_train, col, model_results, model_names,
                                       modality,
                                       database,
                                       correct_with_CA,
-                                      info=info)
+                                      info=info,
+                                      save=save)
         slope_ = check_bias[0]
         intercept_ = check_bias[1]
         check_ = check_bias[2]
@@ -373,14 +376,15 @@ def bias_correct(df_train, col, model_results, model_names,
         pred_param[model_names[y] + '_rsq_uncorr'] = [r2_uncorr]
         pred_param[model_names[y] + '_ma_uncorr'] = [mae_uncorr]
 
-        pickle.dump(pred_param, open("../results/" + database +
-                                     "/models_and_params_" + modality + "_" +
-                                     str(correct_with_CA) +
-                                     ".p", "wb"))
-        pickle.dump(predictions, open("../results/" + database +
-                                      "/cross-val_pred_" + modality + "_" +
-                                      str(correct_with_CA) +
-                                      ".p", "wb"))
+        if save:
+            pickle.dump(pred_param, open("../results/" + database +
+                                         "/models_and_params_" + modality + "_" +
+                                         str(correct_with_CA) +
+                                         ".p", "wb"))
+            pickle.dump(predictions, open("../results/" + database +
+                                          "/cross-val_pred_" + modality + "_" +
+                                          str(correct_with_CA) +
+                                          ".p", "wb"))
         df = pd.DataFrame(pred_param)
         df.to_csv("../results/" + database + "/models_and_params_"
                   + modality + "_" + str(correct_with_CA) + ".csv")
@@ -390,7 +394,9 @@ def bias_correct(df_train, col, model_results, model_names,
                                                             y_pred_uncorr,
                                                             pred_param,
                                                             model_names,
-                                                            info=info)
+                                                            modality,
+                                                            info,
+                                                            save=save)
 
         return final_model, pred_param
     elif return_model == 'all':
@@ -398,8 +404,8 @@ def bias_correct(df_train, col, model_results, model_names,
 
 
 def find_final_model(y_true, y_pred_uncorr,
-                     pred_param, model_names,
-                     correct_with_CA=True, info=True):
+                     pred_param, model_names, modality,
+                     correct_with_CA=True, info=True, save=True):
     """
     # TODO.
 
@@ -415,6 +421,8 @@ def find_final_model(y_true, y_pred_uncorr,
         DESCRIPTION.
     info : TYPE, optional
         DESCRIPTION. The default is True.
+    save : boolean, optional
+        Whether final_model should be saved
 
     Returns
     -------
@@ -426,21 +434,17 @@ def find_final_model(y_true, y_pred_uncorr,
         DESCRIPTION.
 
     """
-    if correct_with_CA is not None:
-        final_model_idx = np.argmin([v for k, v in pred_param.items()
-                                     if '_mae' in k])
-        final_r2 = [v for k, v in pred_param.items()
-                    if '_r2' in k][final_model_idx]
-        final_mae = [v for k, v in pred_param.items()
-                     if '_mae' in k][final_model_idx]
-    else:
-        final_model_idx = np.argmin([v for k, v in pred_param.items()
-                                     if '_ma_uncorr' in k])
-        final_r2 = [v for k, v in pred_param.items()
-                    if '_rsq_uncorr' in k][final_model_idx]
-        final_mae = [v for k, v in pred_param.items()
-                     if '_ma_uncorr' in k][final_model_idx]
+    final_model_idx = np.argmin([v for k, v in pred_param.items()
+                                 if '_mae' in k])
+    final_r2 = [v for k, v in pred_param.items()
+                if '_r2' in k][final_model_idx]
+    final_mae = [v for k, v in pred_param.items()
+                 if '_mae' in k][final_model_idx]
     final_model = model_names[final_model_idx]
+
+    if save:
+        pickle.dump(final_model, open("../results/final_model_{}_{}.p".format(
+            modality, str(correct_with_CA)), "wb"))
 
     if info:
         print("-\033[1m--CROSS-VALIDATION---\n",
@@ -542,7 +546,7 @@ def predict(df_test, col, model_, final_model_name,
 
 def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
               correct_with_CA=True, rand_seed=0, cv=5, imp='main', info=True,
-              info_init=False):
+              info_init=False, save=True):
     """
     Execute brain age prediction pipeline.
 
@@ -563,6 +567,10 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
     info : boolean, optional
         Whether to print intermediate info. Recommended to set
         to False for validation_random_seeds. The default is True.
+    info_init : boolean, optional
+        DESCRIPTION
+    save : boolean, optional
+        Whether final model should be saved
 
     Returns
     -------
@@ -579,6 +587,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
     df_mri = pd.read_csv(dir_mri_csv, sep=";")
     df_pet = pd.read_csv(dir_pet_csv, sep=";")
     col = df_mri.columns[3:-1].tolist()
+    pickle.dump(col, open("../config/columns.p", "wb"))
     n_outliers = split_data(df_mri, df_pet, col, imp=imp, info=info_init,
                             rand_seed=rand_seed)
 
@@ -599,7 +608,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
     models = [RVR(), 'svm']
     model_names = ['rvr', 'svm']
     SCORING = ['r2']
-    model_params = pickle.load(open("../data/config/hyperparams_allmodels.p",
+    model_params = pickle.load(open("../config/hyperparams_allmodels.p",
                                     "rb"))
 
     model_results, scores = cross_validate(
@@ -609,7 +618,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
     final_model, pred_param = bias_correct(
         df_train, col, model_results, model_names, modality,
         database, correct_with_CA=correct_with_CA, info=info_init,
-        return_model=return_model, splits=cv)
+        return_model=return_model, splits=cv, save=save)
 
     # TODO. This won't work for bias-correction where there are
     # multiple models emerging
