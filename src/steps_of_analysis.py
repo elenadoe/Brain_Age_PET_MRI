@@ -367,6 +367,13 @@ def predict(df_test, col, model_, final_model_name,
     plots.real_vs_pred_2(df_test[y], y_pred_bc, final_model_name, modality,
                          train_test, database, correct_with_CA=correct_with_CA,
                          info=info, database_list=df_test['Dataset'])
+
+    if info:
+        df = pd.DataFrame({'PTID': df_test['PTID'],
+                           'Age': df_test[y],
+                           'Prediction': y_pred_bc})
+        df.to_csv("../results/{}/{}-predicted_age_{}.csv".format(
+            database, modality, database))
     return y_pred_bc, mae, r2
 
 

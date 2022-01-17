@@ -12,15 +12,17 @@ import seaborn as sns
 import pandas as pd
 import warnings
 import pickle
+from transform_data import neuropsych_merge
 
 warnings.filterwarnings("ignore")
 # matplotlib config
 cm = pickle.load(open("../data/config/plotting_config.p", "rb"))
 
 
-def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
-                           df_test, modality, database):
+def neuropsych_correlation(database, age_or_diff, modality,
+                           neuropsych_ind=[4:]):
     """
+    # TODO.
 
     Parameters
     ----------
@@ -36,16 +38,26 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
     None.
 
     """
+    df_neuropsych = pd.read_csv(
+        "../data/main/ADNI_Neuropsych_Neuropath.csv", sep=";")
+    neuropsych_var = df_neuropsych.columns[neuropsych_ind]
+    df_pred = pd.read_csv(
+        "../results/{}/{}-predicted_age_{}.csv".format(
+            database, modality, database))
+    y_true = df_pred['Age']
+    y_pred = df_pred['Prediction']
+    merged = neuropsych_merge(df_pred, df_neuropsych, database,
+                              neuropsych_var)
     print("Significant correlations between {} ".format(age_or_diff) +
           "and Neuropsychology")
 
     sign = {}
     for n in neuropsych_var:
-        df_test[n] = pd.to_numeric(df_test[n])
-        exc = np.isnan(df_test[n])
+        merged[n] = pd.to_numeric(merged[n])
+        exc = np.isnan(merged[n])
         if age_or_diff == "BPA":
             pearson = stats.pearsonr(y_pred[~exc],
-                                     df_test[n][~exc])
+                                     merged[n][~exc])
             if pearson[1] < 0.05:
                 sign[n] = pearson[0]
                 fig, ax = plt.subplots(1, figsize=[12, 8])
@@ -53,9 +65,9 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
                     str(np.round(pearson[0], 3)) + \
                     ' p = ' + str(np.round(pearson[1], 3))
                 plt.title('Difference BPAD - {}'.format(n))
-                sns.regplot(y_true, df_test[n], ax=ax,
+                sns.regplot(y_true, merged[n], ax=ax,
                             scatter_kws={'alpha': 0.3}, label="Age")
-                sns.regplot(y_pred, df_test[n], ax=ax,
+                sns.regplot(y_pred, merged[n], ax=ax,
                             scatter_kws={'alpha': 0.3},
                             color="red", label=age_or_diff)
                 xmin, xmax = ax.get_xlim()
@@ -71,16 +83,16 @@ def neuropsych_correlation(y_true, y_pred, age_or_diff, neuropsych_var,
             y_diff = y_pred_rnd - y_true
             y_diff_cat = ["negative" if x < 0 else "BPAD = 0" if x ==
                           0 else "positive" for x in y_diff]
-            df_test["y_pred_rnd"] = y_pred_rnd
-            df_test["y_diff"] = y_diff
-            df_test["BPAD Category"] = y_diff_cat
+            df_pred["y_pred_rnd"] = y_pred_rnd
+            df_pred["y_diff"] = y_diff
+            df_pred["BPAD Category"] = y_diff_cat
             pearson = stats.pearsonr(y_diff[~exc],
-                                     df_test[n][~exc])
+                                     merged[n][~exc])
             if pearson[1] < 0.05:
                 sign[n] = pearson
-                slope, intercept = np.polyfit(y_diff[~exc], df_test[n][~exc],
+                slope, intercept = np.polyfit(y_diff[~exc], merged[n][~exc],
                                               1)
-                sns.lmplot("y_diff", n, data=df_test,
+                sns.lmplot("y_diff", n, data=merged,
                            scatter_kws={'alpha': 0.3},
                            palette="YlOrBr", hue="BPAD Category")
                 plt.plot(y_diff, slope*y_diff+intercept, linestyle="--",
@@ -102,7 +114,7 @@ def plot_bpad_diff(y_true, y_pred, neuropsych_var,
                    df_test, modality, database,
                    group="CN"):
     """
-    Creates boxplots of BPAD differences significant as per t-test
+    Create boxplots of BPAD differences significant as per t-test.
 
     Parameters
     ----------

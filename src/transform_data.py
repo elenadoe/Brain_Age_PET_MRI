@@ -1,9 +1,11 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Mon Jan 17 12:17:23 2022
 
 @author: doeringe
 """
+import pandas as pd
 
 from sklearn.model_selection import train_test_split
 
@@ -175,3 +177,38 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
                   'test_train_PET_{}.csv'.format(str(rand_seed)))
 
     return n_outliers
+
+
+def neuropsych_merge(df_pred, df_neuropsych, database,
+                     neuropsych_var):
+    """
+    Merge predictions with neuropsychology.
+
+    Parameters
+    ----------
+    df_pred : TYPE
+        DESCRIPTION.
+    database : TYPE
+        DESCRIPTION.
+    df_neuropsych : TYPE
+        DESCRIPTION.
+    neuropsych_var : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    merged : TYPE
+        DESCRIPTION.
+
+    """
+    df_neuropsych = df_neuropsych[df_neuropsych['DX'] == database]
+    df_neuropsych = df_neuropsych.reset_index()
+    df = pd.read_csv(df_pred)
+    df['BPAD'] = df['Prediction']-df['Age']
+    merged = pd.merge(df, df_neuropsych[neuropsych_var],
+                      how='left', on='PTID')
+    merged[merged['ABETA'] == '>1700'] = 1700
+    merged[merged['PTAU'] == '<8'] = 8
+    merged[merged['TAU'] == '<80'] = 80
+
+    return merged
