@@ -13,8 +13,8 @@ import pickle
 import numpy as np
 import pandas as pd
 
-dir_mri_csv = '../data/CN/MRI_parcels_all.csv'
-dir_pet_csv = '../data/CN/PET_parcels_all.csv'
+dir_mri_csv = '../data/main/MRI_parcels_all.csv'
+dir_pet_csv = '../data/main/PET_parcels_all.csv'
 
 analyze = 1
 modality = 'PET'
@@ -80,7 +80,8 @@ def main(analyze, modality):
               "(mean: {})".format(np.mean(r2_range)),
               "\nModels: ", Counter(models))
     elif analyze == 3:
-        file_ = pd.read_csv("../data/ADNI/MCI_" + modality + "_parcels.csv")
+        file_ = pd.read_csv("../data/MCI/MCI_" + modality + "_parcels.csv",
+                            sep=";")
         col = pickle.load(open("../config/columns.p", "rb"))
         final_model_name = "svm"
         final_model = pickle.load(open(
@@ -91,7 +92,7 @@ def main(analyze, modality):
         slope_ = params['{}_slope'.format(final_model_name)][0]
         intercept_ = params['{}_intercept'.format(final_model_name)][0]
 
-        pred, mae, r2 = predict(file_, col, final_model, "svm",
+        pred, mae, r2 = predict(file_, col, final_model, final_model_name,
                                 slope_, intercept_, modality, "MCI")
     elif analyze == 4:
         pass

@@ -159,9 +159,9 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
         plt.legend()
         plt.savefig("../results/{}/plots/real_vs_pred".format(database_name) +
                     "_{}_{}_{}_{}.jpg".format(modality,
-                                           train_test,
-                                           alg,
-                                           str(correct_with_CA)),
+                                              train_test,
+                                              alg,
+                                              str(correct_with_CA)),
                     bbox_inches='tight', dpi=300)
         plt.show()
 
@@ -179,8 +179,10 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
 def check_bias(y_true, y_pred, alg, modality, database,
                corr_with_CA=False, corrected=False, info=True, save=True):
     """
-    checks whether there is a significant association (= bias)
-    between chronological age (CA) and brain-age delta
+    Bias check & provision of correction parameters.
+
+    Check whether there is a significant association (= bias)
+    between chronological age (CA) and brain-age delta.
 
     Parameters
     ----------
@@ -264,18 +266,23 @@ def check_bias(y_true, y_pred, alg, modality, database,
     return slope, intercept, check
 
 
-# plot permutation importance
-def permutation_imp(feature_imp, alg, modality, database):
-    """Plots permutation importance as evaluated in test set
-    inputs:
-    feature_imp: dictionary-like object from calling
-        sklearn.inspection.permutation_importance
-    alg : string of algorithm used for current task (used for saving)
-    modality: str representing the modality with which brain age was
-        assessed (MRI/PET; used for saving)
-    database: str indicating which database was used
+def permutation_imp(feature_imp, final_model_name, modality):
+    """Plot feature importance.
 
-    outputs: none (plots and saves plots)
+    Permutation importance as evaluated on test set.
+
+    Parameters
+    ----------
+    feature_imp: dictionary-like object
+        from calling sklearn.inspection.permutation_importance
+    final_model_name : str
+        DESCRIPTION
+    modality: str
+        modality with which brain age was assessed (MRI/PET; used for saving)
+
+    Returns
+    -------
+    none (plots and saves plots)
     """
     schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
     text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
@@ -283,8 +290,9 @@ def permutation_imp(feature_imp, alg, modality, database):
     labels = np.append(schaefer['labels'], np.array(labels[:-1]))
     df_imp = pd.DataFrame({'region': labels,
                           'perm_importance': feature_imp.importances_mean})
-    df_imp.to_csv('../results/{}/'.format(database) +
-                  'permutation_importance_{}_{}.csv'.format(modality, alg))
+    df_imp.to_csv('../results/CN/' +
+                  'permutation_importance_{}_{}.csv'.format(
+                      modality, final_model_name))
 
     atlas = '../data/schaefer200-17_Tian.nii'
     atlas = image.load_img(atlas)
@@ -304,9 +312,10 @@ def permutation_imp(feature_imp, alg, modality, database):
 
     plotting.plot_stat_map(atlas_final)
     plotting.view_img_on_surf(atlas_final, threshold="90%")
-    plt.title("{}-relevant regions for aging".format(alg))
-    plt.savefig("../results/" + database +
-                "/Permutation_importance_{}_{}.jpg".format(modality, alg))
-    nib.save(atlas_final, "../results/" + database +
-             "/permutation_importance_{}_{}.nii".format(modality, alg))
+    plt.title("{}-relevant regions for aging".format(final_model_name))
+    plt.savefig("../results/" + "/Permutation_importance_{}_{}.jpg".format(
+                    modality, final_model_name))
+    nib.save(atlas_final, "../results/CN"
+             "/permutation_importance_{}_{}.nii".format(
+                 modality, final_model_name))
     plt.show()

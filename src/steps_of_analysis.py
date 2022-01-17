@@ -11,6 +11,7 @@ from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn.model_selection import cross_val_predict
+from sklearn.inspection import permutation_importance
 from skrvm import RVR
 
 import plots
@@ -79,7 +80,7 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
 
 def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
                older_65=True, check_outliers=True, info=True,
-               rand_seed=42):
+               rand_seed=0):
     """
     Splits data into train and test sets.
 
@@ -193,7 +194,7 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
 
 
 def cross_validate(df_train, col, models, model_params, splits, scoring,
-                   rand_seed=42, y='age'):
+                   rand_seed=0, y='age'):
     """
     Cross-validation.
 
@@ -395,8 +396,7 @@ def bias_correct(df_train, col, model_results, model_names,
                                                             pred_param,
                                                             model_names,
                                                             modality,
-                                                            info,
-                                                            save=save)
+                                                            info)
 
         return final_model, pred_param
     elif return_model == 'all':
@@ -405,7 +405,7 @@ def bias_correct(df_train, col, model_results, model_names,
 
 def find_final_model(y_true, y_pred_uncorr,
                      pred_param, model_names, modality,
-                     correct_with_CA=True, info=True, save=True):
+                     correct_with_CA=True, info=True):
     """
     # TODO.
 
@@ -441,10 +441,6 @@ def find_final_model(y_true, y_pred_uncorr,
     final_mae = [v for k, v in pred_param.items()
                  if '_mae' in k][final_model_idx]
     final_model = model_names[final_model_idx]
-
-    if save:
-        pickle.dump(final_model, open("../results/final_model_{}_{}.p".format(
-            modality, str(correct_with_CA)), "wb"))
 
     if info:
         print("-\033[1m--CROSS-VALIDATION---\n",
@@ -544,6 +540,38 @@ def predict(df_test, col, model_, final_model_name,
     return y_pred_bc, mae, r2
 
 
+def permutation_imp(df_test, col, final_model, final_model_name,
+                    modality, y='age', n_repeats=1000, rand_seed=0):
+    """
+    Calculate and plot feature importance.
+
+    Permutation importance as evaluated on test set.
+
+    Parameters
+    ----------
+    df_test : TYPE
+        DESCRIPTION.
+    col : TYPE
+        DESCRIPTION.
+    final_model : TYPE
+        DESCRIPTION.
+    modality : TYPE
+        DESCRIPTION.
+    y : TYPE, optional
+        DESCRIPTION. The default is 'age'.
+    rand_seed : TYPE, optional
+        DESCRIPTION. The default is 0.
+
+    Returns
+    -------
+    None.
+
+    """
+    pi = permutation_importance(final_model, df_test[col], df_test[y],
+                                n_repeats=n_repeats, random_state=rand_seed)
+    plots.permutation_imp(pi, final_model_name, modality)
+
+
 def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
               correct_with_CA=True, rand_seed=0, cv=5, imp='main', info=True,
               info_init=False, save=True):
@@ -615,16 +643,17 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
         df_train, col, models, model_params, splits=cv,
         rand_seed=rand_seed, scoring=SCORING, y='age')
 
-    final_model, pred_param = bias_correct(
+    final_model_name, pred_param = bias_correct(
         df_train, col, model_results, model_names, modality,
         database, correct_with_CA=correct_with_CA, info=info_init,
         return_model=return_model, splits=cv, save=save)
+    final_model = model_results[model_names.index(final_model_name)]
+    if save:
+        pickle.dump(final_model, open("../results/final_model_{}_{}.p".format(
+            modality, str(correct_with_CA)), "wb"))
 
-    # TODO. This won't work for bias-correction where there are
-    # multiple models emerging
-    slope_ = pred_param[final_model + "_slope"]
-    intercept_ = pred_param[final_model + "_intercept"]
-    model_ = model_results[model_names.index(final_model)]
+    slope_ = pred_param[final_model_name + "_slope"]
+    intercept_ = pred_param[final_model_name + "_intercept"]
 
     # TEST
     # How well does the model perform on unseen data?
@@ -635,13 +664,13 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
     if info_init:
         plots.plot_hist(df_test, mode, modality, df_test['Dataset'], y='age')
 
-    for f in final_model:
-        # TODO.
-        continue
-
-    pred, mae, r2 = predict(df_test, col, model_, final_model,
+    pred, mae, r2 = predict(df_test, col, final_model, final_model_name,
                             slope_, intercept_, modality, database,
                             correct_with_CA=correct_with_CA,
                             train_test='test', info=info)
+
+    if info:
+        permutation_imp(df_test, col, final_model, final_model_name,
+                        modality, rand_seed=rand_seed)
 
     return n_outliers, pred, mae, r2, final_model
