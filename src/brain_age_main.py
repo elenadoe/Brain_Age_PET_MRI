@@ -10,6 +10,7 @@ from collections import Counter
 from tqdm import tqdm
 from steps_of_analysis import brain_age, predict
 from neuropsychology_correlations import neuropsych_correlation
+from plots import plot_hist
 import pickle
 import numpy as np
 import pandas as pd
@@ -19,6 +20,7 @@ dir_pet_csv = '../data/main/PET_parcels_all.csv'
 
 analyze = 1
 modality = 'PET'
+rand_seed = 42
 
 
 def main(analyze, modality):
@@ -51,27 +53,29 @@ def main(analyze, modality):
                 str(correct_with_CA.index(c)+1) + "/3"), str(c), "\033[0m")
             result = brain_age(dir_mri_csv, dir_pet_csv,
                                modality, correct_with_CA=c,
-                               info_init=info_init[correct_with_CA.index(c)])
+                               info_init=info_init[correct_with_CA.index(c)],
+                               rand_seed=rand_seed)
             bias_results[str(c) + '_model'] = result[4]
             bias_results[str(c) + '_MAE'] = result[2]
             bias_results[str(c) + '_R2'] = result[3]
     elif analyze == 2:
         brain_age(dir_mri_csv, dir_pet_csv, modality,
-                  correct_with_CA='True')
+                  correct_with_CA='True', rand_seed=rand_seed)
     elif analyze == 2.1:
         mae_range = []
         r2_range = []
         n_outliers_range = []
         models = []
         for i in tqdm(range(50)):
-            n_outliers, pred, mae, r2, final_model = brain_age(
-                dir_mri_csv, dir_pet_csv,
-                modality, imp='validation_random_seeds', rand_seed=i,
-                info=False, info_init=False, save=False)
+            n_outliers, pred, mae, r2,\
+                final_model, final_model_name = brain_age(
+                    dir_mri_csv, dir_pet_csv,
+                    modality, imp='validation_random_seeds', rand_seed=i,
+                    info=False, info_init=False, save=False)
             n_outliers_range.append(n_outliers)
             mae_range.append(mae)
             r2_range.append(r2)
-            models.append(final_model)
+            models.append(final_model_name)
 
         print("Range of 50 iterations:\nMAE:",
               np.min(mae_range), "-", np.max(mae_range),
@@ -83,6 +87,7 @@ def main(analyze, modality):
     elif analyze == 3:
         file_ = pd.read_csv("../data/MCI/MCI_" + modality + "_parcels.csv",
                             sep=";")
+        plot_hist(file_, 'MCI', modality, file_['Dataset'])
         col = pickle.load(open("../config/columns.p", "rb"))
         final_model_name = "svm"
         final_model = pickle.load(open(
@@ -94,7 +99,8 @@ def main(analyze, modality):
         intercept_ = params['{}_intercept'.format(final_model_name)][0]
 
         pred, mae, r2 = predict(file_, col, final_model, final_model_name,
-                                slope_, intercept_, modality, "MCI")
+                                slope_, intercept_, modality, database="MCI",
+                                train_test="MCI")
     elif analyze == 4.1:
         group = "CN"
         neuropsych_correlation(group, "BPAD", list(range(4, 22)),

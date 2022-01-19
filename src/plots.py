@@ -13,17 +13,16 @@ from sklearn.inspection import permutation_importance
 
 # %%
 # matplotlib config
-cm = pickle.load(open("../config/plotting_config.p", "rb"))
-sns.set_palette(cm)
+cm_main = pickle.load(open("../config/plotting_config_main.p", "rb"))
 
 
-def plot_hist(df_train, train_test, modality, database_list, y='age'):
+def plot_hist(df, train_test, modality, database_list, y='age'):
     """
     # TODO.
 
     Parameters
     ----------
-    df_train : TYPE
+    df : TYPE
         DESCRIPTION.
     train_test : TYPE
         DESCRIPTION.
@@ -39,11 +38,12 @@ def plot_hist(df_train, train_test, modality, database_list, y='age'):
     None.
 
     """
-    if train_test == 'train':
+    sns.set_palette(cm_main)
+    if (train_test == 'train') or (train_test == "MCI"):
         # plot hist with Ages of train data
-        sns.displot(df_train, x='age', kde=True, color=cm[0])
+        sns.displot(df, x='age', kde=True, color=cm_main[0])
     else:
-        sns.displot(df_train, x='age', kde=True, hue=database_list)
+        sns.displot(df, x='age', kde=True, hue=database_list)
         plt.ylim(0, 40)
     plt.title('Age distribution in {} set'.format(train_test))
     plt.xlabel('Age [years]')
@@ -78,6 +78,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     None.
 
     """
+    sns.set_palette(cm_main)
     y_diff = y_pred - y_true
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
@@ -100,7 +101,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
     if train_test == 'test':
         y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]
         if info:
-            plt.scatter(y_true, y_pred, c=cm[y_db_cat], alpha=0.8)
+            plt.scatter(y_true, y_pred, c=cm_main[y_db_cat], alpha=0.8)
             plt.fill([60, 60, 90], [60, 90, 90],
                      zorder=0, color='gray', alpha=0.3)
             plt.fill([60, 90, 90], [60, 60, 90],
@@ -133,20 +134,26 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
             if info:
                 plt.xlim(50, 100)
                 plt.ylim(50, 100)
-                plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
+                plt.scatter(y_true, y_pred, color=cm_main[0], zorder=1)
                 plt.fill([50, 50, 100], [50, 100, 100],
-                         zorder=0, color=cm[0], alpha=0.4)
+                         zorder=0, color=cm_main[0], alpha=0.4)
                 plt.fill([50, 100, 100], [50, 50, 100],
-                         zorder=0, color=cm[0], alpha=0.2)
+                         zorder=0, color=cm_main[0], alpha=0.2)
+                print("\033[1m---MCI---\033[0m")
+                print("On average, predicted age of",
+                      database_name,
+                      "differed by ", np.mean(y_diff),
+                      " years from their chronological age.")
+                print("MAE = {}, R2 = {}".format(mae, r2))
         else:
             if info:
-                plt.xlim(60, 90)
-                plt.ylim(60, 90)
-                plt.scatter(y_true, y_pred, color=cm[0], zorder=1)
-                plt.fill([60, 60, 90], [60, 90, 90],
-                         zorder=0, color=cm[0], alpha=0.4)
-                plt.fill([60, 90, 90], [60, 60, 90],
-                         zorder=0, color=cm[0], alpha=0.2)
+                plt.xlim(60, 95)
+                plt.ylim(60, 95)
+                plt.scatter(y_true, y_pred, color=cm_main[0], zorder=1)
+                plt.fill([60, 60, 95], [60, 95, 95],
+                         zorder=0, color=cm_main[0], alpha=0.4)
+                plt.fill([60, 90, 95], [60, 60, 95],
+                         zorder=0, color=cm_main[0], alpha=0.2)
 
         database_list = ['ADNI']*np.array(y_true).shape[0]
 
@@ -217,6 +224,7 @@ def check_bias(y_true, y_pred, alg, modality, database,
         association between CA and brain-age delta with p < 0.05
 
     """
+    sns.set_palette(cm_main)
     y_diff = y_pred-y_true
     linreg = LinearRegression()
 

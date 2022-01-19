@@ -203,12 +203,13 @@ def neuropsych_merge(df_pred, df_neuropsych, database,
     """
     df_neuropsych = df_neuropsych[df_neuropsych['DX'] == database]
     df_neuropsych = df_neuropsych.reset_index()
-    df = pd.read_csv(df_pred)
-    df['BPAD'] = df['Prediction']-df['Age']
-    merged = pd.merge(df, df_neuropsych[neuropsych_var],
-                      how='left', on='PTID')
-    merged[merged['ABETA'] == '>1700'] = 1700
-    merged[merged['PTAU'] == '<8'] = 8
-    merged[merged['TAU'] == '<80'] = 80
+    df_pred['BPAD'] = df_pred['Prediction']-df_pred['Age']
+    merged = df_pred.merge(df_neuropsych[['PTID'] + neuropsych_var],
+                           how='left', on='PTID')
+    merged['ABETA'][merged['ABETA'] == '>1700'] = 1700
+    merged['TAU'][merged['TAU'] == '>1300'] = 1300
+    merged['PTAU'][merged['PTAU'] == '>120'] = 120
+    merged['PTAU'][merged['PTAU'] == '<8'] = 8
+    merged['TAU'][merged['TAU'] == '<80'] = 80
 
     return merged

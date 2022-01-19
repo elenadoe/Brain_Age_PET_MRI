@@ -15,13 +15,11 @@ import pickle
 from transform_data import neuropsych_merge
 
 warnings.filterwarnings("ignore")
-# matplotlib config
-cm = pickle.load(open("../config/plotting_config.p", "rb"))
 
 
 def neuropsych_correlation(database, age_or_diff, neuropsych_ind, modality):
     """
-    Correlations between BPAD and neuropsychology/-pathology
+    Correlations between BPAD and neuropsychology/-pathology.
 
     Parameters
     ----------
@@ -42,7 +40,7 @@ def neuropsych_correlation(database, age_or_diff, neuropsych_ind, modality):
     """
     df_neuropsych = pd.read_csv(
         "../data/main/ADNI_Neuropsych_Neuropath.csv", sep=";")
-    neuropsych_var = df_neuropsych.columns[neuropsych_ind]
+    neuropsych_var = df_neuropsych.columns[neuropsych_ind].tolist()
     df_pred = pd.read_csv(
         "../results/{}/{}-predicted_age_{}.csv".format(
             database, modality, database))
@@ -50,8 +48,9 @@ def neuropsych_correlation(database, age_or_diff, neuropsych_ind, modality):
     y_pred = df_pred['Prediction']
     merged = neuropsych_merge(df_pred, df_neuropsych, database,
                               neuropsych_var)
-    print("Significant correlations between {} ".format(age_or_diff) +
-          "and Neuropsychology")
+
+    print("\033[1m---SIGNIFICANT CORRELATIONS BETWEEN {} ".format(
+        age_or_diff) + "& NEUROPSYCHOLOGY/NEUROPATHOLOGY---\033[0m")
 
     sign = {}
     for n in neuropsych_var:
@@ -85,18 +84,31 @@ def neuropsych_correlation(database, age_or_diff, neuropsych_ind, modality):
             y_diff = y_pred_rnd - y_true
             y_diff_cat = ["negative" if x < 0 else "BPAD = 0" if x ==
                           0 else "positive" for x in y_diff]
-            df_pred["y_pred_rnd"] = y_pred_rnd
-            df_pred["y_diff"] = y_diff
-            df_pred["BPAD Category"] = y_diff_cat
+            merged["y_pred_rnd"] = y_pred_rnd
+            merged["y_diff"] = y_diff
+            merged["BPAD Category"] = y_diff_cat
+            if len(y_diff[~exc]) < 2:
+                print("Not enough observations of", n)
+                continue
             pearson = stats.pearsonr(y_diff[~exc],
                                      merged[n][~exc])
             if pearson[1] < 0.05:
                 sign[n] = pearson
                 slope, intercept = np.polyfit(y_diff[~exc], merged[n][~exc],
                                               1)
+                if database == "CN":
+                    cm_np = pickle.load(open(
+                        "../config/plotting_config_np_{}.p".format(
+                            modality), "rb"))
+                    sns.set_palette(cm_np)
+                elif database == "MCI":
+                    cm_np_mci = pickle.load(open(
+                        "../config/plotting_config_np_mci_{}.p".format(
+                            modality), "rb"))
+                    sns.set_palette(cm_np_mci)
                 sns.lmplot("y_diff", n, data=merged,
-                           scatter_kws={'alpha': 0.3},
-                           palette="YlOrBr", hue="BPAD Category")
+                           scatter_kws={'alpha': 0.4},
+                           hue="BPAD Category")
                 plt.plot(y_diff, slope*y_diff+intercept, linestyle="--",
                          label="all", color="gray", zorder=0, alpha=0.3)
                 plt.xlabel("BPAD [years]")
@@ -109,4 +121,43 @@ def neuropsych_correlation(database, age_or_diff, neuropsych_ind, modality):
     for key in sign:
         print(key, ":", np.round(sign[key][0], 3), sign[key][1])
 
+    neuropsychology_BPAD_interaction(merged, sign, y_diff)
+
     return sign
+
+
+def neuropsychology_BPAD_interaction(merged, sign, y_diff):
+    """
+    Assess interaction effects of BPAD and correlation.
+
+    Parameters
+    ----------
+    merged : TYPE
+        DESCRIPTION.
+    sign : TYPE
+        DESCRIPTION.
+    y_diff : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    print("\n---INTERACTION EFFECTS---")
+    for k in sign:
+        exc = np.isnan(merged[k])
+        pos = merged['BPAD Category'] == 'positive'
+        neg = merged['BPAD Category'] == 'negative'
+
+        pos_bool = np.array(~exc) & np.array(pos)
+        neg_bool = np.array(~exc) & np.array(neg)
+        pearson_pos = stats.pearsonr(y_diff[pos_bool],
+                                     merged[k][pos_bool])
+        pearson_neg = stats.pearsonr(y_diff[neg_bool],
+                                     merged[k][neg_bool])
+        print(k, "significant in positive BPAD: ",
+              pearson_pos[1] < 0.05,
+              pearson_pos,
+              "\nsignificant in negative BPAD: ", pearson_neg[1] < 0.05,
+              pearson_neg)

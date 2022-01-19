@@ -126,7 +126,7 @@ def pred_uncorr(df_train, col, model_results, y='age', splits=5):
 # Eliminate linear correlation of brain age delta and chronological age
 def bias_correct(df_train, col, model_results, model_names,
                  modality, database, splits, y='age', correct_with_CA=True,
-                 return_model='final', info=True, save=True):
+                 info=False, save=True):
     """
     Correct for bias between CA and BPA.
 
@@ -226,17 +226,14 @@ def bias_correct(df_train, col, model_results, model_names,
         df.to_csv("../results/" + database + "/models_and_params_"
                   + modality + "_" + str(correct_with_CA) + ".csv")
 
-    if return_model == 'final':
-        final_model, final_mae, final_r2 = find_final_model(y_true,
-                                                            y_pred_uncorr,
-                                                            pred_param,
-                                                            model_names,
-                                                            modality,
-                                                            info)
+    final_model, final_mae, final_r2 = find_final_model(y_true,
+                                                        y_pred_uncorr,
+                                                        pred_param,
+                                                        model_names,
+                                                        modality,
+                                                        info)
 
-        return final_model, pred_param
-    elif return_model == 'all':
-        return model_results, pred_param
+    return final_model, pred_param
 
 
 def find_final_model(y_true, y_pred_uncorr,
@@ -358,7 +355,7 @@ def predict(df_test, col, model_, final_model_name,
     return y_pred_bc, mae, r2
 
 
-def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
+def brain_age(dir_mri_csv, dir_pet_csv, modality,
               correct_with_CA=True, rand_seed=0, cv=5, imp='main', info=True,
               info_init=False, save=True):
     """
@@ -432,7 +429,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
     final_model_name, pred_param = bias_correct(
         df_train, col, model_results, model_names, modality,
         database, correct_with_CA=correct_with_CA, info=info_init,
-        return_model=return_model, splits=cv, save=save)
+        splits=cv, save=save)
     final_model = model_results[model_names.index(final_model_name)]
     if save:
         pickle.dump(final_model, open("../results/final_model_{}_{}.p".format(
@@ -449,14 +446,11 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality, return_model='final',
 
     if info_init:
         plots.plot_hist(df_test, mode, modality, df_test['Dataset'], y='age')
-
+        plots.permutation_imp(df_test, col, final_model, final_model_name,
+                              modality, rand_seed=rand_seed)
     pred, mae, r2 = predict(df_test, col, final_model, final_model_name,
                             slope_, intercept_, modality, database,
                             correct_with_CA=correct_with_CA,
                             train_test='test', info=info)
 
-    if info:
-        plots.permutation_imp(df_test, col, final_model, final_model_name,
-                              modality, rand_seed=rand_seed)
-
-    return n_outliers, pred, mae, r2, final_model
+    return n_outliers, pred, mae, r2, final_model, final_model_name
