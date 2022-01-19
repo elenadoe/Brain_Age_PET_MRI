@@ -102,9 +102,9 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
         y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]
         if info:
             plt.scatter(y_true, y_pred, c=cm_main[y_db_cat], alpha=0.8)
-            plt.fill([60, 60, 90], [60, 90, 90],
+            plt.fill([60, 60, 95], [60, 95, 95],
                      zorder=0, color='gray', alpha=0.3)
-            plt.fill([60, 90, 90], [60, 60, 90],
+            plt.fill([60, 95, 95], [60, 60, 95],
                      zorder=0, color='gray', alpha=0.1)
 
         r2_oasis = r2_score(

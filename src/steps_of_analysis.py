@@ -126,7 +126,7 @@ def pred_uncorr(df_train, col, model_results, y='age', splits=5):
 # Eliminate linear correlation of brain age delta and chronological age
 def bias_correct(df_train, col, model_results, model_names,
                  modality, database, splits, y='age', correct_with_CA=True,
-                 info=False, save=True):
+                 info_init=False, save=True):
     """
     Correct for bias between CA and BPA.
 
@@ -147,7 +147,7 @@ def bias_correct(df_train, col, model_results, model_names,
     correct_with_CA : boolean, optional
         Whether or not to correct bias with chronological age.
         The default is True.
-    info : boolean, optional
+    info_init : boolean, optional
         whether or not to create and save plots. The default is True.
     save : boolean, optional
         Whether final model should be saved
@@ -177,7 +177,7 @@ def bias_correct(df_train, col, model_results, model_names,
                                       modality,
                                       database,
                                       correct_with_CA,
-                                      info=info,
+                                      info=info_init,
                                       save=save)
         slope_ = check_bias[0]
         intercept_ = check_bias[1]
@@ -231,14 +231,14 @@ def bias_correct(df_train, col, model_results, model_names,
                                                         pred_param,
                                                         model_names,
                                                         modality,
-                                                        info)
+                                                        info_init=info_init)
 
     return final_model, pred_param
 
 
 def find_final_model(y_true, y_pred_uncorr,
                      pred_param, model_names, modality,
-                     correct_with_CA=True, info=True):
+                     correct_with_CA=True, info_init=False):
     """
     Compare transition models to find final model.
 
@@ -280,7 +280,7 @@ def find_final_model(y_true, y_pred_uncorr,
                  if '_mae' in k][final_model_idx]
     final_model = model_names[final_model_idx]
 
-    if info:
+    if info_init:
         print("-\033[1m--CROSS-VALIDATION---\n",
               "Final model (smallest MAE): {}\nMAE: {}, R2: {}\033[0m".format(
                   final_model, final_mae[0], final_r2[0]))
