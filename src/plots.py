@@ -16,7 +16,7 @@ from sklearn.inspection import permutation_importance
 cm_main = pickle.load(open("../config/plotting_config_main.p", "rb"))
 
 
-def plot_hist(df, train_test, modality, database_list, y='age'):
+def plot_hist(df, database, train_test, modality, database_list, y='age'):
     """
     # TODO.
 
@@ -25,6 +25,8 @@ def plot_hist(df, train_test, modality, database_list, y='age'):
     df : TYPE
         DESCRIPTION.
     train_test : TYPE
+        DESCRIPTION.
+    database : TYPE
         DESCRIPTION.
     modality : TYPE
         DESCRIPTION.
@@ -48,8 +50,8 @@ def plot_hist(df, train_test, modality, database_list, y='age'):
     plt.title('Age distribution in {} set'.format(train_test))
     plt.xlabel('Age [years]')
     plt.ylabel('n Participants')
-    plt.savefig('../results/{}/plots/{}_age_distribution'.format(
-        train_test, modality) + '.png', bbox_inches="tight")
+    plt.savefig('../results/{}/plots/{}_{}_age_distribution'.format(
+        database, train_test, modality) + '.png', bbox_inches="tight")
     plt.show()
 
 

@@ -183,7 +183,7 @@ def bias_correct(df_train, col, model_results, model_names,
         intercept_ = check_bias[1]
         check_ = check_bias[2]
 
-        if info:
+        if info_init:
             print("Significant association between ", model_names[y],
                   "-predicted age delta and CA:",
                   check_)
@@ -412,7 +412,8 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     df_train = df_train.reset_index(drop=True)
 
     if info_init:
-        plots.plot_hist(df_train, mode, modality, df_train['Dataset'], y='age')
+        plots.plot_hist(df_train, mode, database,
+                        modality, df_train['Dataset'], y='age')
 
     # CROSS-VALIDATE MODELS
     # define models and model names (some are already included in julearn)
@@ -428,7 +429,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
 
     final_model_name, pred_param = bias_correct(
         df_train, col, model_results, model_names, modality,
-        database, correct_with_CA=correct_with_CA, info=info_init,
+        database, correct_with_CA=correct_with_CA, info_init=info_init,
         splits=cv, save=save)
     final_model = model_results[model_names.index(final_model_name)]
     if save:
@@ -445,7 +446,8 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     mode = "test"
 
     if info_init:
-        plots.plot_hist(df_test, mode, modality, df_test['Dataset'], y='age')
+        plots.plot_hist(df_test, mode, database,
+                        modality, df_test['Dataset'], y='age')
         plots.permutation_imp(df_test, col, final_model, final_model_name,
                               modality, rand_seed=rand_seed)
     pred, mae, r2 = predict(df_test, col, final_model, final_model_name,
