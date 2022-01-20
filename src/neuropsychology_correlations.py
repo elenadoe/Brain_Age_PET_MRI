@@ -191,10 +191,10 @@ def conversion_analysis(database, modality):
             database, modality, database))
     df_pred['BPAD'] = np.round(df_pred['Prediction'] - df_pred['Age'], 0)
     merge = dx_merge(df_pred, df_dx)
-    ax = sns.violinplot(x='BPAD', y='DX', data=merge, color=cm_np[1],
+    ax = sns.violinplot(x='BPAD', y='DX', data=merge, color=cm_np[0],
                    order=["CN", "MCI", "Dementia"],
                    hue_order=["CN", "MCI", "Dementia"])
-    plt.setp(ax.collections, alpha=0.8)
+    # plt.setp(ax.collections, alpha=0.8)
     plt.ylabel("Diagnosis after 24 months")
     # plt.ylabel("Percent of whole group")
     plt.savefig(fname="../results/" + database + "/plots/Conversion_" +
