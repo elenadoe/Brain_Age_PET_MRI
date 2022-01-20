@@ -197,6 +197,6 @@ def conversion_analysis(database, modality):
     plt.setp(ax.collections, alpha=0.9)
     plt.ylabel("Diagnosis after 24 months")
     # plt.ylabel("Percent of whole group")
-    plt.savefig(fname="../results/" + database + "/plots/" +
-                modality + "_.png", box_inches="tight", dpi=300)
+    plt.savefig(fname="../results/" + database + "/plots/Conversion_" +
+                modality + ".png", box_inches="tight", dpi=300)
     plt.show()
