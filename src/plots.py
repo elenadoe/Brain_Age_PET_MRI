@@ -264,15 +264,14 @@ def check_bias(y_true, y_pred, alg, modality, database,
         plt.title('Association between brain-age ' +
                   'delta and chronological age {}'.format(alg))
 
-        if save:
-            if corrected:
-                plt.savefig('../results/{}/bias-corrected_{}_{}.jpg'.format(
-                    database, modality, alg),
-                    dpi=300)
-            else:
-                plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(
-                    database, modality, alg),
-                    dpi=300)
+        if corrected:
+            plt.savefig('../results/{}/bias-corrected_{}_{}.jpg'.format(
+                database, modality, alg),
+                dpi=300)
+        else:
+            plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(
+                database, modality, alg),
+                dpi=300)
         plt.show()
     return slope, intercept, check
 

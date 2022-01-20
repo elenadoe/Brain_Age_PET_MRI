@@ -61,7 +61,8 @@ def main(analyze, modality, rand_seed=rand_seed):
             bias_results[str(c) + '_R2'] = result[3]
     elif analyze == 2:
         brain_age(dir_mri_csv, dir_pet_csv, modality,
-                  correct_with_CA='True', rand_seed=rand_seed)
+                  correct_with_CA='True', rand_seed=rand_seed,
+                  info=True, info_init=True)
     elif analyze == 2.1:
         mae_range = []
         r2_range = []
@@ -105,11 +106,11 @@ def main(analyze, modality, rand_seed=rand_seed):
                                 train_test="MCI")
     elif analyze == 4.1:
         group = "CN"
-        neuropsych_correlation(group, "BPAD", list(range(4, 22)),
+        neuropsych_correlation(group, "BPAD", list(range(6, 22)),
                                       modality)
     elif analyze == 4.2:
         group = "MCI"
-        neuropsych_correlation(group, "BPAD", list(range(4, 22)),
+        neuropsych_correlation(group, "BPAD", list(range(6, 22)),
                                       modality)
     elif analyze == 5.1:
         group = "CN"
