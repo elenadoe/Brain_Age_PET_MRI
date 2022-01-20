@@ -181,9 +181,6 @@ def conversion_analysis(database, modality):
     None.
 
     """
-    cm_np = pickle.load(open(
-                        "../config/plotting_config_np_{}.p".format(
-                            modality), "rb"))
     df_dx = pd.read_csv(
         "../data/MCI/MCI_DX_after24months.csv", sep=";")
     df_pred = pd.read_csv(
@@ -191,12 +188,11 @@ def conversion_analysis(database, modality):
             database, modality, database))
     df_pred['BPAD'] = np.round(df_pred['Prediction'] - df_pred['Age'], 0)
     merge = dx_merge(df_pred, df_dx)
-    sns.violinplot(x='BPAD', y='DX', data=merge, color=cm_np[0],
-                        order=["CN", "MCI", "Dementia"],
-                        hue_order=["CN", "MCI", "Dementia"])
-    # plt.setp(ax.collections, alpha=0.8)
+    sns.violinplot(x='BPAD', y='DX', data=merge, palette='YlGnBu',
+                   order=["CN", "MCI", "Dementia"],
+                   hue_order=["CN", "MCI", "Dementia"])
     plt.ylabel("Diagnosis after 24 months")
     # plt.ylabel("Percent of whole group")
     plt.savefig(fname="../results/" + database + "/plots/Conversion_" +
-                modality + ".png", box_inches="tight", dpi=300)
+                modality + ".png", bbox_inches="tight", dpi=300)
     plt.show()
