@@ -213,3 +213,24 @@ def neuropsych_merge(df_pred, df_neuropsych, database,
     merged['TAU'][merged['TAU'] == '<80'] = 80
 
     return merged
+
+
+def dx_merge(df_pred, df_dx):
+    """
+    Merge predictions with diagnosis after 24 months.
+
+    Parameters
+    ----------
+    df_pred : TYPE
+        DESCRIPTION.
+    df_dx : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    merged : TYPE
+        DESCRIPTION.
+
+    """
+    merged = df_pred.merge(df_dx[['PTID', 'DX']], how='left', on='PTID')
+    return merged

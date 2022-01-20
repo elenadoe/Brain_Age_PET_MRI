@@ -412,7 +412,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     df_train = df_train.reset_index(drop=True)
 
     if info_init:
-        plots.plot_hist(df_train, mode, database,
+        plots.plot_hist(df_train, database, mode,
                         modality, df_train['Dataset'], y='age')
 
     # CROSS-VALIDATE MODELS
@@ -446,7 +446,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     mode = "test"
 
     if info_init:
-        plots.plot_hist(df_test, mode, database,
+        plots.plot_hist(df_test, database, mode,
                         modality, df_test['Dataset'], y='age')
         plots.permutation_imp(df_test, col, final_model, final_model_name,
                               modality, rand_seed=rand_seed)

@@ -12,7 +12,7 @@ import seaborn as sns
 import pandas as pd
 import warnings
 import pickle
-from transform_data import neuropsych_merge
+from transform_data import neuropsych_merge, dx_merge
 
 warnings.filterwarnings("ignore")
 
@@ -161,3 +161,41 @@ def neuropsychology_BPAD_interaction(merged, sign, y_diff):
               pearson_pos,
               "\nsignificant in negative BPAD: ", pearson_neg[1] < 0.05,
               pearson_neg)
+
+
+def conversion_analysis(database, modality):
+    """
+    Analyze conversion rates.
+
+    Analyze how many participants convert to AD after 24 months.
+
+    Parameters
+    ----------
+    database : TYPE
+        DESCRIPTION.
+    modality : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    # cm_np = pickle.load(open(
+    #                    "../config/plotting_config_np_{}.p".format(
+    #                        modality), "rb"))
+    df_dx = pd.read_csv(
+        "../data/MCI/MCI_DX_after24months.csv", sep=";")
+    df_pred = pd.read_csv(
+        "../results/{}/{}-predicted_age_{}.csv".format(
+            database, modality, database))
+    df_pred['BPAD'] = np.round(df_pred['Prediction'] - df_pred['Age'], 0)
+    merge = dx_merge(df_pred, df_dx)
+    sns.violinplot(x='BPAD', y='DX', data=merge,
+                   order=["CN", "MCI", "Dementia"],
+                   hue_order=["CN", "MCI", "Dementia"])
+    plt.ylabel("Diagnosis after 24 months")
+    # plt.ylabel("Percent of whole group")
+    plt.savefig(fname="../results/" + database + "/plots/" +
+                modality + "_.png", box_inches="tight", dpi=300)
+    plt.show()

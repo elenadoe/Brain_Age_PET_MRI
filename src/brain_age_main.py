@@ -9,7 +9,8 @@ Created on Tue Dec 21 18:32:44 2021
 from collections import Counter
 from tqdm import tqdm
 from steps_of_analysis import brain_age, predict
-from neuropsychology_correlations import neuropsych_correlation
+from neuropsychology_correlations import neuropsych_correlation, \
+    conversion_analysis
 from plots import plot_hist
 import pickle
 import numpy as np
@@ -23,7 +24,7 @@ modality = 'PET'
 rand_seed = 42
 
 
-def main(analyze, modality):
+def main(analyze, modality, rand_seed=rand_seed):
     """
     Execute analysis.
 
@@ -54,7 +55,7 @@ def main(analyze, modality):
             result = brain_age(dir_mri_csv, dir_pet_csv,
                                modality, correct_with_CA=c,
                                info_init=info_init[correct_with_CA.index(c)],
-                               rand_seed=rand_seed)
+                               save=info_init, rand_seed=rand_seed)
             bias_results[str(c) + '_model'] = result[4]
             bias_results[str(c) + '_MAE'] = result[2]
             bias_results[str(c) + '_R2'] = result[3]
@@ -110,3 +111,9 @@ def main(analyze, modality):
         group = "MCI"
         neuropsych_correlation(group, "BPAD", list(range(4, 22)),
                                       modality)
+    elif analyze == 5.1:
+        group = "CN"
+        conversion_analysis(group, modality)
+    elif analyze == 5.2:
+        group = "MCI"
+        conversion_analysis(group, modality)
