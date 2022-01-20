@@ -70,8 +70,8 @@ def main(analyze, modality):
             n_outliers, pred, mae, r2,\
                 final_model, final_model_name = brain_age(
                     dir_mri_csv, dir_pet_csv,
-                    modality, imp='validation_random_seeds', rand_seed=i,
-                    info=False, info_init=False, save=False)
+                    modality, imp='validation_random_seeds',
+                    rand_seed=i, info=False, info_init=False, save=False)
             n_outliers_range.append(n_outliers)
             mae_range.append(mae)
             r2_range.append(r2)
@@ -87,7 +87,8 @@ def main(analyze, modality):
     elif analyze == 3:
         file_ = pd.read_csv("../data/MCI/MCI_" + modality + "_parcels.csv",
                             sep=";")
-        plot_hist(file_, 'MCI', modality, file_['Dataset'])
+        plot_hist(file_, database='MCI', train_test='MCI',
+                  modality=modality, database_list=file_['Dataset'])
         col = pickle.load(open("../config/columns.p", "rb"))
         final_model_name = "svm"
         final_model = pickle.load(open(
