@@ -241,12 +241,14 @@ def check_bias(y_true, y_pred, alg, modality, database,
         linreg.fit(np.array(y_true).reshape(-1, 1), y_diff)
         slope = linreg.coef_[0]
         intercept = linreg.intercept_
+        corrected = True
 
     else:
         # linear regression between CA and predicted age
         linreg.fit(np.array(y_true).reshape(-1, 1), y_pred)
         slope = linreg.coef_[0]
         intercept = linreg.intercept_
+        corrected = True
 
     linreg_plotting = stats.linregress(y_true, y_diff)
     r_plotting = linreg_plotting[2]
@@ -265,8 +267,8 @@ def check_bias(y_true, y_pred, alg, modality, database,
                   'delta and chronological age {}'.format(alg))
 
         if corrected:
-            plt.savefig('../results/{}/bias-corrected_{}_{}.jpg'.format(
-                database, modality, alg),
+            plt.savefig('../results/{}/bias-corrected_{}_{}_{}.jpg'.format(
+                database, corr_with_CA, modality, alg),
                 dpi=300)
         else:
             plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(
