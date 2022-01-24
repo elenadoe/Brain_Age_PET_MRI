@@ -227,33 +227,38 @@ def check_bias(y_true, y_pred, alg, modality, database,
 
     """
     sns.set_palette(cm_main)
-    y_diff = y_pred-y_true
     linreg = LinearRegression()
 
     if corr_with_CA is None:
-        slope = np.nan
-        intercept = np.nan
+        slope_ = np.nan
+        intercept_ = np.nan
+        y_pred_bc = y_pred
 
     elif corr_with_CA:
         # linear regression between CA and age delta
         # slope and intercept are needed for bias correction
         # source: Population-based neuroimaging reveals traces of childbirth
+        y_diff = y_pred-y_true
         linreg.fit(np.array(y_true).reshape(-1, 1), y_diff)
-        slope = linreg.coef_[0]
-        intercept = linreg.intercept_
+        slope_ = linreg.coef_[0]
+        intercept_ = linreg.intercept_
+        y_pred_bc = y_pred - (slope_*y_true + intercept_)
         corrected = True
 
     else:
         # linear regression between CA and predicted age
         linreg.fit(np.array(y_true).reshape(-1, 1), y_pred)
-        slope = linreg.coef_[0]
-        intercept = linreg.intercept_
+        slope_ = linreg.coef_[0]
+        intercept_ = linreg.intercept_
+        y_pred_bc = (y_pred - intercept_)/slope_
         corrected = True
 
+    y_diff = y_pred-y_true
     linreg_plotting = stats.linregress(y_true, y_diff)
     r_plotting = linreg_plotting[2]
     p_plotting = linreg_plotting[3]
     check = p_plotting < 0.05
+    y_diff = y_pred_bc - y_true
     if info:
         sns.regplot(y_diff, y_true,
                     line_kws={'label': "r = {}, p = {}".format(np.round(
@@ -275,7 +280,7 @@ def check_bias(y_true, y_pred, alg, modality, database,
                 database, modality, alg),
                 dpi=300)
         plt.show()
-    return slope, intercept, check
+    return slope_, intercept_, check
 
 
 def permutation_imp(df_test, col, final_model, final_model_name,
