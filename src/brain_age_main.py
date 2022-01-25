@@ -9,7 +9,7 @@ Created on Tue Dec 21 18:32:44 2021
 from collections import Counter
 from tqdm import tqdm
 from steps_of_analysis import brain_age, predict
-from neuropsychology_correlations import neuropsych_correlation, \
+from neuropsychology_correlations import neuro_correlation, \
     conversion_analysis
 from plots import plot_hist
 import pickle
@@ -106,12 +106,16 @@ def main(analyze, modality, rand_seed=rand_seed):
                                 train_test="MCI")
     elif analyze == 4.1:
         group = "CN"
-        neuropsych_correlation(group, "BPAD", list(range(6, 22)),
-                                      modality)
+        neuro_correlation(group, "BPAD", "PSYCH", modality)
     elif analyze == 4.2:
+        group = "CN"
+        neuro_correlation(group, "BPAD", "PATH", modality)
+    elif analyze == 4.3:
         group = "MCI"
-        neuropsych_correlation(group, "BPAD", list(range(6, 22)),
-                                      modality)
+        neuro_correlation(group, "BPAD", "PSYCH", modality)
+    elif analyze == 4.4:
+        group = "MCI"
+        neuro_correlation(group, "BPAD", "PATH", modality)
     elif analyze == 5.1:
         group = "CN"
         conversion_analysis(group, modality)

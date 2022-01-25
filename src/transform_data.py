@@ -179,7 +179,7 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
     return n_outliers
 
 
-def neuropsych_merge(df_pred, df_neuropsych, database,
+def neuropsych_merge(df_pred, df_neuropsych,
                      neuropsych_var):
     """
     Merge predictions with neuropsychology.
@@ -187,8 +187,6 @@ def neuropsych_merge(df_pred, df_neuropsych, database,
     Parameters
     ----------
     df_pred : TYPE
-        DESCRIPTION.
-    database : TYPE
         DESCRIPTION.
     df_neuropsych : TYPE
         DESCRIPTION.
@@ -201,11 +199,45 @@ def neuropsych_merge(df_pred, df_neuropsych, database,
         DESCRIPTION.
 
     """
-    df_neuropsych = df_neuropsych[df_neuropsych['DX'] == database]
-    df_neuropsych = df_neuropsych.reset_index()
+    df_dem = pd.read_csv("../data/main/ADNI_Neuropsych_Neuropath.csv",
+                         sep=";")
     df_pred['BPAD'] = df_pred['Prediction']-df_pred['Age']
-    merged = df_pred.merge(df_neuropsych[['PTID'] + neuropsych_var],
+    dem_var = ['PTID', 'PTGENDER', 'PTEDUCAT']
+    merged = df_pred.merge(df_dem[dem_var], how="left", on="PTID")
+    merged = merged.merge(df_neuropsych[['RID'] + neuropsych_var],
+                          how='left', on='RID')
+    return merged
+
+
+def neuropath_merge(df_pred, df_neuropath1, df_neuropath2,
+                    neuropath1_var, neuropath2_var):
+    """
+    
+
+    Parameters
+    ----------
+    df_pred : TYPE
+        DESCRIPTION.
+    df_neuropath1 : TYPE
+        DESCRIPTION.
+    df_neuropath2 : TYPE
+        DESCRIPTION.
+    neuropath1_var : TYPE
+        DESCRIPTION.
+    neuropath2_var : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    merged : TYPE
+        DESCRIPTION.
+
+    """
+    df_pred['BPAD'] = df_pred['Prediction']-df_pred['Age']
+    merged = df_pred.merge(df_neuropath1[['PTID'] + neuropath1_var],
                            how='left', on='PTID')
+    merged = merged.merge(df_neuropath2[['RID'] + neuropath2_var],
+                          how='left', on='RID')
     merged['ABETA'][merged['ABETA'] == '>1700'] = 1700
     merged['TAU'][merged['TAU'] == '>1300'] = 1300
     merged['PTAU'][merged['PTAU'] == '>120'] = 120
