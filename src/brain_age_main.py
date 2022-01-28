@@ -8,7 +8,7 @@ Created on Tue Dec 21 18:32:44 2021
 
 from collections import Counter
 from tqdm import tqdm
-from steps_of_analysis import brain_age, predict
+from steps_of_analysis2 import brain_age, predict
 from neuropsychology_correlations import neuro_correlation, \
     conversion_analysis
 from plots import plot_hist
