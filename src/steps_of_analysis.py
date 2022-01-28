@@ -215,9 +215,9 @@ def bias_correct(df_train, col, model_results, model_names,
 
         if save:
             pickle.dump(pred_param, open("../results/" + database +
-                                         "/models_and_params_" + modality +
-                                         "_" + str(correct_with_CA) +
-                                         ".p", "wb"))
+                                         "/bias-correction/models_and_params_"
+                                         + modality + "_" +
+                                         str(correct_with_CA) + ".p", "wb"))
             pickle.dump(predictions, open("../results/" + database +
                                           "/cross-val_pred_" + modality + "_" +
                                           str(correct_with_CA) +
@@ -448,8 +448,8 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     if info_init:
         plots.plot_hist(df_test, database, mode,
                         modality, df_test['Dataset'], y='age')
-        plots.permutation_imp(df_test, col, final_model, final_model_name,
-                              modality, rand_seed=rand_seed)
+        plots.feature_imp(df_test, col, final_model, final_model_name,
+                          modality, rand_seed=rand_seed)
     pred, mae, r2 = predict(df_test, col, final_model, final_model_name,
                             slope_, intercept_, modality, database,
                             correct_with_CA=correct_with_CA,

@@ -6,6 +6,7 @@ Created on Mon Jan 17 12:17:23 2022
 @author: doeringe
 """
 import pandas as pd
+import numpy as np
 
 from sklearn.model_selection import train_test_split
 
@@ -201,6 +202,9 @@ def neuropsych_merge(df_pred, df_neuropsych,
     """
     df_dem = pd.read_csv("../data/main/ADNI_Neuropsych_Neuropath.csv",
                          sep=";")
+    df_dem['PTGENDER'] = [1 if x == "Female"
+                          else 2 if x == "Male"
+                          else np.nan for x in df_dem['PTGENDER']]
     df_pred['BPAD'] = df_pred['Prediction']-df_pred['Age']
     dem_var = ['PTID', 'PTGENDER', 'PTEDUCAT']
     merged = df_pred.merge(df_dem[dem_var], how="left", on="PTID")
@@ -233,9 +237,17 @@ def neuropath_merge(df_pred, df_neuropath1, df_neuropath2,
         DESCRIPTION.
 
     """
+    df_dem = pd.read_csv("../data/main/ADNI_Neuropsych_Neuropath.csv",
+                         sep=";")
+    df_dem['PTGENDER'] = [1 if x == "Female"
+                          else 2 if x == "Male"
+                          else np.nan for x in df_dem['PTGENDER']]
     df_pred['BPAD'] = df_pred['Prediction']-df_pred['Age']
-    merged = df_pred.merge(df_neuropath1[['PTID'] + neuropath1_var],
+    dem_var = ['PTID', 'PTGENDER', 'PTEDUCAT']
+    merged = df_pred.merge(df_dem[dem_var],
                            how='left', on='PTID')
+    merged = merged.merge(df_neuropath1[['PTID'] + neuropath1_var],
+                          how='left', on='PTID')
     merged = merged.merge(df_neuropath2[['RID'] + neuropath2_var],
                           how='left', on='RID')
     merged['ABETA'][merged['ABETA'] == '>1700'] = 1700

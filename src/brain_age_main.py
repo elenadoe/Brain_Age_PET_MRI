@@ -48,14 +48,13 @@ def main(analyze, modality, rand_seed=rand_seed):
     if analyze == 1:
         correct_with_CA = [None, True, False]
         bias_results = {}
-        info_init = [True, False, False]
         for c in correct_with_CA:
             print("\033[1m{} Correction with CA:".format(
                 str(correct_with_CA.index(c)+1) + "/3"), str(c), "\033[0m")
             result = brain_age(dir_mri_csv, dir_pet_csv,
                                modality, correct_with_CA=c,
-                               info_init=info_init[correct_with_CA.index(c)],
-                               save=info_init, rand_seed=rand_seed)
+                               info_init=False,
+                               save=False, rand_seed=rand_seed)
             bias_results[str(c) + '_model'] = result[4]
             bias_results[str(c) + '_MAE'] = result[2]
             bias_results[str(c) + '_R2'] = result[3]

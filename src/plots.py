@@ -175,7 +175,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, database_name,
                     bbox_inches='tight', dpi=300)
         plt.show()
 
-        results = open("../results/{}/eval_{}_{}_{}_{}.txt".format(
+        results = open("../results/{}/evaluation/eval_{}_{}_{}_{}.txt".format(
             database_name, modality, train_test, alg,
             str(correct_with_CA)), 'w+')
         results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS" +
@@ -283,8 +283,8 @@ def check_bias(y_true, y_pred, alg, modality, database,
     return slope_, intercept_, check
 
 
-def permutation_imp(df_test, col, final_model, final_model_name,
-                    modality, y='age', n_repeats=1000, rand_seed=0):
+def feature_imp(df_test, col, final_model, final_model_name,
+                modality, y='age', n_repeats=1000, rand_seed=0):
     """
     Plot feature importance.
 
@@ -303,17 +303,15 @@ def permutation_imp(df_test, col, final_model, final_model_name,
     -------
     none (plots and saves plots)
     """
-    feature_imp = permutation_importance(
-        final_model, df_test[col], df_test[y],
-        n_repeats=n_repeats, random_state=rand_seed)
+    feature_imp = final_model.named_steps[final_model_name].coef_[0]
     schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
     text_file = open('../data/Tian_Subcortex_S1_3T_label.txt')
     labels = text_file.read().split('\n')
     labels = np.append(schaefer['labels'], np.array(labels[:-1]))
     df_imp = pd.DataFrame({'region': labels,
-                           'perm_importance': feature_imp.importances_mean})
+                           'perm_importance': feature_imp})
     df_imp.to_csv('../results/CN/' +
-                  'permutation_importance_{}_{}.csv'.format(
+                  'weighted_importance_{}_{}.csv'.format(
                       modality, final_model_name))
 
     atlas = '../data/schaefer200-17_Tian.nii'
@@ -322,7 +320,7 @@ def permutation_imp(df_test, col, final_model, final_model_name,
 
     # create statistical map where each voxel value coresponds to permutation
     # importance
-    imp = feature_imp.importances_mean
+    imp = feature_imp
     atlas_matrix_stat = atlas_matrix.copy()
 
     for x in range(217):
@@ -335,8 +333,9 @@ def permutation_imp(df_test, col, final_model, final_model_name,
     plotting.plot_stat_map(atlas_final)
     plotting.view_img_on_surf(atlas_final, threshold="90%")
     plt.title("{}-relevant regions for aging".format(final_model_name))
-    plt.savefig("../results/" + "/Permutation_importance_{}_{}.jpg".format(
-        modality, final_model_name))
+    plt.savefig("../results/" +
+                "CN/evaluation/weighted_importance_{}_{}.jpg".format(
+                    modality, final_model_name))
     nib.save(atlas_final, "../results/CN"
              "/permutation_importance_{}_{}.nii".format(
                  modality, final_model_name))
