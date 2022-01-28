@@ -5,6 +5,7 @@ import nibabel as nib
 import scipy.stats as stats
 import pandas as pd
 import pickle
+import pdb
 from nilearn.datasets import fetch_atlas_schaefer_2018
 from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
@@ -238,15 +239,18 @@ def check_bias(y_true, y_pred, alg, modality, database,
         # linear regression between CA and age delta
         # slope and intercept are needed for bias correction
         # source: Population-based neuroimaging reveals traces of childbirth
-        y_diff = y_pred-y_true
+        y_diff = np.array(y_pred) - np.array(y_true)
         linreg.fit(np.array(y_true).reshape(-1, 1), y_diff)
         slope_ = linreg.coef_[0]
         intercept_ = linreg.intercept_
+        pdb.set_trace()
         y_pred_bc = y_pred - (slope_*y_true + intercept_)
         corrected = True
 
     else:
         # linear regression between CA and predicted age
+        # https://github.com/james-cole/UKBiobank-Brain-Age/
+        # blob/master/ukb_multimodal_brain_age_lasso.Rmd
         linreg.fit(np.array(y_true).reshape(-1, 1), y_pred)
         slope_ = linreg.coef_[0]
         intercept_ = linreg.intercept_

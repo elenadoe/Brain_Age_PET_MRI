@@ -12,6 +12,7 @@ from sklearn.metrics import r2_score, mean_absolute_error
 from sklearn.model_selection import cross_val_predict
 from sklearn.inspection import permutation_importance
 from skrvm import RVR
+import pdb
 
 from transform_data import split_data
 import plots
@@ -63,18 +64,20 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
     """
     model_results = []
     scores_results = []
-    res = {}
-    res['model'] = []
-    res['iter'] = []
-    res['pred'] = []
-    res['ind'] = []
+    results = {}
+    results['RVR()'] = {}
+    results['svm'] = {}
+
     scaler = 'scaler_robust'
 
     for i, (model, params) in enumerate(zip(models, model_params)):
         # split data using age-bins
-        cv = StratifiedKFold(n_splits=splits).split(df_train[col],
-                                                    df_train['Ageb'])
+        cv = StratifiedKFold(n_splits=splits,
+                             random_state=rand_seed,
+                             shuffle=True).split(df_train[col],
+                                                 df_train['Ageb'])
         cv = list(cv)
+
         # run julearn function
         scores, final_model = run_cross_validation(X=col, y=y,
                                                    preprocess_X=scaler,
@@ -88,75 +91,24 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
         model_results.append(final_model.best_estimator_)
         scores_results.append(scores)
 
-        # iterate over julearn results to and save results of each iteration
+        N = len(df_train)
+        results[str(model)]['pred'] = N * [0]
+        results[str(model)]['true'] = N * [0]
         for iter in range(splits):
+            valid_ind = cv[iter][1]
             pred = scores.estimator[iter].predict(
-                df_train.iloc[cv[iter][1]][col])
-            res['pred'].append(pred)
-            res['iter'].append(iter)
-            res['model'].append(str(model))
-            res['ind'].append(cv[iter][1])
+                   df_train.iloc[valid_ind][col])
 
-    df_res = pd.DataFrame(res)
-    age_pred = {}
-    age_pred['subj'] = []
-    age_pred['pred'] = []
-    age_pred['real'] = []
-    age_pred['model'] = []
-    for i, fold in enumerate(df_res['ind']):
-        for ind, sample in enumerate(fold):
-            age_pred['real'].append(df_train.iloc[sample]['age'])
-            age_pred['pred'].append(df_res['pred'].iloc[i][ind])
-            age_pred['subj'].append(df_train.iloc[sample]['name'])
-            age_pred['model'].append(df_res.iloc[i]['model'])
-    df_ages = pd.DataFrame(age_pred)
-    print(df_ages)
-
-    return model_results, scores, df_ages
-
-
-"""def pred_uncorr(df_train, col, model_results, y='age', splits=5):
-
-    Yield cross-validated predictions of brain age.
-
-    To be used for bias correction.
-
-    Parameters
-    ----------
-    df_train : pd.DataFrame
-        Dataframe containing input and output variables
-    col : list
-        Column(s) to be used as input features
-    model_results : list
-        Best fitted estimator per algorithm
-    y : str, optional
-        Column to be considered as output feature. The default is age.
-    splits : TYPE, optional
-        How many folds to split the data into for cross-validated predictions.
-        The default is 5.
-
-    Returns
-    -------
-    None.
-
-
-    cv = StratifiedKFold(n_splits=splits).split(df_train[col],
-                                                df_train['Ageb'])
-    cv = list(cv)
-
-    y_pred_rvr = cross_val_predict(model_results[0], df_train[col],
-                                   df_train[y], cv=cv)
-    y_pred_svr = cross_val_predict(model_results[1], df_train[col],
-                                   df_train[y], cv=cv)
-
-    y_pred_uncorr = [y_pred_rvr, y_pred_svr]
-
-    return y_pred_uncorr"""
+            for i, iv in enumerate(valid_ind):
+                results[str(model)]['pred'][iv] = pred[i]
+                results[str(model)]['true'][iv] = df_train.iloc[iv]['age']
+    pdb.set_trace()
+    return model_results, scores, results
 
 
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age delta and chronological age
-def bias_correct(df_ages, df_train, col, model_results, model_names,
+def bias_correct(results, df_train, col, model_results, model_names,
                  modality, database, splits, y='age', correct_with_CA=True,
                  info_init=False, save=True):
     """
@@ -194,16 +146,19 @@ def bias_correct(df_ages, df_train, col, model_results, model_names,
 
     """
     # get true and predicted age from df_ages
-    y_true_rvr = df_ages[df_ages['model'] == 'rvr']['real'].tolist()
-    y_true_svr = df_ages[df_ages['model'] == 'svm']['real'].tolist()
+    pdb.set_trace()
+    y_true_rvr = results[results['model'] == 'RVR()']['true']
+    y_true_svr = results[results['model'] == 'svm']['true']
     y_true = [y_true_rvr, y_true_svr]
-    y_pred_rvr = df_ages[df_ages['model'] == 'rvr']['pred'].tolist()
-    y_pred_svr = df_ages[df_ages['model'] == 'svr']['pred'].tolist()
+    print("CA is the same", all(y_true_rvr == y_true_svr))
+    y_pred_rvr = results[results['model'] == 'RVR()']['pred']
+    y_pred_svr = results[results['model'] == 'svm']['pred']
     y_pred = [y_pred_rvr, y_pred_svr]
-
+    pdb.set_trace()
+    # print(y_pred)
     # save predictions with and without bias correction in dictionary
     predictions = {}
-    predictions['name'] = df_train['name']
+    predictions['name'] = df_train['name'].values
     pred_param = {}
     pred_param['withCA'] = [str(correct_with_CA)]
 
@@ -233,15 +188,15 @@ def bias_correct(df_ages, df_train, col, model_results, model_names,
             predictions[model_names[y] + '_bc'] = bc
         elif correct_with_CA:
             # bias correction WITH chronological age
-            bc = y_pred[y] - (slope_*y_true + intercept_)
+            bc = y_pred[y] - (slope_*y_true[y] + intercept_)
             predictions[model_names[y] + '_bc'] = bc
         else:
             # bias correction WITHOUT chronological age
             bc = (y_pred[y] - intercept_)/slope_
             predictions[model_names[y] + '_bc'] = bc
 
-        r2_corr = r2_score(y_true, bc)
-        mae_corr = mean_absolute_error(y_true, bc)
+        r2_corr = r2_score(y_true[y], bc)
+        mae_corr = mean_absolute_error(y_true[y], bc)
 
         # save bias-correction parameters and metrics
         pred_param[model_names[y] + '_slope'] = [slope_]
@@ -249,8 +204,8 @@ def bias_correct(df_ages, df_train, col, model_results, model_names,
         pred_param[model_names[y] + '_check'] = [check_]
         pred_param[model_names[y] + '_r2'] = [r2_corr]
         pred_param[model_names[y] + '_mae'] = [mae_corr]
-        r2_uncorr = r2_score(y_true, y_pred[y])
-        mae_uncorr = mean_absolute_error(y_true, y_pred[y])
+        r2_uncorr = r2_score(y_true[y], y_pred[y])
+        mae_uncorr = mean_absolute_error(y_true[y], y_pred[y])
         pred_param[model_names[y] + '_rsq_uncorr'] = [r2_uncorr]
         pred_param[model_names[y] + '_ma_uncorr'] = [mae_uncorr]
 
@@ -268,9 +223,7 @@ def bias_correct(df_ages, df_train, col, model_results, model_names,
                   + modality + "_" + str(correct_with_CA) + ".csv")
 
     # compare predictions to find final model
-    final_model, final_mae, final_r2 = find_final_model(y_true,
-                                                        y_pred,
-                                                        pred_param,
+    final_model, final_mae, final_r2 = find_final_model(pred_param,
                                                         model_names,
                                                         modality,
                                                         info_init=info_init)
