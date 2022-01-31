@@ -1,12 +1,11 @@
-STEPS OF ANALYSIS
-1. make parcels for PET and MRI in ADNI
-2. make sure PET and MRI come from same individuals and same time point (+/- one year) 
-   and all participants are at least 65
-3. add OASIS test set >= 65 years to csv
-4. perform train/test split on ADNI data (50 randomly generated, pickle saved seeds)
-   file excludes individuals younger than 65 in either modality automatically
-   file automatically sets OASIS as test set
-5. perform outlier exclusion on train set (outliers = outside 3xIQR)
-6. apply outlier exclusion boundaries to test set to exclude outliers in test set
-7. apply outlier exclusion to both (ADNI + OASIS) test sets
-8. run analyses
+STEPS OF ANALYSIS (Assumes parcelation of neuroimaging data is already completed. A demonstration of Code can be found in demo.ipynb)
+1. assure all participants in ADNI and OASIS are older than 65
+2. create train-test splits from ADNI data with given random seed (default = 0), assign OASIS as second test set
+3.1 determine outlier ranges from training data
+3.2 exclude data outside ranges from training and test data
+4. train classifiers using k-fold stratified cross-validation for (hyper)parameter optimization
+'''
+# demo.ipynb
+main(2, modality)
+'''
+5. 
