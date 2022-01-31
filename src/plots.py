@@ -243,7 +243,6 @@ def check_bias(y_true, y_pred, alg, modality, database,
         linreg.fit(np.array(y_true).reshape(-1, 1), y_diff)
         slope_ = linreg.coef_[0]
         intercept_ = linreg.intercept_
-        pdb.set_trace()
         y_pred_bc = y_pred - (slope_*y_true + intercept_)
         corrected = True
 

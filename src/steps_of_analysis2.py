@@ -102,7 +102,6 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
             for i, iv in enumerate(valid_ind):
                 results[str(model)]['pred'][iv] = pred[i]
                 results[str(model)]['true'][iv] = df_train.iloc[iv]['age']
-    pdb.set_trace()
     return model_results, scores, results
 
 
@@ -146,16 +145,12 @@ def bias_correct(results, df_train, col, model_results, model_names,
 
     """
     # get true and predicted age from df_ages
-    pdb.set_trace()
-    y_true_rvr = results[results['model'] == 'RVR()']['true']
-    y_true_svr = results[results['model'] == 'svm']['true']
-    y_true = [y_true_rvr, y_true_svr]
-    print("CA is the same", all(y_true_rvr == y_true_svr))
-    y_pred_rvr = results[results['model'] == 'RVR()']['pred']
-    y_pred_svr = results[results['model'] == 'svm']['pred']
+    # y_true is the same for rvr and svr (validated)
+    y_true = np.array(results['RVR()']['true'])
+    y_pred_rvr = results['RVR()']['pred']
+    y_pred_svr = results['svm']['pred']
     y_pred = [y_pred_rvr, y_pred_svr]
-    pdb.set_trace()
-    # print(y_pred)
+
     # save predictions with and without bias correction in dictionary
     predictions = {}
     predictions['name'] = df_train['name'].values
@@ -165,7 +160,7 @@ def bias_correct(results, df_train, col, model_results, model_names,
     # get bias-correction parameters
     for y in range(len(y_pred)):
         predictions[model_names[y] + '_uncorr'] = y_pred[y]
-        check_bias = plots.check_bias(y_true[y],
+        check_bias = plots.check_bias(y_true,
                                       y_pred[y],
                                       model_names[y],
                                       modality,
@@ -188,15 +183,15 @@ def bias_correct(results, df_train, col, model_results, model_names,
             predictions[model_names[y] + '_bc'] = bc
         elif correct_with_CA:
             # bias correction WITH chronological age
-            bc = y_pred[y] - (slope_*y_true[y] + intercept_)
+            bc = y_pred[y] - (slope_*y_true + intercept_)
             predictions[model_names[y] + '_bc'] = bc
         else:
             # bias correction WITHOUT chronological age
             bc = (y_pred[y] - intercept_)/slope_
             predictions[model_names[y] + '_bc'] = bc
 
-        r2_corr = r2_score(y_true[y], bc)
-        mae_corr = mean_absolute_error(y_true[y], bc)
+        r2_corr = r2_score(y_true, bc)
+        mae_corr = mean_absolute_error(y_true, bc)
 
         # save bias-correction parameters and metrics
         pred_param[model_names[y] + '_slope'] = [slope_]
@@ -204,8 +199,8 @@ def bias_correct(results, df_train, col, model_results, model_names,
         pred_param[model_names[y] + '_check'] = [check_]
         pred_param[model_names[y] + '_r2'] = [r2_corr]
         pred_param[model_names[y] + '_mae'] = [mae_corr]
-        r2_uncorr = r2_score(y_true[y], y_pred[y])
-        mae_uncorr = mean_absolute_error(y_true[y], y_pred[y])
+        r2_uncorr = r2_score(y_true, y_pred[y])
+        mae_uncorr = mean_absolute_error(y_true, y_pred[y])
         pred_param[model_names[y] + '_rsq_uncorr'] = [r2_uncorr]
         pred_param[model_names[y] + '_ma_uncorr'] = [mae_uncorr]
 
