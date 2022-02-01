@@ -43,6 +43,7 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
     mri_train = df_mri[df_mri['train']]
     pet_train = df_pet[df_pet['train']]
 
+    # get quantiles
     q1_mri = mri_train.quantile(0.25)
     q1_pet = pet_train.quantile(0.25)
     q3_mri = mri_train.quantile(0.75)
@@ -50,11 +51,15 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
     IQR_mri = q3_mri - q1_mri
     IQR_pet = q3_pet - q1_pet
 
+    # define outlier ranges
+    # TODO @Kaustubh & @Georgios: should threshold be divided by 2?
     low_out_mri = q1_mri - IQR_mri*threshold
     high_out_mri = q3_mri + IQR_mri*threshold
     low_out_pet = q1_pet - IQR_pet*threshold
     high_out_pet = q3_pet + IQR_pet*threshold
 
+    # get boolean index of which datapoints are inside (True)
+    # or outside (False) of range
     insiderange = (~((df_mri[col] < low_out_mri) |
                      (df_mri[col] > high_out_mri) |
                      (df_pet[col] < low_out_pet) |
@@ -187,17 +192,20 @@ def neuropsych_merge(df_pred, df_neuropsych,
 
     Parameters
     ----------
-    df_pred : TYPE
-        DESCRIPTION.
-    df_neuropsych : TYPE
-        DESCRIPTION.
-    neuropsych_var : TYPE
-        DESCRIPTION.
+    df_pred : pd.DataFrame
+        Dataframe containing bias-corrected brain age of
+        individuals from test set
+    df_neuropsych : pd.DataFrame
+        Dataframe containing variables of interest for cognitive performance
+    neuropsych_var : list
+        variables of cognitive performance to be considered.
+        ADNI-MEM (memory) and ADNI-EF (executive function)
 
     Returns
     -------
-    merged : TYPE
-        DESCRIPTION.
+    merged : pd.DataFrame
+        Dataframe containing bias-corrected brain age and variables of
+        cognitive performance of individuals from test set.
 
     """
     df_dem = pd.read_csv("../data/main/ADNI_Neuropsych_Neuropath.csv",
@@ -220,21 +228,25 @@ def neuropath_merge(df_pred, df_neuropath1, df_neuropath2,
 
     Parameters
     ----------
-    df_pred : TYPE
-        DESCRIPTION.
-    df_neuropath1 : TYPE
-        DESCRIPTION.
-    df_neuropath2 : TYPE
-        DESCRIPTION.
-    neuropath1_var : TYPE
-        DESCRIPTION.
-    neuropath2_var : TYPE
-        DESCRIPTION.
+    df_pred : pd.DataFrame
+        Dataframe containing bias-corrected brain age of
+        individuals from test set
+    df_neuropath1 : pd.DataFrame
+        Dataframe containing first part of variables of interest
+        for neuropathology
+    df_neuropath2 : pd.DataFrame
+        Dataframe containing second part of variables of interest
+        for neuropathology
+    neuropath1_var : list
+        List of variables to be considered from df_neuropath1
+    neuropath2_var : list
+        List of variables to be considered from df_neuropath2
 
     Returns
     -------
-    merged : TYPE
-        DESCRIPTION.
+    merged : pd.DataFrame
+        Dataframe containing bias-corrected brain age and variables of
+        neuropathology of individuals from test set.
 
     """
     df_dem = pd.read_csv("../data/main/ADNI_Neuropsych_Neuropath.csv",
@@ -250,6 +262,8 @@ def neuropath_merge(df_pred, df_neuropath1, df_neuropath2,
                           how='left', on='PTID')
     merged = merged.merge(df_neuropath2[['RID'] + neuropath2_var],
                           how='left', on='RID')
+
+    # set extreme values to most extreme still observable value.
     merged['ABETA'][merged['ABETA'] == '>1700'] = 1700
     merged['TAU'][merged['TAU'] == '>1300'] = 1300
     merged['PTAU'][merged['PTAU'] == '>120'] = 120
@@ -265,15 +279,20 @@ def dx_merge(df_pred, df_dx):
 
     Parameters
     ----------
-    df_pred : TYPE
-        DESCRIPTION.
-    df_dx : TYPE
-        DESCRIPTION.
+    df_pred : pd.DataFrame
+        Dataframe containing bias-corrected brain age of
+        individuals from test set
+    df_dx : pd.DataFrame
+        Dataframe containing diagnoses at m24 (month 24). Brain age
+        of all individuals of the current analysis was calculated at
+        baseline, thus the diagnosis at month 24 constitutes the diagnosis
+        obtained 24 months after the observed brain age.
 
     Returns
     -------
-    merged : TYPE
-        DESCRIPTION.
+    merged : pd.DataFrame
+        Dataframe containing bias-corrected brain age and diagnoses after
+        24 months of individuals from test set.
 
     """
     merged = df_pred.merge(df_dx[['PTID', 'DX']], how='left', on='PTID')
