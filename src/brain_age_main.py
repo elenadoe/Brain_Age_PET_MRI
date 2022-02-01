@@ -95,7 +95,7 @@ def main(analyze, modality, rand_seed=rand_seed):
     elif analyze == 3:
         file_ = pd.read_csv("../data/MCI/MCI_" + modality + "_parcels.csv",
                             sep=";")
-        plot_hist(file_, database='MCI', train_test='MCI',
+        plot_hist(file_, group='MCI', train_test='MCI',
                   modality=modality, database_list=file_['Dataset'])
         col = pickle.load(open("../config/columns.p", "rb"))
         final_model_name = "svm"
@@ -108,7 +108,7 @@ def main(analyze, modality, rand_seed=rand_seed):
         intercept_ = params['{}_intercept'.format(final_model_name)][0]
 
         pred, mae, r2 = predict(file_, col, final_model, final_model_name,
-                                slope_, intercept_, modality, database="MCI",
+                                slope_, intercept_, modality, group="MCI",
                                 train_test="MCI")
     elif analyze == 4.1:
         group = "CN"
