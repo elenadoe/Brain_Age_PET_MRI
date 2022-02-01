@@ -36,7 +36,14 @@ def main(analyze, modality, rand_seed=rand_seed):
         2 for brain age prediction in CN
         2.1 for validation of brain age prediction in CN
         3 for brain age prediction in MCI
-        4 for association with cognitive performance/neuropathology
+        4.1 for association of BPAD with cognitive performance in CN
+        4.2 for association of BPAD with neuropathology in CN
+        4.3 for association of BPAD with cognitive performance in MCI
+        4.4 for association of BPAD with neuropathology in MCI
+        5.1 for difference of BPAD between disease progressors and stables
+            in CN
+        5.2 for difference of BPAD between disease progressors and stables
+            in MCI
     modality : str
         PET or MRI
 

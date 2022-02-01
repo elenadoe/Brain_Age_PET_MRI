@@ -90,7 +90,11 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group,
     # r2 and mae of whole dataset
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
-    fig = plt.figure()
+    r2_adni = np.nan
+    mae_adni = np.nan
+    r2_oasis = np.nan
+    mae_oasis = np.nan
+    fig = plt.figure(figsize=(20, 10))
     ax = fig.add_subplot(111)
 
     # if CN test set, color datapoints in scatterplot according to
@@ -148,10 +152,8 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group,
             plt.scatter(y_true, y_pred, color=cm_main[0], zorder=1)
             plt.fill([60, 60, 95], [60, 95, 95],
                      zorder=0, color=cm_main[0], alpha=0.4)
-            plt.fill([60, 90, 95], [60, 60, 95],
+            plt.fill([60, 95, 95], [60, 60, 95],
                      zorder=0, color=cm_main[0], alpha=0.2)
-
-        # TODO database_list = ['ADNI']*np.array(y_true).shape[0]
 
     # plot line where chronological age = brain-predicted age
     plt.plot([np.min(y_pred), np.max(y_pred)],
@@ -253,21 +255,32 @@ def check_bias(y_true, y_pred, alg, modality, group,
 
     # calculate statistical linear regression to obtain r and p-value
     # if uncorrected, y_pred_bc is equal to y_pred
-    y_diff = np.array(y_pred_bc) - np.array(y_true)
+    y_diff = np.array(y_pred) - np.array(y_true)
     linreg_plotting = stats.linregress(y_true, y_diff)
     r_plotting = linreg_plotting[2]
     p_plotting = linreg_plotting[3]
     check = p_plotting < 0.05
+    y_diff_bc = np.array(y_pred_bc) - np.array(y_true)
+    linreg_plotting_bc = stats.linregress(y_true, y_diff_bc)
+    r_plotting_bc = linreg_plotting_bc[2]
+    p_plotting_bc = linreg_plotting_bc[3]
 
     # plot bias between chronological age and brain age delta
     if info:
+        fig, ax = plt.subplots(1, 2, figsize=(25, 10))
         sns.regplot(y_diff, y_true,
                     line_kws={'label': "r = {}, p = {}".format(np.round(
                         r_plotting, 2),
                         np.round(
-                        p_plotting, 5))})
+                        p_plotting, 5))}, ax=ax[0])
+        sns.regplot(y_diff_bc, y_true,
+                    line_kws={'label': "r = {}, p = {}".format(np.round(
+                        r_plotting_bc, 2),
+                        np.round(
+                        p_plotting_bc, 5))}, ax=ax[1])
         plt.ylabel('Chronological Age [years]')
-        plt.xlabel('BPAD [years]')
+        ax[0].set_xlabel('uncorrected BPAD [years]')
+        ax[1].set_xlabel('corrected BPAD [years]')
         plt.legend()
         plt.title('Association between brain-age ' +
                   'delta and chronological age {}'.format(alg))

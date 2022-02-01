@@ -53,9 +53,8 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
         Best fitted estimator per algorithm
     scores : list
         Average performance during cross-validation of the algorithm
-    df_ages : dataframe
-        contains true and predicted ages of all subjects per
-        model
+    results : dict
+        Dictionary containing true and cross-validated predicted age
 
     """
     model_results = []
@@ -87,6 +86,7 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
         model_results.append(final_model.best_estimator_)
         scores_results.append(scores)
 
+        # save cross-validated predictions
         N = len(df_train)
         results[str(model)]['pred'] = N * [0]
         results[str(model)]['true'] = N * [0]
@@ -104,13 +104,16 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age delta and chronological age
 def bias_correct(results, df_train, col, model_results, model_names,
-                 modality, group, splits, y='age', correct_with_CA=True,
+                 modality, group, y='age', correct_with_CA=True,
                  info_init=False, save=True):
     """
     Correct for bias between CA and BPA.
 
     Parameters
     ----------
+    results : dict
+        Dictionary containing true and cross-validated predicted age
+        from cross_validate
     df_train : pd.DataFrame
         Dataframe containing input and output variables
     y_pred_uncorr : list, np.ndarray or pd.Series
@@ -241,7 +244,7 @@ def find_final_model(pred_param, model_names, modality,
     ----------
     pred_param : dict
         dictionary containing bias-corrected age, slope, intercept,
-        and pearson r value of bias between BPAD and CA
+        and pearson r value of bias between BPAD and CA for best rvr and svr
     model_names : list
         List of strings naming models to assess
     info : boolean, optional
@@ -259,6 +262,9 @@ def find_final_model(pred_param, model_names, modality,
         R squared of final model
 
     """
+    # find index (0 or 1 for rvr or svr) of smallest mae after bias
+    # correction --> if smallest mae before bias correction is desired,
+    # change to _ma_uncorr
     final_model_idx = np.argmin([v for k, v in pred_param.items()
                                  if '_mae' in k])
     final_r2 = [v for k, v in pred_param.items()
@@ -329,6 +335,7 @@ def predict(df_test, col, model_, final_model_name,
     mae = mean_absolute_error(df_test[y], y_pred_bc)
     r2 = r2_score(df_test[y], y_pred_bc)
 
+    # scatterplot and csv file of predictions of test set
     if info:
         plots.real_vs_pred_2(df_test[y], y_pred_bc, final_model_name, modality,
                              train_test, group,
@@ -339,6 +346,7 @@ def predict(df_test, col, model_, final_model_name,
                            'Prediction': y_pred_bc})
         df.to_csv("../results/{}/{}-predicted_age_{}.csv".format(
             group, modality, group))
+
     return y_pred_bc, mae, r2
 
 
@@ -382,14 +390,18 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
         R squared of chronological age and pred.
 
     """
+    # LOAD RAW DATA
     df_mri = pd.read_csv(dir_mri_csv, sep=";")
     df_pet = pd.read_csv(dir_pet_csv, sep=";")
     col = df_mri.columns[3:-1].tolist()
     pickle.dump(col, open("../config/columns.p", "wb"))
+    # SPLIT DATA
+    # save csv files and save number of outliers in n_outliers
     n_outliers = split_data(df_mri, df_pet, col, imp=imp, info=info_init,
                             rand_seed=rand_seed)
 
-    # LOAD DATA
+    # LOAD TRAIN-TEST DATA
+    # only load data of current modality
     group = "CN"
     mode = "train"
     df = pd.read_csv('../data/{}/test_train_'.format(imp) + modality +
@@ -409,25 +421,24 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     SCORING = ['r2']
     model_params = pickle.load(open("../config/hyperparams_allmodels.p",
                                     "rb"))
-
-    model_results, scores, df_ages = cross_validate(
+    model_results, scores, results = cross_validate(
         df_train, col, models, model_params, splits=cv,
         rand_seed=rand_seed, scoring=SCORING, y='age')
 
+    # APPLY BIAS CORRECTION AND FIND FINAL MODEL
     final_model_name, pred_param = bias_correct(
-        df_ages, df_train, col, model_results, model_names, modality,
+        results, df_train, col, model_results, model_names, modality,
         group, correct_with_CA=correct_with_CA, info_init=info_init,
-        splits=cv, save=save)
+        save=save)
+    slope_ = pred_param[final_model_name + "_slope"]
+    intercept_ = pred_param[final_model_name + "_intercept"]
     final_model = model_results[model_names.index(final_model_name)]
     if save:
         pickle.dump(final_model, open("../results/final_model_{}_{}.p".format(
             modality, str(correct_with_CA)), "wb"))
 
-    slope_ = pred_param[final_model_name + "_slope"]
-    intercept_ = pred_param[final_model_name + "_intercept"]
-
-    # TEST
-    # How well does the model perform on unseen data?
+    # YIELD TEST PREDICTIONS FOR CN
+    # How well does the model perform on unseen data (ADNI & OASIS)?
     df_test = df[~df['train']]
     df_test = df_test.reset_index(drop=True)
     mode = "test"
