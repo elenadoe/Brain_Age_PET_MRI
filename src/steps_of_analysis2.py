@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Tue Dec 21 16:27:41 2021
+Created on Tue Dec 21 16:27:41 2021.
 
 @author: doeringe
 """
@@ -9,10 +7,8 @@ Created on Tue Dec 21 16:27:41 2021
 from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import r2_score, mean_absolute_error
-from sklearn.model_selection import cross_val_predict
-from sklearn.inspection import permutation_importance
 from skrvm import RVR
-import pdb
+# import pdb
 
 from transform_data import split_data
 import plots
@@ -108,7 +104,7 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age delta and chronological age
 def bias_correct(results, df_train, col, model_results, model_names,
-                 modality, database, splits, y='age', correct_with_CA=True,
+                 modality, group, splits, y='age', correct_with_CA=True,
                  info_init=False, save=True):
     """
     Correct for bias between CA and BPA.
@@ -123,7 +119,7 @@ def bias_correct(results, df_train, col, model_results, model_names,
         List of strings naming models to assess
     modality : str
         MRI or PET
-    database : str
+    group : str
         CN or MCI
     y : str, optional
         Column to be considered as output feature. The default is age.
@@ -164,7 +160,7 @@ def bias_correct(results, df_train, col, model_results, model_names,
                                       y_pred[y],
                                       model_names[y],
                                       modality,
-                                      database,
+                                      group,
                                       correct_with_CA,
                                       info=info_init,
                                       save=save)
@@ -205,16 +201,17 @@ def bias_correct(results, df_train, col, model_results, model_names,
         pred_param[model_names[y] + '_ma_uncorr'] = [mae_uncorr]
 
         if save:
-            pickle.dump(pred_param, open("../results/" + database +
+            pickle.dump(pred_param, open("../results/" + group +
                                          "/bias-correction/models_and_params_"
                                          + modality + "_" +
                                          str(correct_with_CA) + ".p", "wb"))
-            pickle.dump(predictions, open("../results/" + database +
+            pickle.dump(predictions, open("../results/" + group +
                                           "/cross-val_pred_" + modality + "_" +
                                           str(correct_with_CA) +
                                           ".p", "wb"))
+
         df = pd.DataFrame(pred_param)
-        df.to_csv("../results/" + database + "/models_and_params_"
+        df.to_csv("../results/" + group + "/models_and_params_"
                   + modality + "_" + str(correct_with_CA) + ".csv")
 
     # compare predictions to find final model
@@ -222,6 +219,11 @@ def bias_correct(results, df_train, col, model_results, model_names,
                                                         model_names,
                                                         modality,
                                                         info_init=info_init)
+
+    # scatterplot of bias-corrected results from cross-validation
+    if info_init:
+        plots.real_vs_pred_2(y_true, bc, final_model,
+                             modality, 'train', 'CN')
 
     return final_model, pred_param
 
@@ -257,7 +259,6 @@ def find_final_model(pred_param, model_names, modality,
         R squared of final model
 
     """
-    
     final_model_idx = np.argmin([v for k, v in pred_param.items()
                                  if '_mae' in k])
     final_r2 = [v for k, v in pred_param.items()
@@ -274,7 +275,7 @@ def find_final_model(pred_param, model_names, modality,
 
 
 def predict(df_test, col, model_, final_model_name,
-            slope_, intercept_, modality, database,
+            slope_, intercept_, modality, group,
             train_test='test', y='age', correct_with_CA=True, info=True):
     """
     Predicts brain age using trained algorithms.
@@ -299,7 +300,7 @@ def predict(df_test, col, model_, final_model_name,
         PET or MRI
     train_test : str
         Whether train or test data is predicted
-    database : str
+    group : str
         CN or MCI
     correct_with_CA : boolean, optional
         Whether or not to correct bias with chronological age.
@@ -328,16 +329,16 @@ def predict(df_test, col, model_, final_model_name,
     mae = mean_absolute_error(df_test[y], y_pred_bc)
     r2 = r2_score(df_test[y], y_pred_bc)
 
-    plots.real_vs_pred_2(df_test[y], y_pred_bc, final_model_name, modality,
-                         train_test, database, correct_with_CA=correct_with_CA,
-                         info=info, database_list=df_test['Dataset'])
-
     if info:
+        plots.real_vs_pred_2(df_test[y], y_pred_bc, final_model_name, modality,
+                             train_test, group,
+                             correct_with_CA=correct_with_CA,
+                             database_list=df_test['Dataset'])
         df = pd.DataFrame({'PTID': df_test['name'],
                            'Age': df_test[y],
                            'Prediction': y_pred_bc})
         df.to_csv("../results/{}/{}-predicted_age_{}.csv".format(
-            database, modality, database))
+            group, modality, group))
     return y_pred_bc, mae, r2
 
 
@@ -389,7 +390,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
                             rand_seed=rand_seed)
 
     # LOAD DATA
-    database = "CN"
+    group = "CN"
     mode = "train"
     df = pd.read_csv('../data/{}/test_train_'.format(imp) + modality +
                      '_' + str(rand_seed) + '.csv')
@@ -398,7 +399,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     df_train = df_train.reset_index(drop=True)
 
     if info_init:
-        plots.plot_hist(df_train, database, mode,
+        plots.plot_hist(df_train, group, mode,
                         modality, df_train['Dataset'], y='age')
 
     # CROSS-VALIDATE MODELS
@@ -415,7 +416,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
 
     final_model_name, pred_param = bias_correct(
         df_ages, df_train, col, model_results, model_names, modality,
-        database, correct_with_CA=correct_with_CA, info_init=info_init,
+        group, correct_with_CA=correct_with_CA, info_init=info_init,
         splits=cv, save=save)
     final_model = model_results[model_names.index(final_model_name)]
     if save:
@@ -432,12 +433,12 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     mode = "test"
 
     if info_init:
-        plots.plot_hist(df_test, database, mode,
+        plots.plot_hist(df_test, group, mode,
                         modality, df_test['Dataset'], y='age')
         plots.feature_imp(df_test, col, final_model, final_model_name,
                           modality, rand_seed=rand_seed)
     pred, mae, r2 = predict(df_test, col, final_model, final_model_name,
-                            slope_, intercept_, modality, database,
+                            slope_, intercept_, modality, group,
                             correct_with_CA=correct_with_CA,
                             train_test='test', info=info)
 
