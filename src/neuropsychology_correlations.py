@@ -18,13 +18,13 @@ from transform_data import neuropsych_merge, neuropath_merge, dx_merge
 warnings.filterwarnings("ignore")
 
 
-def neuro_correlation(database, age_or_diff, psych_or_path, modality):
+def neuro_correlation(group, age_or_diff, psych_or_path, modality):
     """
     Correlations between BPAD and cognitive performance/neuropathology.
 
     Parameters
     ----------
-    database : str
+    group : str
         CN or MCI
     age_or_diff : str
         Brain-predicted age (BPA) or brain-predicted age difference (BPAD)
@@ -41,7 +41,7 @@ def neuro_correlation(database, age_or_diff, psych_or_path, modality):
     """
     df_pred = pd.read_csv(
         "../results/{}/{}-predicted_age_{}.csv".format(
-            database, modality, database))
+            group, modality, group))
     # ADNI RID = last 4 digits of ADNI PTID (required for merging)
     df_pred['RID'] = df_pred['PTID'].str[-4:].astype(int)
     y_true = df_pred['Age']
@@ -76,7 +76,7 @@ def neuro_correlation(database, age_or_diff, psych_or_path, modality):
     merged["BPAD"] = y_diff
     merged["BPAD Category"] = y_diff_cat
     merged.to_csv("../results/pred_merged_{}_{}_{}.csv".format(
-            database, modality, psych_or_path), index=False)
+            group, modality, psych_or_path), index=False)
     print("\033[1m---SIGNIFICANT CORRELATIONS BETWEEN {} ".format(
         age_or_diff) + "& NEURO{}---\033[0m".format(psych_or_path))
 
@@ -85,11 +85,12 @@ def neuro_correlation(database, age_or_diff, psych_or_path, modality):
     # criterion
     sign = {}
     all_ = open(
-        "../results/{}/associations/{}_associations_{}-BPAD.txt".format(
-            database, psych_or_path, modality), "w+")
-    all_.write("Variable\tr\tp\tn\n")
+        "../results/neurocorrelations/" +
+        group + "_{}_associations_{}-BPAD.txt".format(psych_or_path,
+                                                      modality), "w+")
+    all_.write("Variable\tr\tp\tn\tp\tp_Bonferroni\tmethod\n")
     # p Bonferroni-corrected
-    p = 0.05/len(var_)
+    p = 0.05
     for n in var_:
         merged[n] = pd.to_numeric(merged[n])
         exc = np.where(np.isnan(merged[n]))[0]
@@ -109,14 +110,14 @@ def neuro_correlation(database, age_or_diff, psych_or_path, modality):
             stat = corr(merged_foranalysis['BPAD'], merged_foranalysis[n],
                         method='pearson')
             stat_par = partial_corr(data=merged_foranalysis, x="BPAD",
-                                    y=n, covar="PTGENDER",
+                                    y=n, covar=["Age", "PTGENDER"],
                                     method="pearson")
             method_str = "Pearson"
         else:
             stat = corr(merged_foranalysis['BPAD'], merged_foranalysis[n],
                         method='spearman')
             stat_par = partial_corr(data=merged_foranalysis, x="BPAD",
-                                    y=n, covar="PTGENDER",
+                                    y=n, covar=["Age", "PTGENDER"],
                                     method="spearman")
             method_str = "Spearman"
 
@@ -132,13 +133,13 @@ def neuro_correlation(database, age_or_diff, psych_or_path, modality):
             sign[n] = [stat, stat_par]
             cm_np = pickle.load(open(
                     "../config/plotting_config_gender_{}.p".format(
-                        database), "rb"))
+                        group), "rb"))
             sns.set_palette(cm_np)
             merged_foranalysis['PTGENDER'] = \
                 ["Female" if x == 1 else "Male" if x == 2
                  else np.nan for x in merged_foranalysis['PTGENDER']]
             sns.lmplot("BPAD", n, data=merged_foranalysis,
-                       scatter_kws={'alpha': 0.4}, hue="PTGENDER")
+                       scatter_kws={'alpha': 0.4}, col="black")  # , hue="PTGENDER")
             ymin, ymax = plt.gca().get_ylim()
             xmin, xmax = plt.gca().get_xlim()
             plt.text(0.7*xmax, 0.8*ymax, "n = {}\n".format(stat["n"][0]) +
@@ -150,15 +151,22 @@ def neuro_correlation(database, age_or_diff, psych_or_path, modality):
                      str(np.round(stat_par['p-val'][0], 3)))
             plt.xlabel("BPAD [years]")
             plt.title(method_str + "-Correlation " + n + " X BPAD")
-            plt.savefig(fname="../results/" + database + "/plots/" +
-                        modality + "_" + age_or_diff +
+            plt.savefig(fname="../results/neurocorrelations/plots/" +
+                        group + "_" + modality + "_" + age_or_diff +
                         "_" + n + ".png", bbox_inches="tight", dpi=300)
             plt.show()
         all_.write(n + "\t" + str(stat['r'][0]) + "\t" +
-                   str(stat['p-val'][0]) + "\t" + str(stat['n'][0]))
+                   str(stat['p-val'][0]) + "\t" + str(stat['n'][0]) +
+                   "\t" + method_str + "\t" + str(p) +
+                   "\t" + str(p/len(var_)) + "\tzero-order")
+        all_.write("\n")
+        all_.write(n + "\t" + str(stat_par['r'][0]) + "\t" +
+                   str(stat_par['p-val'][0]) + "\t" + str(stat_par['n'][0]) +
+                   "\t" + method_str + "\t" + str(p) +
+                   "\t" + str(p/len(var_)) + "\tpartial")
         all_.write("\n")
 
-    neuropsychology_BPAD_group(merged, sign, y_diff, modality, database)
+    neuropsychology_BPAD_group(merged, sign, y_diff, modality, group)
     all_.close()
 
     return sign
@@ -221,24 +229,24 @@ def neuropsychology_BPAD_group(merged, sign, y_diff, modality, group):
         if (norm_pos[1] > 0.05) and (norm_neg[1]
                                      > 0.05) and (norm_zer[1] > 0.05):
             stat_pos = partial_corr(data=merged_pos, x="BPAD",
-                                    y=k, covar="PTGENDER",
+                                    y=k, covar=["Age", "PTGENDER"],
                                     method="pearson")
             stat_neg = partial_corr(data=merged_neg, x="BPAD",
-                                    y=k, covar="PTGENDER",
+                                    y=k, covar=["Age", "PTGENDER"],
                                     method="pearson")
             stat_zer = partial_corr(data=merged_zer, x="BPAD",
-                                    y=k, covar="PTGENDER",
+                                    y=k, covar=["Age", "PTGENDER"],
                                     method="pearson")
             method_str = "Pearson Correlation"
         else:
             stat_pos = partial_corr(data=merged_pos, x="BPAD",
-                                    y=k, covar="PTGENDER",
+                                    y=k, covar=["Age", "PTGENDER"],
                                     method="spearman")
             stat_neg = partial_corr(data=merged_neg, x="BPAD",
-                                    y=k, covar="PTGENDER",
+                                    y=k, covar=["Age", "PTGENDER"],
                                     method="spearman")
             stat_zer = partial_corr(data=merged_zer, x="BPAD",
-                                    y=k, covar="PTGENDER",
+                                    y=k, covar=["Age", "PTGENDER"],
                                     method="spearman")
             method_str = "Spearman Correlation"
 
@@ -261,8 +269,8 @@ def neuropsychology_BPAD_group(merged, sign, y_diff, modality, group):
             plt.xlabel("BPAD [years]")
             plt.title(method_str + "-Correlation " + k +
                       " X BPAD by BPAD Category")
-            plt.savefig(fname="../results/" + group + "/plots/" +
-                        modality + "_" +
+            plt.savefig(fname="../results/neurocorrelations/plots/" +
+                        group + "_" + modality + "_" +
                         "_" + k + "_GROUPEFFECT.png", bbox_inches="tight",
                         dpi=300)
             plt.show()
@@ -309,7 +317,7 @@ def conversion_analysis(group, modality):
         mwu_ = mwu(merge['BPAD'][merge['DX'] == 'MCI'],
                    merge['BPAD'][merge['DX'] == 'Dementia'])
     plt.xlabel("Diagnosis after 24 months")
-    plt.savefig(fname="../results/" + group + "/plots/Conversion_" +
+    plt.savefig(fname="../results/neurocorrelations/plots/Conversion_" +
                 modality + ".png", bbox_inches="tight", dpi=300)
     ymin, ymax = plt.gca().get_ylim()
     xmin, xmax = plt.gca().get_xlim()

@@ -7,8 +7,9 @@ Created on Mon Jan 17 12:17:23 2022
 """
 import pandas as pd
 import numpy as np
+import pdb
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold
 
 
 def outlier_check(df_mri, df_pet, col, threshold=3):
@@ -185,6 +186,126 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
     return n_outliers
 
 
+def split_data_np(df_mri, df_pet, col, imp="neurocorrelations", splits=5,
+                  test_size=0.3, train_data="ADNI",
+                  older_65=True, check_outliers=True, info=True,
+                  rand_seed=0):
+    """
+    Split data into train and test sets.
+
+    Parameters
+    ----------
+    data_mri : pd.dataframe
+        parcels derived from MRI data
+    data_pet : pd.dataframe
+        parcels derived from PET data
+    col : list or np.array
+        columns to consider for brain age prediction
+    imp : str
+        main analysis, validation_random_seeds or neurocorrelations
+    splits : int
+        How many folds to split the data into for cross-validation
+    test_size : float, optional
+        If float, should be between 0.0 and 1.0 and represent
+        the proportion of the dataset to include in the test split.
+        If int, represents the absolute number of test samples.
+        The default is 0.3.
+    train_data : str, optional
+        Which dataset to use for training
+    older_65 : boolean, optional
+        Whether to consider only individuals over age 65. The default is True.
+    check_outliers : boolean, optional
+        Whether to check for and exclude outliers. The default is True.
+    rand_seed : int, optional
+        Controls the shuffling applied to the data before applying the split.
+
+
+    Returns
+    -------
+    None.
+
+    """
+    same_ids = all(df_mri['name'] == df_pet['name'])
+
+    # raise error if not all individuals are the same across modalities
+    if same_ids is False:
+        raise ValueError("IDs between modalities don't match.")
+
+    if info:
+        print("First column: {}".format(col[0]) +
+              " (should be 'X17Networks_LH_VisCent_ExStr_1')" +
+              "\nLast column: {}".format(col[-1]) +
+              " (should be 'CAU-lh)")
+
+    # exclude individuals younger than 65 if older_65 == True
+    if older_65:
+        older_65_mri = df_mri['age'] >= 65
+        older_65_pet = df_pet['age'] >= 65
+
+        df_pet['AGE_CHECK'] = older_65_mri & older_65_pet
+        df_mri['AGE_CHECK'] = older_65_mri & older_65_pet
+        if info:
+            print(len(df_pet)-sum(df_pet['AGE_CHECK']),
+                  "individuals younger than 65 years discarded.")
+    else:
+        df_pet['AGE_CHECK'] = True
+        df_mri['AGE_CHECK'] = True
+
+    # divide into age bins of "young old", "middle old" and "oldest old"
+    # use mri to do so --> same age bins for both modalities
+    df_mri['Ageb'] = [0 if x < 74 else 1
+                      if x < 84 else 2 for x in df_mri['age']]
+    df_pet['Ageb'] = [0 if x < 74 else 1
+                      if x < 84 else 2 for x in df_pet['age']]
+
+    # only ADNI data of individuals older than 65 (if older_65 == True)
+    # to be considered in train_test split
+    # OASIS data to be reserved as additional test set
+    split_data = (df_mri['Dataset'] == "ADNI") & df_mri['AGE_CHECK']
+
+    # prepare input (X) and output (y) for train-test split
+    X = df_mri[col][split_data].values
+    y_pseudo = df_mri['Ageb'][split_data]
+    # make train-test splits
+    cv = StratifiedKFold(n_splits=splits,
+                         random_state=rand_seed,
+                         shuffle=True).split(X, y_pseudo)
+
+    count = 0
+    for id_tr, id_te in cv:
+        train_names = df_mri['name'][id_tr].values
+        df_mri['train'] = [True if x in train_names
+                           else False for x in df_mri['name']]
+        df_pet['train'] = df_mri['train']
+
+        if check_outliers:
+            df_mri, df_pet = outlier_check(df_mri, df_pet, col)
+            n_outliers = len(df_mri) - sum(df_mri['IQR'])
+            if info:
+                print("Total participants: ", len(df_mri),
+                      "Inside IQR of all regions: ",
+                      len(df_mri[df_mri['IQR']]),
+                      "\n({}".format(n_outliers),
+                      "participants discarded as outliers)")
+                print("Outliers in train set: ",
+                      sum(df_mri['train']) -
+                      sum(df_mri['IQR'][df_mri['train']]),
+                      "Outliers in test set: ",
+                      sum(~df_mri['train']) -
+                      sum(df_mri['IQR'][~df_mri['train']]))
+        else:
+            n_outliers = 0
+            df_mri['IQR'] = True
+            df_pet['IQR'] = True
+        df_mri.to_csv('../data/{}/'.format(imp) +
+                      'test_train_MRI_{}.csv'.format(str(count)))
+        df_pet.to_csv('../data/{}/'.format(imp) +
+                      'test_train_PET_{}.csv'.format(str(count)))
+        count = count+1
+
+    return n_outliers
+
+
 def neuropsych_merge(df_pred, df_neuropsych,
                      neuropsych_var):
     """
@@ -224,7 +345,7 @@ def neuropsych_merge(df_pred, df_neuropsych,
 def neuropath_merge(df_pred, df_neuropath1, df_neuropath2,
                     neuropath1_var, neuropath2_var):
     """
-    
+    Merge predictions with neuropathology.
 
     Parameters
     ----------

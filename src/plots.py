@@ -114,9 +114,9 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group,
         y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]
 
         plt.scatter(y_true, y_pred, c=cm_main[y_db_cat], alpha=0.9)
-        plt.fill([60, 60, 100], [60, 100, 100],
+        plt.fill([60, 60, 95], [60, 95, 95],
                  zorder=0, color='gray', alpha=0.3)
-        plt.fill([60, 100, 100], [60, 60, 100],
+        plt.fill([60, 95, 95], [60, 60, 95],
                  zorder=0, color='gray', alpha=0.1)
 
         # print test metrics
