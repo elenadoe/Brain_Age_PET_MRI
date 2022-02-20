@@ -10,17 +10,18 @@ import nibabel as nib
 import scipy.stats as stats
 import pandas as pd
 import pickle
+import warnings
 # import pdb
 from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.linear_model import LinearRegression
-
+warnings.filterwarnings("ignore")
 # %%
 # matplotlib config
 cm_main = pickle.load(open("../config/plotting_config_main.p", "rb"))
 
 
-def plot_hist(df, group, train_test, modality, database_list, y='age'):
+def plot_hist(df, group, train_test, modality, database_list, r, y='age'):
     """
     Plot histogram of y.
 
@@ -51,16 +52,16 @@ def plot_hist(df, group, train_test, modality, database_list, y='age'):
         sns.displot(df, x='age', kde=True, color=cm_main[0])
     else:
         sns.displot(df, x='age', kde=True, hue=database_list)
-        plt.ylim(0, 40)
+        plt.ylim(0, 60)
     plt.title('Age distribution in {} set'.format(train_test))
     plt.xlabel('Age [years]')
     plt.ylabel('n Participants')
-    plt.savefig('../results/{}/plots/{}_{}_age_distribution'.format(
-        group, train_test, modality) + '.png', bbox_inches="tight")
+    plt.savefig('../results/{}/plots/{}_{}_age_distribution_{}'.format(
+        group, train_test, modality, r) + '.png', bbox_inches="tight")
     plt.show()
 
 
-def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group,
+def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
                    correct_with_CA=True, database_list=None):
     """
     Plot predicted age against chronological age.
@@ -105,28 +106,27 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group,
         mae_adni = mean_absolute_error(
             np.array(y_true)[np.array(database_list) == 'ADNI'],
             np.array(y_pred)[np.array(database_list) == 'ADNI'])
-        r2_oasis = r2_score(
+        """r2_oasis = r2_score(
             np.array(y_true)[np.array(database_list) == 'OASIS'],
             np.array(y_pred)[np.array(database_list) == 'OASIS'])
         mae_oasis = mean_absolute_error(
             y_true[np.array(database_list) == 'OASIS'],
             np.array(y_pred)[np.array(database_list) == 'OASIS'])
-        y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]
+        y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]"""
 
-        plt.scatter(y_true, y_pred, c=cm_main[y_db_cat], alpha=0.9)
+        plt.scatter(y_true, y_pred, c=cm_main[0], alpha=0.9)
         plt.fill([60, 60, 95], [60, 95, 95],
                  zorder=0, color='gray', alpha=0.3)
         plt.fill([60, 95, 95], [60, 60, 95],
                  zorder=0, color='gray', alpha=0.1)
 
         # print test metrics
-        print("\033[1m---TEST---\033[0m")
-        print("On average, predicted age of", group,
+        """print("Round: {}\n".format(r), "On average, predicted age of", group,
               "differed by ", np.mean(y_diff),
               " years from their chronological age.")
         print("MAE = {}, R2 = {}".format(mae, r2))
         print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
-        print("OASIS:\nMAE = {}, R2 = {}\n\n".format(mae_oasis, r2_oasis))
+        print("OASIS:\nMAE = {}, R2 = {}\n\n".format(mae_oasis, r2_oasis))"""
 
     # if MCI test set, plot in ADNI color and print test metrics
     else:
@@ -138,22 +138,27 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group,
                      zorder=0, color=cm_main[0], alpha=0.4)
             plt.fill([50, 100, 100], [50, 50, 100],
                      zorder=0, color=cm_main[0], alpha=0.2)
-            print("\033[1m---MCI---\033[0m")
-            print("On average, predicted age of",
+            """print("Round: {}\n".format(r), "On average, predicted age of",
                   group,
                   "differed by ", np.mean(y_diff),
                   " years from their chronological age.")
-            print("MAE = {}, R2 = {}".format(mae, r2))
+            print("MAE = {}, R2 = {}".format(mae, r2))"""
 
-        # if CN train set, plot in ADNI color
+        # if CN train set or OASIS CN set (latter may be shown in
+        # paper, therefore use OASIS color)
         else:
             plt.xlim(60, 95)
             plt.ylim(60, 95)
-            plt.scatter(y_true, y_pred, color=cm_main[0], zorder=1)
+            plt.scatter(y_true, y_pred, color=cm_main[1], zorder=1)
             plt.fill([60, 60, 95], [60, 95, 95],
                      zorder=0, color=cm_main[0], alpha=0.4)
             plt.fill([60, 95, 95], [60, 60, 95],
                      zorder=0, color=cm_main[0], alpha=0.2)
+            """print("Round: {}\n".format(r), "On average, predicted age of",
+                  group,
+                  "differed by ", np.mean(y_diff),
+                  " years from their chronological age.")
+            print("MAE = {}, R2 = {}".format(mae, r2))"""
 
     # plot line where chronological age = brain-predicted age
     plt.plot([np.min(y_pred), np.max(y_pred)],
@@ -165,17 +170,18 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group,
     plt.xlabel('Chronological Age [Years]')
     plt.legend()
     plt.savefig("../results/{}/plots/real_vs_pred".format(group) +
-                "_{}_{}_{}_{}.jpg".format(modality,
-                                          train_test,
-                                          alg,
-                                          str(correct_with_CA)),
+                "_{}_{}_{}_{}_{}.jpg".format(modality,
+                                             train_test,
+                                             alg,
+                                             str(correct_with_CA),
+                                             r),
                 bbox_inches='tight', dpi=300)
-    plt.show()
+    plt.close()
 
     # save prediction metrics
-    results = open("../results/{}/evaluation/eval_{}_{}_{}_{}.txt".format(
+    results = open("../results/{}/evaluation/eval_{}_{}_{}_{}_{}.txt".format(
         group, modality, train_test, alg,
-        str(correct_with_CA)), 'w+')
+        str(correct_with_CA), r), 'w+')
     results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS" +
                   "\n" + str(mae) + "\t" + str(r2) + "\t" +
                   str(np.mean(y_diff)) +
@@ -184,8 +190,8 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group,
     results.close()
 
 
-def check_bias(y_true, y_pred, alg, modality, group,
-               corr_with_CA=False, corrected=False, info=True, save=True):
+def check_bias(y_true, y_pred, alg, modality, group, r,
+               corr_with_CA=True, corrected=False, info=True, save=True):
     """
     Bias check & provision of correction parameters.
 
@@ -241,7 +247,6 @@ def check_bias(y_true, y_pred, alg, modality, group,
         slope_ = linreg.coef_[0]
         intercept_ = linreg.intercept_
         y_pred_bc = y_pred - (slope_*y_true + intercept_)
-        corrected = True
 
     else:
         # linear regression between CA and predicted age
@@ -251,7 +256,6 @@ def check_bias(y_true, y_pred, alg, modality, group,
         slope_ = linreg.coef_[0]
         intercept_ = linreg.intercept_
         y_pred_bc = (y_pred - intercept_)/slope_
-        corrected = True
 
     # calculate statistical linear regression to obtain r and p-value
     # if uncorrected, y_pred_bc is equal to y_pred
@@ -284,21 +288,19 @@ def check_bias(y_true, y_pred, alg, modality, group,
         plt.legend()
         plt.title('Association between brain-age ' +
                   'delta and chronological age {}'.format(alg))
-        if corrected:
-            plt.savefig('../results/{}/bias-corrected_{}_{}_{}.jpg'.format(
-                group, corr_with_CA, modality, alg),
+
+        if save:
+            plt.savefig('../results/{}/bias-corrected_{}_{}_{}_{}.jpg'.format(
+                group, corr_with_CA, modality, alg, r),
                 dpi=300)
-        else:
-            plt.savefig('../results/{}/bias-uncorrected_{}_{}.jpg'.format(
-                group, modality, alg),
-                dpi=300)
-        plt.show()
+
+        plt.close()
 
     return slope_, intercept_, check
 
 
 def feature_imp(df_test, col, final_model, final_model_name,
-                modality, y='age', n_repeats=1000, rand_seed=0):
+                modality, r, y='age', n_repeats=1000, rand_seed=0):
     """
     Plot feature importance.
 
@@ -320,43 +322,50 @@ def feature_imp(df_test, col, final_model, final_model_name,
     -------
     none (plots and saves plots)
     """
-    # get feature importance
-    imp = final_model.named_steps[final_model_name].coef_[0]
+    # get feature importance for linear kernels
+    # (coefficients are not available for other kernels,
+    # best kernel is svm most of the times)
+    if final_model.named_steps[final_model_name].kernel == "linear":
 
-    # get atlas
-    atlas = '../data/schaefer200-17_Tian.nii'
-    atlas = image.load_img(atlas)
-    atlas_matrix = image.get_data(atlas)
+        imp = final_model.named_steps[final_model_name].coef_[0]
 
-    # get labels
-    labels = open('../data/composite_atlas_labels.txt')
-    labels = labels.read().split('\n')[:-1]
+        # get atlas
+        atlas = '../data/schaefer200-17_Tian.nii'
+        atlas = image.load_img(atlas)
+        atlas_matrix = image.get_data(atlas)
 
-    # put feature importance into dataframe and save
-    df_imp = pd.DataFrame({'region': labels,
-                           'perm_importance': imp})
-    df_imp.to_csv('../results/CN/' +
-                  'weighted_importance_{}_{}.csv'.format(
-                      modality, final_model_name))
+        # get labels
+        labels = open('../data/composite_atlas_labels.txt')
+        labels = labels.read().split('\n')[:-1]
 
-    # create statistical map where each voxel value coresponds to permutation
-    # importance
-    # TODO atlas_matrix_stat = atlas_matrix.copy()
+        # put feature importance into dataframe and save
+        df_imp = pd.DataFrame({'region': labels,
+                               'perm_importance': imp})
+        df_imp.to_csv('../results/CN/' +
+                      'weighted_importance_{}_{}_{}.csv'.format(
+                          modality, final_model_name, r))
 
-    # 0 is background in atlas matrix
-    # but first element (index = 0) of imp is weight of first actual feature
-    for x in range(1, 217):
-        atlas_matrix[atlas_matrix == x] = imp[x-1]
-    # create niimg from atlas_matrix
-    atlas_final = image.new_img_like(atlas, atlas_matrix)
+        # create statistical map where each voxel value
+        # coresponds to weight coefficients
+        # TODO atlas_matrix_stat = atlas_matrix.copy()
 
-    # plot feature importance, save output plot and niimg
-    plotting.plot_stat_map(atlas_final)
-    plt.title("{}-relevant regions for aging".format(final_model_name))
-    plt.savefig("../results/" +
-                "CN/evaluation/weighted_importance_{}_{}.jpg".format(
-                    modality, final_model_name))
-    nib.save(atlas_final, "../results/CN"
-             "/permutation_importance_{}_{}.nii".format(
-                 modality, final_model_name))
-    plt.show()
+        # 0 is background in atlas matrix
+        # but first element (index = 0) of imp is
+        # weight of first actual feature
+        for x in range(1, 217):
+            atlas_matrix[atlas_matrix == x] = imp[x-1]
+        # create niimg from atlas_matrix
+        atlas_final = image.new_img_like(atlas, atlas_matrix)
+
+        # plot feature importance, save output plot and niimg
+        plotting.plot_stat_map(atlas_final)
+        plt.title("{}-relevant regions for aging".format(final_model_name))
+        plt.savefig("../results/" +
+                    "CN/evaluation/weighted_importance_{}_{}_{}.jpg".format(
+                        modality, final_model_name, r))
+        nib.save(atlas_final, "../results/CN"
+                 "/permutation_importance_{}_{}_{}.nii".format(
+                     modality, final_model_name, r))
+        plt.close()
+    else:
+        print("Kernel not linear, no weight coefficients available.")

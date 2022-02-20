@@ -18,7 +18,7 @@ from transform_data import neuropsych_merge, neuropath_merge, dx_merge
 warnings.filterwarnings("ignore")
 
 
-def neuro_correlation(group, age_or_diff, psych_or_path, modality):
+def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=0):
     """
     Correlations between BPAD and cognitive performance/neuropathology.
 
@@ -39,9 +39,16 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality):
         r-values of significant correlations
 
     """
+    # for publication, report MCI results for first model
+    # put correlations of the four other models' predictions in
+    # supplementaries
+    if group == "CN":
+        add_ = ""
+    elif group == "MCI":
+        add_ = "_"+str(fold)
     df_pred = pd.read_csv(
-        "../results/{}/{}-predicted_age_{}.csv".format(
-            group, modality, group))
+        "../results/{}/{}-predicted_age_{}{}.csv".format(
+            group, modality, group, add_))
     # ADNI RID = last 4 digits of ADNI PTID (required for merging)
     df_pred['RID'] = df_pred['PTID'].str[-4:].astype(int)
     y_true = df_pred['Age']
@@ -128,18 +135,19 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality):
             print("Significant correlation between BPAD and {}: ".format(n),
                   stat['p-val'][0] < p,
                   "\nSignificant correlation between BPAD and", n,
-                  "after controlling for the effect of sex:",
+                  "after controlling for the effect of sex and age:",
                   stat_par['p-val'][0] < p)
             sign[n] = [stat, stat_par]
             cm_np = pickle.load(open(
                     "../config/plotting_config_gender_{}.p".format(
                         group), "rb"))
-            sns.set_palette(cm_np)
+            # sns.set_palette("cm_np")
             merged_foranalysis['PTGENDER'] = \
                 ["Female" if x == 1 else "Male" if x == 2
                  else np.nan for x in merged_foranalysis['PTGENDER']]
             sns.lmplot("BPAD", n, data=merged_foranalysis,
-                       scatter_kws={'alpha': 0.4}, col="black")  # , hue="PTGENDER")
+                       scatter_kws={'alpha': 0.4, 'color': 'black'},
+                       line_kws={'color': 'black'})  # , hue="PTGENDER")
             ymin, ymax = plt.gca().get_ylim()
             xmin, xmax = plt.gca().get_xlim()
             plt.text(0.7*xmax, 0.8*ymax, "n = {}\n".format(stat["n"][0]) +
@@ -298,7 +306,7 @@ def conversion_analysis(group, modality):
     df_dx = pd.read_csv(
         "../data/MCI/MCI_DX_after24months.csv", sep=";")
     df_pred = pd.read_csv(
-        "../results/{}/{}-predicted_age_{}.csv".format(
+        "../results/{}/{}-predicted_age_{}_0.csv".format(
             group, modality, group))
     df_pred['BPAD'] = np.round(df_pred['Prediction'] - df_pred['Age'], 0)
     merge = dx_merge(df_pred, df_dx)

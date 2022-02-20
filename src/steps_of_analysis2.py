@@ -8,9 +8,10 @@ from julearn import run_cross_validation
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import r2_score, mean_absolute_error
 from skrvm import RVR
-# import pdb
+from os.path import exists
+import pdb
 
-from transform_data import split_data, split_data_np
+from transform_data import split_data_np
 import plots
 
 import numpy as np
@@ -105,7 +106,7 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
 # BIAS CORRECTION
 # Eliminate linear correlation of brain age delta and chronological age
 def bias_correct(results, df_train, col, model_results, model_names,
-                 modality, group, y='age', correct_with_CA=True,
+                 modality, group, r, y='age', correct_with_CA=True,
                  info_init=False, save=True):
     """
     Correct for bias between CA and BPA.
@@ -165,7 +166,8 @@ def bias_correct(results, df_train, col, model_results, model_names,
                                       model_names[y],
                                       modality,
                                       group,
-                                      correct_with_CA,
+                                      r=r,
+                                      corr_with_CA=correct_with_CA,
                                       info=info_init,
                                       save=save)
         slope_ = check_bias[0]
@@ -208,15 +210,17 @@ def bias_correct(results, df_train, col, model_results, model_names,
             pickle.dump(pred_param, open("../results/" + group +
                                          "/bias-correction/models_and_params_"
                                          + modality + "_" +
-                                         str(correct_with_CA) + ".p", "wb"))
+                                         str(correct_with_CA) + "_" + str(r) +
+                                         ".p", "wb"))
             pickle.dump(predictions, open("../results/" + group +
                                           "/cross-val_pred_" + modality + "_" +
-                                          str(correct_with_CA) +
+                                          str(correct_with_CA) + "_" + str(r) +
                                           ".p", "wb"))
 
-        df = pd.DataFrame(pred_param)
-        df.to_csv("../results/" + group + "/models_and_params_"
-                  + modality + "_" + str(correct_with_CA) + ".csv")
+            df = pd.DataFrame(pred_param)
+            df.to_csv("../results/" + group + "/models_and_params_"
+                      + modality + "_" + str(correct_with_CA) + "_" +
+                      str(r) + ".csv")
 
     # compare predictions to find final model
     final_model, final_mae, final_r2 = find_final_model(pred_param,
@@ -227,7 +231,7 @@ def bias_correct(results, df_train, col, model_results, model_names,
     # scatterplot of bias-corrected results from cross-validation
     if info_init:
         plots.real_vs_pred_2(y_true, bc, final_model,
-                             modality, 'train', 'CN')
+                             modality, 'train', 'CN', r=r)
 
     return final_model, pred_param
 
@@ -282,8 +286,9 @@ def find_final_model(pred_param, model_names, modality,
 
 
 def predict(df_test, col, model_, final_model_name,
-            slope_, intercept_, modality, group, imp, r=0,
-            train_test='test', y='age', correct_with_CA=True, info=True):
+            slope_, intercept_, modality, group, r, metrics_on="ADNI",
+            train_test='test', y='age', correct_with_CA=True,
+            info_init=True):
     """
     Predicts brain age using trained algorithms.
 
@@ -309,10 +314,8 @@ def predict(df_test, col, model_, final_model_name,
         Whether train or test data is predicted
     group : str
         CN or MCI
-    imp : str
-        main analysis, validation_random_seeds or neurocorrelations
     r : int
-        which round of cv is saved (only important for neurocorrelations)
+        which round of cv is saved
     correct_with_CA : boolean, optional
         Whether or not to correct bias with chronological age.
         The default is True.
@@ -325,6 +328,12 @@ def predict(df_test, col, model_, final_model_name,
         Bias-corrected brain age of individuals from test set
 
     """
+    # reduce to only the sample for which metrics are expected
+    if group != "MCI":
+        df_test['database'] = ["ADNI" if ('OAS' not in x)
+                               else "OASIS" for x in df_test['name']]
+        df_test.drop(df_test[df_test.database != metrics_on].index,
+                     inplace=True)
     y_pred = model_.predict(df_test[col])
 
     # plot model predictions against GT in test set
@@ -339,30 +348,28 @@ def predict(df_test, col, model_, final_model_name,
 
     y_diff = y_pred_bc - df_test[y]
     linreg = stats.linregress(df_test[y], y_diff)
-    p = linreg[3]
-    check = p > 0.05
+    r_val = linreg[2]
+    p_val = linreg[3]
+    check = p_val > 0.05
     mae = mean_absolute_error(df_test[y], y_pred_bc)
     r2 = r2_score(df_test[y], y_pred_bc)
+    mean_diff = np.mean(y_pred_bc - df_test[y])
 
     # scatterplot and csv file of predictions of test set
-    if info:
+    if info_init:
         plots.real_vs_pred_2(df_test[y], y_pred_bc, final_model_name, modality,
                              train_test, group,
-                             correct_with_CA=correct_with_CA,
+                             correct_with_CA=correct_with_CA, r=r,
                              database_list=df_test['Dataset'])
         df = pd.DataFrame({'PTID': df_test['name'],
                            'Age': df_test[y],
                            'Prediction': y_pred_bc})
-        if imp == "neurocorrelations":
-            df.to_csv("../results/{}/{}-predicted_age_{}_fold{}.csv".format(
-                imp, modality, group, r))
-        else:
-            df.to_csv("../results/{}/{}-predicted_age_{}_{}.csv".format(
-                group, modality, group, r))
-        print("Bias between chronological age and BPAD eliminated:",
-              check, "(r =", r, "p =", p, ")")
+        df.to_csv("../results/{}/{}-predicted_age_{}_{}.csv".format(
+                  group, modality, group, r))
+    print("Bias between chronological age and BPAD eliminated:",
+          check, "(r =", r_val, "p =", p_val, ")")
 
-    return y_pred_bc, mae, r2
+    return y_pred_bc, mae, r2, mean_diff
 
 
 def brain_age(dir_mri_csv, dir_pet_csv, modality,
@@ -416,31 +423,26 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     # only load data of current modality
     group = "CN"
     mode = "train"
-    mae_all = {}
-    r2_all = {}
-    model_all = {}
-    if imp == "neurocorrelations":
-        rounds = cv
-    else:
-        rounds = 1
+    mae_all = []
+    r2_all = []
+    model_all = []
+    mean_diff_all = []
+
     for r in range(cv):
-        if imp == "neurocorrelations":
-            n_outliers = split_data_np(df_mri, df_pet, col, imp=imp,
-                                       info=info_init, rand_seed=rand_seed)
-            df = pd.read_csv('../data/neurocorrelations/test_train_' +
-                             modality + '_' + str(r) + '.csv')
-        else:
-            n_outliers = split_data(df_mri, df_pet, col, imp=imp,
-                                    info=info_init, rand_seed=rand_seed)
-            df = pd.read_csv('../data/{}/test_train_'.format(imp) + modality +
-                             '_' + str(rand_seed) + '.csv')
+        if not(exists('../data/{}/test_train_'.format(imp) +
+                      modality + '_' + str(r) + '.csv')):
+            split_data_np(df_mri, df_pet, col, imp=imp,
+                          info=info_init, rand_seed=rand_seed)
+
+        df = pd.read_csv('../data/{}/test_train_'.format(imp) +
+                         modality + '_' + str(r) + '.csv')
         df = df[df['AGE_CHECK'] & df['IQR']]
         df_train = df[df['train']]
         df_train = df_train.reset_index(drop=True)
 
         if info_init:
             plots.plot_hist(df_train, group, mode,
-                            modality, df_train['Dataset'], y='age')
+                            modality, df_train['Dataset'], r=r, y='age')
 
         # CROSS-VALIDATE MODELS
         # define models and model names (some are already included in julearn)
@@ -456,15 +458,11 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
         # APPLY BIAS CORRECTION AND FIND FINAL MODEL
         final_model_name, pred_param = bias_correct(
             results, df_train, col, model_results, model_names, modality,
-            group, correct_with_CA=correct_with_CA, info_init=info_init,
+            group, r=r, correct_with_CA=correct_with_CA, info_init=info_init,
             save=save)
         slope_ = pred_param[final_model_name + "_slope"]
         intercept_ = pred_param[final_model_name + "_intercept"]
         final_model = model_results[model_names.index(final_model_name)]
-        if save:
-            pickle.dump(final_model,
-                        open("../results/final_model_{}_{}.p".format(
-                            modality, str(correct_with_CA)), "wb"))
 
         # YIELD TEST PREDICTIONS FOR CN
         # How well does the model perform on unseen data (ADNI & OASIS)?
@@ -474,40 +472,131 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
 
         if info_init:
             plots.plot_hist(df_test, group, mode,
-                            modality, df_test['Dataset'], y='age')
+                            modality, df_test['Dataset'], y='age', r=r)
             plots.feature_imp(df_test, col, final_model, final_model_name,
-                              modality, rand_seed=rand_seed)
-        pred, mae, r2 = predict(df_test, col, final_model, final_model_name,
-                                slope_, intercept_, modality, group,
-                                correct_with_CA=correct_with_CA, imp=imp, r=r,
-                                train_test='test', info=info)
-        mae_all[0] = mae
-        r2_all[0] = r2
-        model_all[0] = final_model_name
+                              modality, r=r, rand_seed=rand_seed)
+        pred, mae, r2, mean_diff = predict(
+            df_test, col, final_model, final_model_name,
+            slope_, intercept_, modality, group,
+            correct_with_CA=correct_with_CA,
+            r=r, train_test='test',
+            metrics_on="ADNI", info_init=info)
+        mae_all.append(mae)
+        r2_all.append(r2)
+        mean_diff_all.append(mean_diff)
+        model_all.append(final_model_name)
         if save:
-            pickle.dump(final_model,
-                        open("../results/final_model_{}_{}_{}.p".format(
-                            modality, str(correct_with_CA), str(r)), "wb"))
-    results = {"Round": list(range(rounds)),
+            pickle.dump(
+                final_model,
+                open("../results/final_models/inal_model_{}_{}_{}.p".format(
+                    modality, str(correct_with_CA), str(r)), "wb"))
+    results = {"Round": list(range(cv)),
                "MAE": mae_all,
                "R2": r2_all,
+               "Mean diff": mean_diff_all,
                "Model": model_all}
     results = pd.DataFrame(results)
+
+    # SHOW METRICS
+    print("\033[1m---TEST---\033[0m")
     print(results)
-    print("\033[1mResults over {} rounds\033[0m".format(rounds))
-    print(results[["MAE", "R2", "Model"]].describe())
+    print(results.describe())
 
     # combine all predictions
-    df_neuro = pd.read_csv("../results/neurocorrelations/" +
+    df_neuro = pd.read_csv("../results/{}/".format(group) +
                            modality + "-predicted_age_" +
-                           group + "_fold0.csv")
+                           group + "_0.csv")
 
-    for f in range(1, rounds):
-        df_add = pd.read_csv("../results/neurocorrelations/" + modality +
-                             "-predicted_age_" + group + "_fold" +
+    for f in range(1, cv):
+        df_add = pd.read_csv("../results/{}/".format(group) + modality +
+                             "-predicted_age_" + group + "_" +
                              str(f) + ".csv")
         df_neuro = pd.concat([df_neuro, df_add])
         df_neuro.to_csv("../results/CN/" + modality +
                         "-predicted_age_CN.csv")
 
-    return n_outliers, results
+    return results
+
+
+def predict_other(csv_other, what, modality, r=0, info_init=False):
+    """
+    Predict age of MCI patients.
+
+    Parameters
+    ----------
+    csv_other : TYPE
+        DESCRIPTION.
+    what : str
+        what age is to be predicted? "OASIS" or "MCI"
+    modality : TYPE
+        DESCRIPTION.
+    info_init : TYPE, optional
+        DESCRIPTION. The default is False.
+
+    Returns
+    -------
+    None.
+
+    """
+    file_ = pd.read_csv(csv_other, sep=";")
+    col = file_.columns[3:-1].tolist()
+    print("\033[1m---{}--\033[0m".format(what))
+    print(col[0], col[-1])
+    plots.plot_hist(file_, group=what, train_test=what,
+                    modality=modality, database_list=file_['Dataset'], r=r)
+    col = pickle.load(open("../config/columns.p", "rb"))
+    final_model_name = "svm"
+
+    # make main predictions
+    final_model = pickle.load(open(
+        "../results/final_models/final_model_{}_True_0.p".format(
+            modality), "rb"))
+    params = pd.read_csv(
+        "../results/final_models/models_and_params_{}_True_0.csv".format(
+            modality))
+    slope_ = params['{}_slope'.format(final_model_name)][0]
+    intercept_ = params['{}_intercept'.format(final_model_name)][0]
+
+    if what == "OASIS":
+        imp = "validation"
+        train_test = "validation"
+    elif what == "MCI":
+        imp = what
+        train_test = "test"
+    mae_all = []
+    r2_all = []
+    mean_diff_all = []
+    pred, mae, r2, mean_diff = predict(file_, col, final_model,
+                                       final_model_name,
+                                       slope_, intercept_, modality,
+                                       group=what,
+                                       metrics_on=what, r=r,
+                                       train_test=train_test)
+    mae_all.append(mae)
+    r2_all.append(r2)
+    mean_diff_all.append(mean_diff)
+
+    for i in range(1, 5):
+        final_model = pickle.load(open(
+            "../results/final_models/final_model_{}_True_{}.p".format(
+                modality, str(i)), "rb"))
+        params = pd.read_csv(
+            "../results/final_models/models_and_params_{}_True_{}.csv".format(
+                modality, str(i)))
+        slope_ = params['{}_slope'.format(final_model_name)][0]
+        intercept_ = params['{}_intercept'.format(final_model_name)][0]
+        pred, mae, r2, mean_diff = predict(file_, col, final_model,
+                                           final_model_name,
+                                           slope_, intercept_, modality,
+                                           group=what,
+                                           metrics_on=what, r=i,
+                                           train_test=train_test)
+        mae_all.append(mae)
+        r2_all.append(r2)
+        mean_diff_all.append(mean_diff)
+
+    results = pd.DataFrame({"MAE": mae_all,
+                            "R2": r2_all,
+                            "mean_diff": mean_diff_all})
+    print(results)
+    print(results.describe())

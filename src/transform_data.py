@@ -186,7 +186,7 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
     return n_outliers
 
 
-def split_data_np(df_mri, df_pet, col, imp="neurocorrelations", splits=5,
+def split_data_np(df_mri, df_pet, col, imp="main", splits=5,
                   test_size=0.3, train_data="ADNI",
                   older_65=True, check_outliers=True, info=True,
                   rand_seed=0):
