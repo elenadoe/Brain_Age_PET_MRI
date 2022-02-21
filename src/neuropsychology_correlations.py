@@ -63,7 +63,7 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=0):
     # merge predictions with cognitive performance
     if (psych_or_path == "PSYCH") or (psych_or_path == "psych"):
         df_neuropsych = pd.read_csv(
-            "../data/main/UWNPSYCHSUM_12_13_21.csv", sep=";")
+            "../data/main/UWNPSYCHSUM_Feb2022.csv", sep=";")
         var_ = ['ADNI_MEM', 'ADNI_EF']
         merged = neuropsych_merge(df_pred, df_neuropsych,
                                   var_)

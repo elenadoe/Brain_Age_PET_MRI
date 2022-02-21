@@ -153,7 +153,7 @@ def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
 
     # make len(rand_seed) train-test splits
     x_tr, x_te,  y_tr, y_te, id_tr, id_te = train_test_split(
-        X, y, df_mri['name'][split_data],
+        X, y, df_mri['name'],
         test_size=test_size, random_state=rand_seed, stratify=y_pseudo)
     df_mri['train'] = [True if x in id_tr.values
                        else False for x in df_mri['name']]
@@ -261,7 +261,7 @@ def split_data_np(df_mri, df_pet, col, imp="main", splits=5,
     # only ADNI data of individuals older than 65 (if older_65 == True)
     # to be considered in train_test split
     # OASIS data to be reserved as additional test set
-    split_data = (df_mri['Dataset'] == "ADNI") & df_mri['AGE_CHECK']
+    split_data = (df_mri['Dataset'] == train_data) & df_mri['AGE_CHECK']
 
     # prepare input (X) and output (y) for train-test split
     X = df_mri[col][split_data].values
@@ -273,7 +273,9 @@ def split_data_np(df_mri, df_pet, col, imp="main", splits=5,
 
     count = 0
     for id_tr, id_te in cv:
-        train_names = df_mri['name'][id_tr].values
+        names = df_mri['name'][split_data].to_numpy()
+        train_names = names[id_tr]
+        
         df_mri['train'] = [True if x in train_names
                            else False for x in df_mri['name']]
         df_pet['train'] = df_mri['train']

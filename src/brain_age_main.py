@@ -14,7 +14,7 @@ dir_pet_csv = '../data/main/PET_parcels_all.csv'
 
 analyze = 1
 modality = 'PET'
-rand_seed = 42
+rand_seed = 0
 
 
 def main(analyze, modality, rand_seed=rand_seed):
@@ -51,22 +51,20 @@ def main(analyze, modality, rand_seed=rand_seed):
         for c in correct_with_CA:
             print("\033[1m{} Correction with CA:".format(
                 str(correct_with_CA.index(c)+1) + "/3"), str(c), "\033[0m")
-            n_outliers, results = brain_age(dir_mri_csv, dir_pet_csv,
-                                            modality, correct_with_CA=c,
-                                            info_init=False,
-                                            save=False, rand_seed=rand_seed)
-            bias_results[str(c) + '_model'] = results["Model"].values[0]
-            bias_results[str(c) + '_MAE'] = results["MAE"].values[0]
-            bias_results[str(c) + '_R2'] = results["R2"].values[0]
+            n_outliers, mae, r2,\
+                final_model, final_model_name = brain_age(
+                    dir_mri_csv, dir_pet_csv, modality, correct_with_CA=c,
+                    info_init=False, save=False, rand_seed=rand_seed)
+            bias_results[str(c) + '_model'] = final_model_name
+            bias_results[str(c) + '_MAE'] = mae
+            bias_results[str(c) + '_R2'] = r2
         print(bias_results)
     elif analyze == 2:
         group = "CN"
-        n_outliers, mae, r2,\
-            final_model, final_model_name = brain_age(
-                dir_mri_csv, dir_pet_csv, modality,
-                correct_with_CA='True', imp="main",
-                rand_seed=rand_seed,
-                info=True, save=True, info_init=True)
+        brain_age(dir_mri_csv, dir_pet_csv, modality,
+                  correct_with_CA='True', imp="main",
+                  rand_seed=rand_seed,
+                  info=True, save=True, info_init=True)
     elif analyze == 3:
         csv_file = [dir_mri_csv if modality == "MRI"
                     else dir_pet_csv][0]

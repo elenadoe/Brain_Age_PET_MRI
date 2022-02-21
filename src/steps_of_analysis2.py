@@ -207,8 +207,8 @@ def bias_correct(results, df_train, col, model_results, model_names,
         pred_param[model_names[y] + '_ma_uncorr'] = [mae_uncorr]
 
         if save:
-            pickle.dump(pred_param, open("../results/" + group +
-                                         "/bias-correction/models_and_params_"
+            pickle.dump(pred_param, open("../results/final_models" +
+                                         "/models_and_params_"
                                          + modality + "_" +
                                          str(correct_with_CA) + "_" + str(r) +
                                          ".p", "wb"))
@@ -218,7 +218,7 @@ def bias_correct(results, df_train, col, model_results, model_names,
                                           ".p", "wb"))
 
             df = pd.DataFrame(pred_param)
-            df.to_csv("../results/" + group + "/models_and_params_"
+            df.to_csv("../results/final_models/models_and_params_"
                       + modality + "_" + str(correct_with_CA) + "_" +
                       str(r) + ".csv")
 
@@ -488,7 +488,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
         if save:
             pickle.dump(
                 final_model,
-                open("../results/final_models/inal_model_{}_{}_{}.p".format(
+                open("../results/final_models/final_model_{}_{}_{}.p".format(
                     modality, str(correct_with_CA), str(r)), "wb"))
     results = {"Round": list(range(cv)),
                "MAE": mae_all,

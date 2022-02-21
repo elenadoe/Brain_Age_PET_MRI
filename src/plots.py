@@ -114,7 +114,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
             np.array(y_pred)[np.array(database_list) == 'OASIS'])
         y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]"""
 
-        plt.scatter(y_true, y_pred, c=cm_main[0], alpha=0.9)
+        plt.scatter(y_true, y_pred, color=cm_main[0], alpha=0.9)
         plt.fill([60, 60, 95], [60, 95, 95],
                  zorder=0, color='gray', alpha=0.3)
         plt.fill([60, 95, 95], [60, 60, 95],
