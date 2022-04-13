@@ -14,6 +14,7 @@ dir_pet_csv = '../data/main/PET_parcels_all.csv'
 
 analyze = 1
 modality = 'PET'
+all_modalities = ["PET", "MRI"]
 rand_seed = 0
 
 
@@ -68,10 +69,16 @@ def main(analyze, modality, rand_seed=rand_seed):
     elif analyze == 3:
         csv_file = [dir_mri_csv if modality == "MRI"
                     else dir_pet_csv][0]
-        predict_other(csv_file, what="OASIS", modality=modality)
+        csv_file_other = [dir_pet_csv if modality == "MRI"
+                          else dir_mri_csv][0]
+        predict_other(csv_file, csv_file_other,
+                      what="OASIS", modality=modality)
     elif analyze == 4:
+        all_modalities.remove(modality)
+        other_modality = all_modalities[0]
         csv_mci = "../data/MCI/MCI_" + modality + "_parcels.csv"
-        predict_other(csv_mci, what="MCI", modality=modality)
+        csv_mci_othermod = "../data/MCI/MCI_" + other_modality + "_parcels.csv"
+        predict_other(csv_mci, csv_mci_othermod, what="MCI", modality=modality)
     elif analyze == 5.1:
         group = "CN"
         neuro_correlation(group, "BPAD", "PSYCH", modality)
@@ -80,15 +87,10 @@ def main(analyze, modality, rand_seed=rand_seed):
         neuro_correlation(group, "BPAD", "PATH", modality)
     elif analyze == 5.3:
         group = "MCI"
-        neuro_correlation(group, "BPAD", "PSYCH", modality)
+        for i in range(5):
+            neuro_correlation(group, "BPAD", "PSYCH", modality, fold=i)
     elif analyze == 5.4:
         group = "MCI"
-        neuro_correlation(group, "BPAD", "PATH", modality)
-    """elif analyze == 5.1:
-        group = "CN"
-        conversion_analysis(group, modality)
-    elif analyze == 5.2:
-        group = "MCI"
-        conversion_analysis(group, modality)"""
-
+        for i in range(5):
+            neuro_correlation(group, "BPAD", "PATH", modality, fold=i)
         
