@@ -341,7 +341,7 @@ def feature_imp(df_test, col, final_model, final_model_name,
         # put feature importance into dataframe and save
         df_imp = pd.DataFrame({'region': labels,
                                'perm_importance': imp})
-        df_imp.to_csv('../results/CN/' +
+        df_imp.to_csv('../results/CN/evaluation/' +
                       'weighted_importance_{}_{}_{}.csv'.format(
                           modality, final_model_name, r))
 
@@ -363,7 +363,7 @@ def feature_imp(df_test, col, final_model, final_model_name,
         plt.savefig("../results/" +
                     "CN/evaluation/weighted_importance_{}_{}_{}.jpg".format(
                         modality, final_model_name, r))
-        nib.save(atlas_final, "../results/CN"
+        nib.save(atlas_final, "../results/CN/evaluation" +
                  "/permutation_importance_{}_{}_{}.nii".format(
                      modality, final_model_name, r))
         plt.close()

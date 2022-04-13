@@ -335,7 +335,8 @@ def predict(df_test, col, model_, final_model_name,
         df_test.drop(df_test[df_test.database != metrics_on].index,
                      inplace=True)
     y_pred = model_.predict(df_test[col])
-
+    print("n = ", len(df_test), "mean age = ",
+          np.round(np.mean(df_test.age), 2), np.round(np.std(df_test.age), 2))
     # plot model predictions against GT in test set
     if correct_with_CA is None:
         y_pred_bc = y_pred
@@ -429,6 +430,7 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     mean_diff_all = []
 
     for r in range(cv):
+        # to avoid new train-test splitting at each iteration
         if not(exists('../data/{}/test_train_'.format(imp) +
                       modality + '_' + str(r) + '.csv')):
             split_data_np(df_mri, df_pet, col, imp=imp,
@@ -518,18 +520,22 @@ def brain_age(dir_mri_csv, dir_pet_csv, modality,
     return results
 
 
-def predict_other(csv_other, what, modality, r=0, info_init=False):
+def predict_other(csv_other, csv_othermod, what, modality,
+                  r=0, info_init=False):
     """
     Predict age of MCI patients.
 
     Parameters
     ----------
-    csv_other : TYPE
-        DESCRIPTION.
+    csv_other : pd.dataframe
+        Containing data for input and output
     what : str
-        what age is to be predicted? "OASIS" or "MCI"
-    modality : TYPE
-        DESCRIPTION.
+        what database is used? "OASIS" or "MCI"
+    modality : str
+        PET or MRI
+    r : int
+        Which model to use for display of results
+        (all will be printed in summary below)
     info_init : TYPE, optional
         DESCRIPTION. The default is False.
 
@@ -539,6 +545,14 @@ def predict_other(csv_other, what, modality, r=0, info_init=False):
 
     """
     file_ = pd.read_csv(csv_other, sep=";")
+    file_othermod_ = pd.read_csv(csv_othermod, sep=";")
+    # exclude individuals younger from 65, because algorithm wasn't
+    # trained for these individuals
+    file_young_idx = file_[file_.age < 65].index
+    file_ = file_.drop(file_young_idx)
+    file_othermod_ = file_othermod_.drop(file_young_idx)
+    file_othermod_.reset_index()
+    file_ = file_.drop(file_[file_othermod_.age < 65].index)
     col = file_.columns[3:-1].tolist()
     print("\033[1m---{}--\033[0m".format(what))
     print(col[0], col[-1])

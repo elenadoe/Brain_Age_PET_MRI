@@ -275,7 +275,7 @@ def split_data_np(df_mri, df_pet, col, imp="main", splits=5,
     for id_tr, id_te in cv:
         names = df_mri['name'][split_data].to_numpy()
         train_names = names[id_tr]
-        
+
         df_mri['train'] = [True if x in train_names
                            else False for x in df_mri['name']]
         df_pet['train'] = df_mri['train']

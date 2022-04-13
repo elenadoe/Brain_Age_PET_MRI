@@ -18,7 +18,7 @@ from transform_data import neuropsych_merge, neuropath_merge, dx_merge
 warnings.filterwarnings("ignore")
 
 
-def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=0):
+def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=4):
     """
     Correlations between BPAD and cognitive performance/neuropathology.
 
@@ -39,6 +39,13 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=0):
         r-values of significant correlations
 
     """
+    all_ = open(
+        "../results/neurocorrelations/" +
+        group + "_{}_associations_{}-BPAD.txt".format(psych_or_path,
+                                                      modality), "a+")
+    header = "Model\tVariable\tr\tp\tn\tMethod\tp_Bonferroni\tcorrected\n"
+    if header not in all_.read():
+        all_.write(header)
     # for publication, report MCI results for first model
     # put correlations of the four other models' predictions in
     # supplementaries
@@ -46,6 +53,7 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=0):
         add_ = ""
     elif group == "MCI":
         add_ = "_"+str(fold)
+        print("Model " + str(fold))
     df_pred = pd.read_csv(
         "../results/{}/{}-predicted_age_{}{}.csv".format(
             group, modality, group, add_))
@@ -73,9 +81,10 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=0):
         df_neuropath1 = pd.read_csv(
             "../data/main/ADNI_Neuropsych_Neuropath.csv", sep=";")
         df_neuropath2 = pd.read_csv(
-            "../data/main/ADNI_TauPET.csv", sep=";")
-        neuropath1_var = ['ABETA', 'AV45', 'TAU', 'PTAU']
-        neuropath2_var = ['TAU_METAROI']
+            "../data/main/UPENNBIOMK_MASTER_bl_unique.csv", sep=";")
+        neuropath1_var = ['AV45', 'ABETA', 'TAU', 'PTAU']
+        # tau meta-roi did not have enough entries so far
+        neuropath2_var = []
         var_ = neuropath1_var + neuropath2_var
         merged = neuropath_merge(df_pred, df_neuropath1, df_neuropath2,
                                  neuropath1_var, neuropath2_var)
@@ -91,11 +100,7 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=0):
     # type of correlation depending on fulfillment of normality
     # criterion
     sign = {}
-    all_ = open(
-        "../results/neurocorrelations/" +
-        group + "_{}_associations_{}-BPAD.txt".format(psych_or_path,
-                                                      modality), "w+")
-    all_.write("Variable\tr\tp\tn\tp\tp_Bonferroni\tmethod\n")
+
     # p Bonferroni-corrected
     p = 0.05
     for n in var_:
@@ -161,26 +166,27 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=0):
             plt.title(method_str + "-Correlation " + n + " X BPAD")
             plt.savefig(fname="../results/neurocorrelations/plots/" +
                         group + "_" + modality + "_" + age_or_diff +
-                        "_" + n + ".png", bbox_inches="tight", dpi=300)
-            plt.show()
-        all_.write(n + "\t" + str(stat['r'][0]) + "\t" +
+                        "_" + n + "_" + str(fold) + ".png",
+                        bbox_inches="tight", dpi=300)
+            plt.close()
+        all_.write(str(fold) + "\t" + n + "\t" + str(stat['r'][0]) + "\t" +
                    str(stat['p-val'][0]) + "\t" + str(stat['n'][0]) +
                    "\t" + method_str + "\t" + str(p) +
                    "\t" + str(p/len(var_)) + "\tzero-order")
         all_.write("\n")
-        all_.write(n + "\t" + str(stat_par['r'][0]) + "\t" +
+        all_.write(str(fold) + "\t" + n + "\t" + str(stat_par['r'][0]) + "\t" +
                    str(stat_par['p-val'][0]) + "\t" + str(stat_par['n'][0]) +
                    "\t" + method_str + "\t" + str(p) +
                    "\t" + str(p/len(var_)) + "\tpartial")
         all_.write("\n")
 
-    neuropsychology_BPAD_group(merged, sign, y_diff, modality, group)
+    neuropsychology_BPAD_group(merged, sign, y_diff, modality, group, fold)
     all_.close()
 
     return sign
 
 
-def neuropsychology_BPAD_group(merged, sign, y_diff, modality, group):
+def neuropsychology_BPAD_group(merged, sign, y_diff, modality, group, fold):
     """
     Assess effects of residual group on BPAD X cognitive performance/pathology.
 
@@ -224,112 +230,68 @@ def neuropsychology_BPAD_group(merged, sign, y_diff, modality, group):
         neg = merged_foranalysis['BPAD Category'] == 'negative'
         zer = merged_foranalysis['BPAD Category'] == 'neutral'
 
-        # test normality of data for each category
-        norm_pos = stats.shapiro(merged_foranalysis[k][pos])
-        norm_neg = stats.shapiro(merged_foranalysis[k][neg])
-        norm_zer = stats.shapiro(merged_foranalysis[k][zer])
+        if len(merged_foranalysis[k][pos]) >= 3 and len(
+                merged_foranalysis[k][neg]) >= 3 and len(
+                    merged_foranalysis[k][zer]) >= 3:
+            # test normality of data for each category
+            norm_pos = stats.shapiro(merged_foranalysis[k][pos])
+            norm_neg = stats.shapiro(merged_foranalysis[k][neg])
+            norm_zer = stats.shapiro(merged_foranalysis[k][zer])
 
-        merged_pos = merged_foranalysis[pos]
-        merged_neg = merged_foranalysis[neg]
-        merged_zer = merged_foranalysis[zer]
+            merged_pos = merged_foranalysis[pos]
+            merged_neg = merged_foranalysis[neg]
+            merged_zer = merged_foranalysis[zer]
 
-        # choose method of correlation depending on normality
-        if (norm_pos[1] > 0.05) and (norm_neg[1]
-                                     > 0.05) and (norm_zer[1] > 0.05):
-            stat_pos = partial_corr(data=merged_pos, x="BPAD",
-                                    y=k, covar=["Age", "PTGENDER"],
-                                    method="pearson")
-            stat_neg = partial_corr(data=merged_neg, x="BPAD",
-                                    y=k, covar=["Age", "PTGENDER"],
-                                    method="pearson")
-            stat_zer = partial_corr(data=merged_zer, x="BPAD",
-                                    y=k, covar=["Age", "PTGENDER"],
-                                    method="pearson")
-            method_str = "Pearson Correlation"
+            # choose method of correlation depending on normality
+            if (norm_pos[1] > 0.05) and (norm_neg[1]
+                                         > 0.05) and (norm_zer[1] > 0.05):
+                stat_pos = partial_corr(data=merged_pos, x="BPAD",
+                                        y=k, covar=["Age", "PTGENDER"],
+                                        method="pearson")
+                stat_neg = partial_corr(data=merged_neg, x="BPAD",
+                                        y=k, covar=["Age", "PTGENDER"],
+                                        method="pearson")
+                stat_zer = partial_corr(data=merged_zer, x="BPAD",
+                                        y=k, covar=["Age", "PTGENDER"],
+                                        method="pearson")
+                method_str = "Pearson Correlation"
+            else:
+                stat_pos = partial_corr(data=merged_pos, x="BPAD",
+                                        y=k, covar=["Age", "PTGENDER"],
+                                        method="spearman")
+                stat_neg = partial_corr(data=merged_neg, x="BPAD",
+                                        y=k, covar=["Age", "PTGENDER"],
+                                        method="spearman")
+                stat_zer = partial_corr(data=merged_zer, x="BPAD",
+                                        y=k, covar=["Age", "PTGENDER"],
+                                        method="spearman")
+                method_str = "Spearman Correlation"
+
+            # if there is a significant correlation in one or more
+            # residual categories, plot and save plot
+            if (stat_pos['p-val'][0] < p) or (stat_neg['p-val'][0]
+                                              < p) or (
+                                                  stat_zer['p-val'][0] < p):
+                print(k, "significant in positive BPAD: ",
+                      stat_pos['p-val'][0] < p, "\n",
+                      stat_pos,
+                      "\nsignificant in neutral BPAD: ",
+                      stat_zer['p-val'][0] < p, "\n",
+                      stat_zer,
+                      "\nsignificant in negative BPAD: ",
+                      stat_neg['p-val'][0] < p, "\n",
+                      stat_neg)
+                sns.lmplot("BPAD", k, data=merged,
+                           scatter_kws={'alpha': 0.4},
+                           hue="BPAD Category", palette=cm_np)
+                plt.xlabel("BPAD [years]")
+                plt.title(method_str + "-Correlation " + k +
+                          " X BPAD by BPAD Category")
+                plt.savefig(fname="../results/neurocorrelations/plots/" +
+                            group + "_" + modality + "_" +
+                            "_" + k + "_GROUPEFFECT_Model" + str(fold) +
+                            ".png", bbox_inches="tight",
+                            dpi=300)
+                plt.close()
         else:
-            stat_pos = partial_corr(data=merged_pos, x="BPAD",
-                                    y=k, covar=["Age", "PTGENDER"],
-                                    method="spearman")
-            stat_neg = partial_corr(data=merged_neg, x="BPAD",
-                                    y=k, covar=["Age", "PTGENDER"],
-                                    method="spearman")
-            stat_zer = partial_corr(data=merged_zer, x="BPAD",
-                                    y=k, covar=["Age", "PTGENDER"],
-                                    method="spearman")
-            method_str = "Spearman Correlation"
-
-        # if there is a significant correlation in one or more
-        # residual categories, plot and save plot
-        if (stat_pos['p-val'][0] < p) or (stat_neg['p-val'][0]
-                                          < p) or (stat_zer['p-val'][0] < p):
-            print(k, "significant in positive BPAD: ",
-                  stat_pos['p-val'][0] < p, "\n",
-                  stat_pos,
-                  "\nsignificant in neutral BPAD: ",
-                  stat_zer['p-val'][0] < p, "\n",
-                  stat_zer,
-                  "\nsignificant in negative BPAD: ",
-                  stat_neg['p-val'][0] < p, "\n",
-                  stat_neg)
-            sns.lmplot("BPAD", k, data=merged,
-                       scatter_kws={'alpha': 0.4},
-                       hue="BPAD Category", palette=cm_np)
-            plt.xlabel("BPAD [years]")
-            plt.title(method_str + "-Correlation " + k +
-                      " X BPAD by BPAD Category")
-            plt.savefig(fname="../results/neurocorrelations/plots/" +
-                        group + "_" + modality + "_" +
-                        "_" + k + "_GROUPEFFECT.png", bbox_inches="tight",
-                        dpi=300)
-            plt.show()
-
-
-def conversion_analysis(group, modality):
-    """
-    Analyze conversion rates.
-
-    Analyze how many participants convert to next stage of AD spectrum
-    after 24 months.
-
-    Parameters
-    ----------
-    group : str
-        CN or MCI
-    modality : str
-        PET or MRI
-
-    Returns
-    -------
-    None.
-
-    """
-    df_dx = pd.read_csv(
-        "../data/MCI/MCI_DX_after24months.csv", sep=";")
-    df_pred = pd.read_csv(
-        "../results/{}/{}-predicted_age_{}_0.csv".format(
-            group, modality, group))
-    df_pred['BPAD'] = np.round(df_pred['Prediction'] - df_pred['Age'], 0)
-    merge = dx_merge(df_pred, df_dx)
-
-    # Mann Whitney U Test
-    if group == 'CN':
-        sns.boxplot(y='BPAD', x='DX', data=merge[
-            merge['DX'].isin(["CN", "MCI"])], color="gray",
-            order=["CN", "MCI"])
-        mwu_ = mwu(merge['BPAD'][merge['DX'] == 'CN'],
-                   merge['BPAD'][merge['DX'] == 'MCI'])
-    else:
-        sns.boxplot(y='BPAD', x='DX', data=merge[
-            merge['DX'].isin(["MCI", "Dementia"])], color="gray",
-            order=["MCI", "Dementia"])
-        mwu_ = mwu(merge['BPAD'][merge['DX'] == 'MCI'],
-                   merge['BPAD'][merge['DX'] == 'Dementia'])
-    plt.xlabel("Diagnosis after 24 months")
-    plt.savefig(fname="../results/neurocorrelations/plots/Conversion_" +
-                modality + ".png", bbox_inches="tight", dpi=300)
-    ymin, ymax = plt.gca().get_ylim()
-    xmin, xmax = plt.gca().get_xlim()
-    plt.text(xmax+0.05*xmax, ymax-0.1*ymax, "U = {}, p = {}".format(
-        np.round(mwu_['U-val'][0], 3), np.round(mwu_['p-val'][0], 3)))
-    plt.show()
-    print(mwu_)
+            print("Not enough observations per group for group analysis.")
