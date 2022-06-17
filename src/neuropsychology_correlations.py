@@ -18,7 +18,8 @@ from transform_data import neuropsych_merge, neuropath_merge, dx_merge
 warnings.filterwarnings("ignore")
 
 
-def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=4):
+def neuro_correlation(group, age_or_diff, psych_or_path, modality,
+                      fold="BAGGED"):
     """
     Correlations between BPAD and cognitive performance/neuropathology.
 
@@ -32,6 +33,9 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=4):
         cognitive performance (PSYCH) or neuropathology (PATH)
     modality : str
         PET or MRI
+    fold : int or "BAGGED"
+        which model results are observed. "BAGGED" refers to the mean of
+        all five models.
 
     Returns
     -------
@@ -42,13 +46,11 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=4):
     all_ = open(
         "../results/neurocorrelations/" +
         group + "_{}_associations_{}-BPAD.txt".format(psych_or_path,
-                                                      modality), "a+")
+                                                         modality), "a+")
     header = "Model\tVariable\tr\tp\tn\tMethod\tp_Bonferroni\tcorrected\n"
     if header not in all_.read():
         all_.write(header)
-    # for publication, report MCI results for first model
-    # put correlations of the four other models' predictions in
-    # supplementaries
+    # for publication, report bagged results for MCI
     if group == "CN":
         add_ = ""
     elif group == "MCI":
@@ -122,14 +124,16 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=4):
             stat = corr(merged_foranalysis['BPAD'], merged_foranalysis[n],
                         method='pearson')
             stat_par = partial_corr(data=merged_foranalysis, x="BPAD",
-                                    y=n, covar=["Age", "PTGENDER"],
+                                    y=n, covar=["Age", "PTGENDER", "PTEDUCAT",
+                                                "APOE4"],
                                     method="pearson")
             method_str = "Pearson"
         else:
             stat = corr(merged_foranalysis['BPAD'], merged_foranalysis[n],
                         method='spearman')
             stat_par = partial_corr(data=merged_foranalysis, x="BPAD",
-                                    y=n, covar=["Age", "PTGENDER"],
+                                    y=n, covar=["Age", "PTGENDER", "PTEDUCAT",
+                                                "APOE4"],
                                     method="spearman")
             method_str = "Spearman"
 
@@ -140,16 +144,16 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality, fold=4):
             print("Significant correlation between BPAD and {}: ".format(n),
                   stat['p-val'][0] < p,
                   "\nSignificant correlation between BPAD and", n,
-                  "after controlling for the effect of sex and age:",
+                  "after controlling for the effect of sex, age, ed & apoe:",
                   stat_par['p-val'][0] < p)
             sign[n] = [stat, stat_par]
             cm_np = pickle.load(open(
                     "../config/plotting_config_gender_{}.p".format(
                         group), "rb"))
             # sns.set_palette("cm_np")
-            merged_foranalysis['PTGENDER'] = \
-                ["Female" if x == 1 else "Male" if x == 2
-                 else np.nan for x in merged_foranalysis['PTGENDER']]
+            # merged_foranalysis['PTGENDER'] = \
+            #    ["Female" if x == 1 else "Male" if x == 2
+            #     else np.nan for x in merged_foranalysis['PTGENDER']]
             sns.lmplot("BPAD", n, data=merged_foranalysis,
                        scatter_kws={'alpha': 0.4, 'color': 'black'},
                        line_kws={'color': 'black'})  # , hue="PTGENDER")
@@ -246,24 +250,30 @@ def neuropsychology_BPAD_group(merged, sign, y_diff, modality, group, fold):
             if (norm_pos[1] > 0.05) and (norm_neg[1]
                                          > 0.05) and (norm_zer[1] > 0.05):
                 stat_pos = partial_corr(data=merged_pos, x="BPAD",
-                                        y=k, covar=["Age", "PTGENDER"],
+                                        y=k, covar=["Age", "PTGENDER",
+                                                    "PTEDUCAT", "APOE4"],
                                         method="pearson")
                 stat_neg = partial_corr(data=merged_neg, x="BPAD",
-                                        y=k, covar=["Age", "PTGENDER"],
+                                        y=k, covar=["Age", "PTGENDER",
+                                                    "PTEDUCAT", "APOE4"],
                                         method="pearson")
                 stat_zer = partial_corr(data=merged_zer, x="BPAD",
-                                        y=k, covar=["Age", "PTGENDER"],
+                                        y=k, covar=["Age", "PTGENDER",
+                                                    "PTEDUCAT", "APOE4"],
                                         method="pearson")
                 method_str = "Pearson Correlation"
             else:
                 stat_pos = partial_corr(data=merged_pos, x="BPAD",
-                                        y=k, covar=["Age", "PTGENDER"],
+                                        y=k, covar=["Age", "PTGENDER",
+                                                    "PTEDUCAT", "APOE4"],
                                         method="spearman")
                 stat_neg = partial_corr(data=merged_neg, x="BPAD",
-                                        y=k, covar=["Age", "PTGENDER"],
+                                        y=k, covar=["Age", "PTGENDER",
+                                                    "PTEDUCAT", "APOE4"],
                                         method="spearman")
                 stat_zer = partial_corr(data=merged_zer, x="BPAD",
-                                        y=k, covar=["Age", "PTGENDER"],
+                                        y=k, covar=["Age", "PTGENDER",
+                                                    "PTEDUCAT", "APOE4"],
                                         method="spearman")
                 method_str = "Spearman Correlation"
 

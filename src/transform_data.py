@@ -336,8 +336,9 @@ def neuropsych_merge(df_pred, df_neuropsych,
     df_dem['PTGENDER'] = [1 if x == "Female"
                           else 2 if x == "Male"
                           else np.nan for x in df_dem['PTGENDER']]
+    df_dem['APOE4'] = [1 if x > 0 else 0 for x in df_dem['APOE4']]
     df_pred['BPAD'] = df_pred['Prediction']-df_pred['Age']
-    dem_var = ['PTID', 'PTGENDER', 'PTEDUCAT']
+    dem_var = ['PTID', 'PTGENDER', 'PTEDUCAT', 'APOE4']
     merged = df_pred.merge(df_dem[dem_var], how="left", on="PTID")
     merged = merged.merge(df_neuropsych[['RID'] + neuropsych_var],
                           how='left', on='RID')
@@ -377,8 +378,9 @@ def neuropath_merge(df_pred, df_neuropath1, df_neuropath2,
     df_dem['PTGENDER'] = [1 if x == "Female"
                           else 2 if x == "Male"
                           else np.nan for x in df_dem['PTGENDER']]
+    df_dem['APOE4'] = [1 if x > 0 else 0 for x in df_dem['APOE4']]
     df_pred['BPAD'] = df_pred['Prediction']-df_pred['Age']
-    dem_var = ['PTID', 'PTGENDER', 'PTEDUCAT']
+    dem_var = ['PTID', 'PTGENDER', 'PTEDUCAT', 'APOE4']
     merged = df_pred.merge(df_dem[dem_var],
                            how='left', on='PTID')
     merged = merged.merge(df_neuropath1[['PTID'] + neuropath1_var],

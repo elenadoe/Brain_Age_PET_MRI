@@ -544,6 +544,7 @@ def predict_other(csv_other, csv_othermod, what, modality,
     None.
 
     """
+    
     file_ = pd.read_csv(csv_other, sep=";")
     file_othermod_ = pd.read_csv(csv_othermod, sep=";")
     # exclude individuals younger from 65, because algorithm wasn't
@@ -574,23 +575,47 @@ def predict_other(csv_other, csv_othermod, what, modality,
     if what == "OASIS":
         imp = "validation"
         train_test = "validation"
+        #file_ = pd.read_csv(
+        #    "../data/main/test_train_"+modality+"_"+str(r)+".csv")
+        #file_ = file_[file_['AGE_CHECK'] & file_['IQR']]
     elif what == "MCI":
         imp = what
         train_test = "test"
+    nooutliers_all = []
+    pred_all = []
     mae_all = []
     r2_all = []
     mean_diff_all = []
-    pred, mae, r2, mean_diff = predict(file_, col, final_model,
+    """pred, mae, r2, mean_diff = predict(file_, col, final_model,
                                        final_model_name,
                                        slope_, intercept_, modality,
                                        group=what,
                                        metrics_on=what, r=r,
                                        train_test=train_test)
+    pred_all.append(pred)
     mae_all.append(mae)
     r2_all.append(r2)
-    mean_diff_all.append(mean_diff)
+    mean_diff_all.append(mean_diff)"""
 
-    for i in range(1, 5):
+    for i in range(0, 5):
+        # only re-load file for OASIS, as outliers are not excluded for MCI
+        if what == "OASIS":
+            file_ = pd.read_csv(
+                "../data/main/test_train_"+modality+"_"+str(i)+".csv")
+            nooutliers_all.append(file_['AGE_CHECK'] & file_['IQR'])
+            # file_ = file_[file_['AGE_CHECK'] & file_['IQR']]
+        else:
+            nooutliers_all.append([True]*file_.shape[0])
+
+    # for bagging, only consider data that is not an outlier in any of the
+    # models
+    nooutliers_union = np.all(nooutliers_all, axis=0)
+    for i in range(0, 5):
+        if what == "OASIS":
+            file_ = pd.read_csv(
+                    "../data/main/test_train_"+modality+"_"+str(i)+".csv")
+        file_ = file_[nooutliers_union]
+
         final_model = pickle.load(open(
             "../results/final_models/final_model_{}_True_{}.p".format(
                 modality, str(i)), "rb"))
@@ -605,12 +630,28 @@ def predict_other(csv_other, csv_othermod, what, modality,
                                            group=what,
                                            metrics_on=what, r=i,
                                            train_test=train_test)
+        pred_all.append(pred)
         mae_all.append(mae)
         r2_all.append(r2)
         mean_diff_all.append(mean_diff)
 
+    # bagging (mean) of results for neurocorrelations
+    pred_bagged = np.mean(pred_all, axis=0)
+    mae_bagged = mean_absolute_error(file_['age'], pred_bagged)
+    r2_bagged = r2_score(file_['age'], pred_bagged)
+    mean_diff_bagged = np.mean(pred_bagged - file_['age'])
+    df = pd.DataFrame({'PTID': file_['name'],
+                       'Age': file_['age'],
+                       'Prediction': pred_bagged})
+    df.to_csv("../results/{}/{}-predicted_age_{}_BAGGED.csv".format(
+                  what, modality, what))
+
     results = pd.DataFrame({"MAE": mae_all,
                             "R2": r2_all,
                             "mean_diff": mean_diff_all})
+    print("\n---BAGGED RESULTS---")
+    print("MAE: ", mae_bagged, "\nR2 Score: ", r2_bagged, "\nMean error: ",
+          mean_diff_bagged)
+    print("\n---RESULTS ACROSS MODELS---")
     print(results)
     print(results.describe())

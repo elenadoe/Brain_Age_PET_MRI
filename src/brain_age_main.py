@@ -87,10 +87,7 @@ def main(analyze, modality, rand_seed=rand_seed):
         neuro_correlation(group, "BPAD", "PATH", modality)
     elif analyze == 5.3:
         group = "MCI"
-        for i in range(5):
-            neuro_correlation(group, "BPAD", "PSYCH", modality, fold=i)
+        neuro_correlation(group, "BPAD", "PSYCH", modality)
     elif analyze == 5.4:
         group = "MCI"
-        for i in range(5):
-            neuro_correlation(group, "BPAD", "PATH", modality, fold=i)
-        
+        neuro_correlation(group, "BPAD", "PATH", modality)
