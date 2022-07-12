@@ -69,6 +69,20 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
     df_mri['IQR'] = insiderange
     df_pet['IQR'] = insiderange
 
+    # save outliers per modality
+    save_outliers = open("../results/outliers.txt", "a+")
+    save_outliers.write("Outliers PET:\n")
+    [save_outliers.write(x+"\n") for x in df_pet['name'][
+        ((df_pet[col] > high_out_pet).any(axis=1) |
+                          (df_pet[col] < low_out_pet).any(axis=1)).tolist()]]
+    save_outliers.write("\n")
+    save_outliers.write("Outliers MRI:\n")
+    [save_outliers.write(x+"\n") for x in df_mri['name'][
+        ((df_mri[col] > high_out_mri).any(axis=1) |
+                          (df_mri[col] < low_out_mri).any(axis=1)).tolist()]]
+    save_outliers.write("\n\n")
+    save_outliers.close()
+
     return df_mri, df_pet
 
 
