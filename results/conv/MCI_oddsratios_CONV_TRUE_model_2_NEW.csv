@@ -1,7 +1,0 @@
-"predictor","oddsratio","ci_low (2.5)","ci_high (97.5)","increment"
-"PETBPAD",1.121,0.941,1.339,"1"
-"MRIBPAD",1.453,1.244,1.724,"1"
-"AMY.cat0",0.703,0.194,2.586,"Indicator variable"
-"AMY.cat1",2.232,0.764,7.013,"Indicator variable"
-"APOE4c2",4.278,2.095,9.061,"Indicator variable"
-"PTEDUCAT",0.943,0.824,1.076,"1"

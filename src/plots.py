@@ -56,13 +56,14 @@ def plot_hist(df, group, train_test, modality, database_list, r, y='age'):
     plt.title('Age distribution in {} set'.format(train_test))
     plt.xlabel('Age [years]')
     plt.ylabel('n Participants')
-    plt.savefig('../results/{}/plots/{}_{}_age_distribution_{}'.format(
-        group, train_test, modality, r) + '.png', bbox_inches="tight")
+    plt.savefig('../results/{}/{}/plots/{}_{}_age_distribution_{}'.format(
+        database_list[0], group, train_test, modality, r) + '.png',
+        bbox_inches="tight")
     plt.show()
 
 
 def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
-                   correct_with_CA=True, database_list=None):
+                   database, correct_with_CA=True, database_list=None):
     """
     Plot predicted age against chronological age.
 
@@ -101,11 +102,13 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
     # if CN test set, color datapoints in scatterplot according to
     # database (ADNI or OASIS) and calcuate r2 and mae for each database
     if train_test == 'test':
-        r2_adni = r2_score(np.array(y_true)[np.array(database_list) == 'ADNI'],
-                           np.array(y_pred)[np.array(database_list) == 'ADNI'])
+        r2_adni = r2_score(np.array(y_true)[
+            np.array(database_list) == database],
+                           np.array(y_pred)[
+                               np.array(database_list) == database])
         mae_adni = mean_absolute_error(
-            np.array(y_true)[np.array(database_list) == 'ADNI'],
-            np.array(y_pred)[np.array(database_list) == 'ADNI'])
+            np.array(y_true)[np.array(database_list) == database],
+            np.array(y_pred)[np.array(database_list) == database])
         """r2_oasis = r2_score(
             np.array(y_true)[np.array(database_list) == 'OASIS'],
             np.array(y_pred)[np.array(database_list) == 'OASIS'])
@@ -169,7 +172,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
     plt.ylabel('{}-Predicted Age ({})'.format(alg, modality))
     plt.xlabel('Chronological Age [Years]')
     plt.legend()
-    plt.savefig("../results/{}/plots/real_vs_pred".format(group) +
+    plt.savefig("../results/{}/{}/plots/real_vs_pred".format(database, group) +
                 "_{}_{}_{}_{}_{}.jpg".format(modality,
                                              train_test,
                                              alg,
@@ -179,8 +182,8 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
     plt.close()
 
     # save prediction metrics
-    results = open("../results/{}/evaluation/eval_{}_{}_{}_{}_{}.txt".format(
-        group, modality, train_test, alg,
+    results = open("../results/{}/{}/evaluation/eval_{}_{}_{}_{}_{}.txt".format(
+        database, group, modality, train_test, alg,
         str(correct_with_CA), r), 'w+')
     results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS" +
                   "\n" + str(mae) + "\t" + str(r2) + "\t" +
@@ -190,7 +193,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
     results.close()
 
 
-def check_bias(y_true, y_pred, alg, modality, group, r,
+def check_bias(y_true, y_pred, alg, modality, group, r, database,
                corr_with_CA=True, corrected=False, info=True, save=True):
     """
     Bias check & provision of correction parameters.
@@ -290,8 +293,9 @@ def check_bias(y_true, y_pred, alg, modality, group, r,
                   'delta and chronological age {}'.format(alg))
 
         if save:
-            plt.savefig('../results/{}/bias-corrected_{}_{}_{}_{}.jpg'.format(
-                group, corr_with_CA, modality, alg, r),
+            plt.savefig(
+                '../results/{}/{}/bias-corrected_{}_{}_{}_{}.jpg'.format(
+                database, group, corr_with_CA, modality, alg, r),
                 dpi=300)
 
         plt.close()
@@ -330,18 +334,18 @@ def feature_imp(df_test, col, final_model, final_model_name,
         imp = final_model.named_steps[final_model_name].coef_[0]
 
         # get atlas
-        atlas = '../data/schaefer200-17_Tian.nii'
+        atlas = '../data/0_ATLAS/schaefer200-17_Tian.nii'
         atlas = image.load_img(atlas)
         atlas_matrix = image.get_data(atlas)
 
         # get labels
-        labels = open('../data/composite_atlas_labels.txt')
+        labels = open('../data/0_ATLAS/composite_atlas_labels.txt')
         labels = labels.read().split('\n')[:-1]
 
         # put feature importance into dataframe and save
         df_imp = pd.DataFrame({'region': labels,
                                'perm_importance': imp})
-        df_imp.to_csv('../results/CN/evaluation/' +
+        df_imp.to_csv('../results/ADNI/CN/evaluation/' +
                       'weighted_importance_{}_{}_{}.csv'.format(
                           modality, final_model_name, r))
 
@@ -360,10 +364,10 @@ def feature_imp(df_test, col, final_model, final_model_name,
         # plot feature importance, save output plot and niimg
         plotting.plot_stat_map(atlas_final)
         plt.title("{}-relevant regions for aging".format(final_model_name))
-        plt.savefig("../results/" +
+        plt.savefig("../results/ADNI/" +
                     "CN/evaluation/weighted_importance_{}_{}_{}.jpg".format(
                         modality, final_model_name, r))
-        nib.save(atlas_final, "../results/CN/evaluation" +
+        nib.save(atlas_final, "../results/ADNI/CN/evaluation" +
                  "/permutation_importance_{}_{}_{}.nii".format(
                      modality, final_model_name, r))
         plt.close()

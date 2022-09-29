@@ -12,7 +12,7 @@ import pdb
 from sklearn.model_selection import train_test_split, StratifiedKFold
 
 
-def outlier_check(df_mri, df_pet, col, threshold=3):
+def outlier_check_main(df_mri_ADNI, df_pet_ADNI, col, threshold=3):
     """
     Check for outliers.
 
@@ -22,9 +22,9 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
 
     Parameters
     ----------
-    data_mri : pd.dataframe
+    data_mri_ADNI : pd.dataframe
         parcels derived from MRI data
-    data_pet : pd.dataframe
+    data_pet_ADNI : pd.dataframe
         parcels derived from PET data
     col : list or np.array
         columns to consider for brain age prediction
@@ -41,19 +41,18 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
         parcels derived from PET data without outliers
 
     """
-    mri_train = df_mri[df_mri['train']]
-    pet_train = df_pet[df_pet['train']]
+    mri_train = df_mri_ADNI[df_mri_ADNI['train']]
+    pet_train = df_pet_ADNI[df_pet_ADNI['train']]
 
     # get quantiles
-    q1_mri = mri_train.quantile(0.25)
-    q1_pet = pet_train.quantile(0.25)
-    q3_mri = mri_train.quantile(0.75)
-    q3_pet = pet_train.quantile(0.75)
+    q1_mri = mri_train[col].quantile(0.25)
+    q1_pet = pet_train[col].quantile(0.25)
+    q3_mri = mri_train[col].quantile(0.75)
+    q3_pet = pet_train[col].quantile(0.75)
     IQR_mri = q3_mri - q1_mri
     IQR_pet = q3_pet - q1_pet
 
     # define outlier ranges
-    # TODO @Kaustubh & @Georgios: should threshold be divided by 2?
     low_out_mri = q1_mri - IQR_mri*threshold
     high_out_mri = q3_mri + IQR_mri*threshold
     low_out_pet = q1_pet - IQR_pet*threshold
@@ -61,149 +60,121 @@ def outlier_check(df_mri, df_pet, col, threshold=3):
 
     # get boolean index of which datapoints are inside (True)
     # or outside (False) of range
-    insiderange = (~((df_mri[col] < low_out_mri) |
-                     (df_mri[col] > high_out_mri) |
-                     (df_pet[col] < low_out_pet) |
-                     (df_pet[col] > high_out_pet)).any(axis=1))
+    insiderange = (~((df_mri_ADNI[col] < low_out_mri) |
+                     (df_mri_ADNI[col] > high_out_mri) |
+                     (df_pet_ADNI[col] < low_out_pet) |
+                     (df_pet_ADNI[col] > high_out_pet)).any(axis=1))
 
-    df_mri['IQR'] = insiderange
-    df_pet['IQR'] = insiderange
+    df_mri_ADNI['IQR'] = insiderange
+    df_pet_ADNI['IQR'] = insiderange
 
     # save outliers per modality
-    save_outliers = open("../results/outliers.txt", "a+")
-    save_outliers.write("Outliers PET:\n")
-    [save_outliers.write(x+"\n") for x in df_pet['name'][
-        ((df_pet[col] > high_out_pet).any(axis=1) |
-                          (df_pet[col] < low_out_pet).any(axis=1)).tolist()]]
-    save_outliers.write("\n")
-    save_outliers.write("Outliers MRI:\n")
-    [save_outliers.write(x+"\n") for x in df_mri['name'][
-        ((df_mri[col] > high_out_mri).any(axis=1) |
-                          (df_mri[col] < low_out_mri).any(axis=1)).tolist()]]
+    save_outliers = open("../results/999_OUTLIERS/outliers_ADNI.txt", "a+")
+    save_outliers.write("Outliers PET train:\n")
+    [save_outliers.write(x+"\n") for x in df_pet_ADNI['name'][(
+        df_pet_ADNI['train']) & (
+            (df_pet_ADNI[col] > high_out_pet).any(axis=1) |
+            (df_pet_ADNI[col] < low_out_pet).any(axis=1)).tolist()]]
+    save_outliers.write("\nOutliers PET test:\n")
+    [save_outliers.write(x+"\n") for x in df_pet_ADNI['name'][(
+        df_pet_ADNI['train'] == False) & (
+            (df_pet_ADNI[col] > high_out_pet).any(axis=1) |
+            (df_pet_ADNI[col] < low_out_pet).any(axis=1)).tolist()]]
+    save_outliers.write("\nOutliers MRI train:\n")
+    [save_outliers.write(x+"\n") for x in df_mri_ADNI['name'][(
+        df_mri_ADNI['train'].values) & (
+            (df_mri_ADNI[col] > high_out_mri).any(axis=1) |
+            (df_mri_ADNI[col] < low_out_mri).any(axis=1)).tolist()]]
+    save_outliers.write("\nOutliers MRI test:\n")
+    [save_outliers.write(x+"\n") for x in df_mri_ADNI['name'][(
+        df_mri_ADNI['train'] == False) & (
+            (df_mri_ADNI[col] > high_out_mri).any(axis=1) |
+            (df_mri_ADNI[col] < low_out_mri).any(axis=1)).tolist()]]
     save_outliers.write("\n\n")
     save_outliers.close()
 
-    return df_mri, df_pet
+    # save outlier ranges for application to DELCODE CN PET data
+    pd.DataFrame({'col': col,
+                  'high': high_out_pet,
+                  'low': low_out_pet}).to_csv(
+                      "../results/999_OUTLIERS/outlier_ranges.csv")
 
+    return df_mri_ADNI, df_pet_ADNI
 
-def split_data(df_mri, df_pet, col, imp, test_size=0.3, train_data="ADNI",
-               older_65=True, check_outliers=True, info=True,
-               rand_seed=0):
+def outlier_check_other(df_other, database, modality, group='SCD',
+                        threshold=3):
     """
-    Split data into train and test sets.
+    Check for outliers in other data (MCI or DELCODE).
+
+    Outliers are defined as individuals whose brain signal
+    in one or more regions is outside of threshold*interquartile range (IQR)
+    of this/these regions.
 
     Parameters
     ----------
-    data_mri : pd.dataframe
-        parcels derived from MRI data
-    data_pet : pd.dataframe
+    df_other: pd.dataframe
         parcels derived from PET data
     col : list or np.array
         columns to consider for brain age prediction
-    imp : str
-        main analysis or validation_random_seeds
-    test_size : float, optional
-        If float, should be between 0.0 and 1.0 and represent
-        the proportion of the dataset to include in the test split.
-        If int, represents the absolute number of test samples.
-        The default is 0.3.
-    train_data : str, optional
-        Which dataset to use for training
-    older_65 : boolean, optional
-        Whether to consider only individuals over age 65. The default is True.
-    check_outliers : boolean, optional
-        Whether to check for and exclude outliers. The default is True.
-    rand_seed : int, optional
-        Controls the shuffling applied to the data before applying the split.
-
+    threshold : int or float, optional
+        threshold*IQR defines the range in which data is not considered
+        an outlier. Threshold=1.5 defines normal outliers,
+        threshold=3 defines extreme outliers. The default is 3.
 
     Returns
     -------
-    None.
-
+    df_other: pd.dataframe
+        parcels derived from PET data without outliers
     """
-    same_ids = all(df_mri['name'] == df_pet['name'])
 
-    # raise error if not all individuals are the same across modalities
-    if same_ids is False:
-        raise ValueError("IDs between modalities don't match.")
+    age_check = df_other['age'] >= 65
 
-    if info:
-        print("First column: {}".format(col[0]) +
-              " (should be 'X17Networks_LH_VisCent_ExStr_1')" +
-              "\nLast column: {}".format(col[-1]) +
-              " (should be 'CAU-lh)")
+    if (group == 'MCI') & (database == 'ADNI'):
+        # for ADNI data additionally check that individuals are > 65 in
+        # both modalities
+        second_mod = ['PET' if modality == 'MRI' else 'MRI'][0]
+        second_df = pd.read_csv(
+            '../data/ADNI/MCI/MCI_{}_parcels_init.csv'.format(second_mod), sep=";")
+        second_age_check = second_df['age'] >= 65
+        age_check = age_check.values & second_age_check.values
+        df_other['IQR'] = [True]*len(df_other)
 
-    # exclude individuals younger than 65 if older_65 == True
-    if older_65:
-        older_65_mri = df_mri['age'] >= 65
-        older_65_pet = df_pet['age'] >= 65
+    elif group == 'SCD':
+        # SCD patients are CN --> outlier check and must be older than 65
+        modality = 'PET'
+        ranges = pd.read_csv("../results/999_OUTLIERS/outlier_ranges.csv")
+        col = ranges['col']
+        low_out_pet = ranges['low']
+        high_out_pet = ranges['high']
+        insiderange = (~((df_other[col] < low_out_pet) |
+                         (df_other[col] > high_out_pet)).any(axis=1))
 
-        df_pet['AGE_CHECK'] = older_65_mri & older_65_pet
-        df_mri['AGE_CHECK'] = older_65_mri & older_65_pet
-        if info:
-            print(len(df_pet)-sum(df_pet['AGE_CHECK']),
-                  "individuals younger than 65 years discarded.")
-    else:
-        df_pet['AGE_CHECK'] = True
-        df_mri['AGE_CHECK'] = True
+        df_other['IQR'] = insiderange
 
-    # divide into age bins of "young old", "middle old" and "oldest old"
-    # use mri to do so --> same age bins for both modalities
-    df_mri['Ageb'] = [0 if x < 74 else 1
-                      if x < 84 else 2 for x in df_mri['age']]
-    df_pet['Ageb'] = [0 if x < 74 else 1
-                      if x < 84 else 2 for x in df_pet['age']]
+        # save outliers per modality
+        save_outliers = open("../results/999_OUTLIERS/outliers_{}.txt".format(
+            database), "a+")
+        save_outliers.write("Outliers PET:\n")
+        [save_outliers.write(x+"\n") for x in df_other['name'][(
+            (df_other[col] > high_out_pet).any(axis=1) |
+            (df_other[col] < low_out_pet).any(axis=1)).tolist()]]
+        save_outliers.close()
 
-    # only ADNI data of individuals older than 65 (if older_65 == True)
-    # to be considered in train_test split
-    # OASIS data to be reserved as additional test set
-    split_data = (df_mri['Dataset'] == "ADNI") & df_mri['AGE_CHECK']
+    elif (group == 'MCI') & (database == "DELCODE"):
+        # MCI patients from DELCODE only have one modality (MRI)
+        df_other['IQR'] = [True]*len(df_other)
 
-    # prepare input (X) and output (y) for train-test split
-    X = df_mri[col][split_data].values
-    y = df_mri['age'][split_data].values
-    y_pseudo = df_mri['Ageb'][split_data]
+    df_other['Dataset'] = database
+    df_other['AGE_CHECK'] = age_check
+    df_other.to_csv("../data/{}/{}/{}_parcels_{}_{}.csv".format(
+        database, group, modality, group, database))
 
-    # make len(rand_seed) train-test splits
-    x_tr, x_te,  y_tr, y_te, id_tr, id_te = train_test_split(
-        X, y, df_mri['name'],
-        test_size=test_size, random_state=rand_seed, stratify=y_pseudo)
-    df_mri['train'] = [True if x in id_tr.values
-                       else False for x in df_mri['name']]
-    df_pet['train'] = [True if x in id_tr.values
-                       else False for x in df_pet['name']]
-
-    if check_outliers:
-        df_mri, df_pet = outlier_check(df_mri, df_pet, col)
-        n_outliers = len(df_mri) - sum(df_mri['IQR'])
-        if info:
-            print("Total participants: ", len(df_mri),
-                  "Inside IQR of all regions: ", len(df_mri[df_mri['IQR']]),
-                  "\n({}".format(n_outliers),
-                  "participants discarded as outliers)")
-            print("Outliers in train set: ",
-                  sum(df_mri['train']) -
-                  sum(df_mri['IQR'][df_mri['train']]),
-                  "Outliers in test set: ",
-                  sum(~df_mri['train']) -
-                  sum(df_mri['IQR'][~df_mri['train']]))
-    else:
-        n_outliers = 0
-        df_mri['IQR'] = True
-        df_pet['IQR'] = True
-    df_mri.to_csv('../data/{}/'.format(imp) +
-                  'test_train_MRI_{}.csv'.format(str(rand_seed)))
-    df_pet.to_csv('../data/{}/'.format(imp) +
-                  'test_train_PET_{}.csv'.format(str(rand_seed)))
-
-    return n_outliers
+    return df_other
 
 
-def split_data_np(df_mri, df_pet, col, imp="main", splits=5,
-                  test_size=0.3, train_data="ADNI",
-                  older_65=True, check_outliers=True, info=True,
-                  rand_seed=0):
+def split_data(df_mri, df_pet, col, rand_seed, splits=5,
+               train_data="ADNI",
+               older_65=True, check_outliers=True, info=True):
     """
     Split data into train and test sets.
 
@@ -295,7 +266,7 @@ def split_data_np(df_mri, df_pet, col, imp="main", splits=5,
         df_pet['train'] = df_mri['train']
 
         if check_outliers:
-            df_mri, df_pet = outlier_check(df_mri, df_pet, col)
+            df_mri, df_pet = outlier_check_main(df_mri, df_pet, col)
             n_outliers = len(df_mri) - sum(df_mri['IQR'])
             if info:
                 print("Total participants: ", len(df_mri),
@@ -313,9 +284,9 @@ def split_data_np(df_mri, df_pet, col, imp="main", splits=5,
             n_outliers = 0
             df_mri['IQR'] = True
             df_pet['IQR'] = True
-        df_mri.to_csv('../data/{}/'.format(imp) +
+        df_mri.to_csv('../data/CN/' +
                       'test_train_MRI_{}.csv'.format(str(count)))
-        df_pet.to_csv('../data/{}/'.format(imp) +
+        df_pet.to_csv('../data/CN/' +
                       'test_train_PET_{}.csv'.format(str(count)))
         count = count+1
 
@@ -345,7 +316,7 @@ def neuropsych_merge(df_pred, df_neuropsych,
         cognitive performance of individuals from test set.
 
     """
-    df_dem = pd.read_csv("../data/main/ADNI_Neuropsych_Neuropath.csv",
+    df_dem = pd.read_csv("../data/ADNI/PsychPath/ADNI_Neuropsych_Neuropath.csv",
                          sep=";")
     df_dem['PTGENDER'] = [1 if x == "Female"
                           else 2 if x == "Male"
@@ -387,7 +358,7 @@ def neuropath_merge(df_pred, df_neuropath1, df_neuropath2,
         neuropathology of individuals from test set.
 
     """
-    df_dem = pd.read_csv("../data/main/ADNI_Neuropsych_Neuropath.csv",
+    df_dem = pd.read_csv("../data/ADNI/PsychPath/ADNI_Neuropsych_Neuropath.csv",
                          sep=";")
     df_dem['PTGENDER'] = [1 if x == "Female"
                           else 2 if x == "Male"

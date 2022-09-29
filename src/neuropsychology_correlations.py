@@ -44,7 +44,7 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality,
 
     """
     all_ = open(
-        "../results/neurocorrelations/" +
+        "../results/ADNI/{}/".format(group) +
         group + "_{}_associations_{}-BPAD.txt".format(psych_or_path,
                                                          modality), "a+")
     header = "Model\tVariable\tr\tp\tn\tMethod\tp_Bonferroni\tcorrected\n"
@@ -57,7 +57,7 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality,
         add_ = "_"+str(fold)
         print("Model " + str(fold))
     df_pred = pd.read_csv(
-        "../results/{}/{}-predicted_age_{}{}.csv".format(
+        "../results/ADNI/{}/{}-predicted_age_{}{}.csv".format(
             group, modality, group, add_))
     # ADNI RID = last 4 digits of ADNI PTID (required for merging)
     df_pred['RID'] = df_pred['PTID'].str[-4:].astype(int)
@@ -65,15 +65,15 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality,
     y_pred = df_pred['Prediction']
     y_diff = y_pred - y_true
     # categorize BPAD into residuals with standard deviation (SD):
-    std_diff = np.nanstd(y_diff)/2
-    y_diff_cat = ["negative" if x < -std_diff
-                  else "neutral" if (-std_diff < x < std_diff)
+    std_diff = y_diff/np.sqrt(y_true)
+    y_diff_cat = ["negative" if x <= -2
+                  else "neutral" if (-2 < x < 2)
                   else "positive" for x in y_diff]
 
     # merge predictions with cognitive performance
     if (psych_or_path == "PSYCH") or (psych_or_path == "psych"):
         df_neuropsych = pd.read_csv(
-            "../data/main/UWNPSYCHSUM_Feb2022.csv", sep=";")
+            "../data/ADNI/PsychPath/UWNPSYCHSUM_Feb2022.csv", sep=";")
         var_ = ['ADNI_MEM', 'ADNI_EF']
         merged = neuropsych_merge(df_pred, df_neuropsych,
                                   var_)
@@ -81,9 +81,9 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality,
     # merge predictions with neuropathology
     elif (psych_or_path == "PATH") or (psych_or_path == "path"):
         df_neuropath1 = pd.read_csv(
-            "../data/main/ADNI_Neuropsych_Neuropath.csv", sep=";")
+            "../data/ADNI/PsychPath/ADNI_Neuropsych_Neuropath.csv", sep=";")
         df_neuropath2 = pd.read_csv(
-            "../data/main/UPENNBIOMK_MASTER_bl_unique.csv", sep=";")
+            "../data/ADNI/PsychPath/UPENNBIOMK_MASTER_bl_unique.csv", sep=";")
         neuropath1_var = ['AV45', 'ABETA', 'TAU', 'PTAU']
         # tau meta-roi did not have enough entries so far
         neuropath2_var = []
@@ -91,11 +91,11 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality,
         merged = neuropath_merge(df_pred, df_neuropath1, df_neuropath2,
                                  neuropath1_var, neuropath2_var)
 
-    merged["BPAD"] = y_diff
-    merged["BPAD Category"] = y_diff_cat
-    merged.to_csv("../results/pred_merged_{}_{}_{}.csv".format(
-            group, modality, psych_or_path), index=False)
-    print("\033[1m---SIGNIFICANT CORRELATIONS BETWEEN {} ".format(
+    merged["BAG"] = y_diff
+    merged["BAG Category"] = y_diff_cat
+    merged.to_csv("../results/ADNI/{}/pred_merged_{}_{}_{}.csv".format(
+            group, group, modality, psych_or_path), index=False)
+    """print("\033[1m---SIGNIFICANT CORRELATIONS BETWEEN {} ".format(
         age_or_diff) + "& NEURO{}---\033[0m".format(psych_or_path))
 
     # test significant correlations by correcting for sex
@@ -144,7 +144,7 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality,
             print("Significant correlation between BPAD and {}: ".format(n),
                   stat['p-val'][0] < p,
                   "\nSignificant correlation between BPAD and", n,
-                  "after controlling for the effect of sex, age, ed & apoe:",
+                  "after controlling for the effect of sex, age & apoe:",
                   stat_par['p-val'][0] < p)
             sign[n] = [stat, stat_par]
             cm_np = pickle.load(open(
@@ -187,7 +187,7 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality,
     neuropsychology_BPAD_group(merged, sign, y_diff, modality, group, fold)
     all_.close()
 
-    return sign
+    return sign"""
 
 
 def neuropsychology_BPAD_group(merged, sign, y_diff, modality, group, fold):
@@ -251,29 +251,29 @@ def neuropsychology_BPAD_group(merged, sign, y_diff, modality, group, fold):
                                          > 0.05) and (norm_zer[1] > 0.05):
                 stat_pos = partial_corr(data=merged_pos, x="BPAD",
                                         y=k, covar=["Age", "PTGENDER",
-                                                    "PTEDUCAT", "APOE4"],
+                                                    "APOE4"],
                                         method="pearson")
                 stat_neg = partial_corr(data=merged_neg, x="BPAD",
                                         y=k, covar=["Age", "PTGENDER",
-                                                    "PTEDUCAT", "APOE4"],
+                                                    "APOE4"],
                                         method="pearson")
                 stat_zer = partial_corr(data=merged_zer, x="BPAD",
                                         y=k, covar=["Age", "PTGENDER",
-                                                    "PTEDUCAT", "APOE4"],
+                                                    "APOE4"],
                                         method="pearson")
                 method_str = "Pearson Correlation"
             else:
                 stat_pos = partial_corr(data=merged_pos, x="BPAD",
                                         y=k, covar=["Age", "PTGENDER",
-                                                    "PTEDUCAT", "APOE4"],
+                                                    "APOE4"],
                                         method="spearman")
                 stat_neg = partial_corr(data=merged_neg, x="BPAD",
                                         y=k, covar=["Age", "PTGENDER",
-                                                    "PTEDUCAT", "APOE4"],
+                                                    "APOE4"],
                                         method="spearman")
                 stat_zer = partial_corr(data=merged_zer, x="BPAD",
                                         y=k, covar=["Age", "PTGENDER",
-                                                    "PTEDUCAT", "APOE4"],
+                                                    "APOE4"],
                                         method="spearman")
                 method_str = "Spearman Correlation"
 
