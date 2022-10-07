@@ -30,5 +30,5 @@ df_dx <- merge(df_dx, subset(twenty_four_months, select=c("PTID", "DX24")),
 df_dx$ABETA <- ifelse(df_dx$ABETA == "<200", 200, ifelse(df_dx$ABETA == ">1700",
                                                          1700, df_dx$ABETA))
 
-write.csv(df_dx, "2_BrainAge/PET_MRI_age0/data/ADNI/PsychPath/Diagnoses_upto2years.csv",
+write.csv(df_dx, "2_BrainAge/PET_MRI_age_final/data/ADNI/PsychPath/Diagnoses_upto2years.csv",
           row.names = F)

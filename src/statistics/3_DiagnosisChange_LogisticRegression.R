@@ -7,6 +7,7 @@ library(MatchIt)
 library(oddsratio)
 library(ggpattern)
 library(patchwork)
+library(MASS)
 
 rm(list=ls())
 group <- 'CN'
@@ -24,13 +25,13 @@ alpha <- c(
 set.seed(0)
 
 df <- read.csv(
-  paste("2_BrainAge/PET_MRI_age0/data/ADNI/PsychPath/",
+  paste("2_BrainAge/PET_MRI_age_final/data/ADNI/PsychPath/",
         sprintf("merged_for_dx_prediction_%s.csv", group), sep = ""))
 
 # whether to exclude incomplete cases
 whole.set <- T
 if (whole.set == F){
-  df <- df[df$AMY.cat!=0,]
+  df <- df[df$ABETA.cat!=0,]
 }
 
 # propensity score matching with age of respective modality
@@ -40,6 +41,8 @@ p.match1 <- matchit(DX.cat.n ~ PTGENDER + meanage,
 summary(p.match1)
 
 df.match1 <- match.data(p.match1)
+df.match1$ABETA.cat <- as.factor(df.match1$ABETA.cat)
+df.match1$APOE4 <- as.factor(df.match1$APOE4)
 
 # unmatched <- df[!(df$PTID %in% df.match1$PTID) | df$DX.cat.c == "X1_decl",]
 # table(unmatched$DX.cat.c)
@@ -75,6 +78,11 @@ model <- cognitive.impairment(df.match1)
 s <- summary(model)
 s
 
+# save odds ratios of full model
+OR <- or_glm(data = df.match1, model = model$finalModel, 
+             incr = list(PET.BAG = 1, MRI.BAG = 1, PTEDUCAT = 1))
+OR
+
 prediction.df <- data.frame(rowIndex = model$pred$rowIndex,
                             gt = model$pred$obs,
                             pred = model$pred$pred,
@@ -91,37 +99,17 @@ for (j in 1:nrow(prediction.df)){
   prediction.df$AMY.cat[j] <- df.match1$ABETA.cat[prediction.df$rowIndex[j]]
 }
 
-get.odds <- function(x){
-  # save significance
-  coeff <- data.frame(s$coefficients)
-  write.csv(
-    coeff, 
-    sprintf(
-      "2_BrainAge/PET_MRI_age0/results/%s/%s/2_DX_change/%s_significancevalues.csv",
-      database, group, group))
-  # save odds ratios
-  OR <- or_glm(data = x, model = model$finalModel, 
-               incr = list(PETBAG = 1, MRIBAG = 1, AMY.cat = 1, APOE4 = 1,
-                           PTEDUCAT = 1))
-  print(OR)
-  write.csv(
-    OR, 
-    sprintf("2_BrainAge/PET_MRI_age0/results/%s/%s/2_DX_change/%s_oddsratios.csv", 
-            database, group, group), row.names = F)
-}
-get.odds(model)
-
 attach(prediction.df)
 winner <- PET.BAG
 winner.name <- ifelse(winner == MRI.BAG, 'MRI', 'PET')[1]
-color <- ifelse(winner == MRI.BAG, 'cyan4', 'coral')[1]
-
+color <- ifelse(winner == MRI.BAG, 'midnightblue', 'darkred')[1]
+# apoe_pal <- c("1" = 'coral3', "2" = 'chocolate')
 
 g <- ggplot(prediction.df, aes(x = winner, y = prob)) +
   theme_classic() +
   geom_smooth(method = "glm", 
               method.args = list(family = "binomial"), 
-              aes(color = color, fill = color), alpha = 0.2, se = T, linetype = "dashed") +
+              aes(color = color, fill = color), se = T, linetype = "dashed") +
   # scatter individual data points
   geom_point(aes(shape = gt, size = gt, alpha = gt, color = color,
                  fill = color)) +
@@ -178,11 +166,27 @@ dens1 + plot_spacer() + g +
 
 # get intersection of line with ~50% probability
 cutoff <- ggplot_build(g)$data[[1]]
-print(cutoff[(0.48<cutoff$y) & (0.52>cutoff$y),])
+print(cutoff[(0.48<cutoff$y) & (0.52>cutoff$y),]) # CN: 0.7829160 MCI: 2.230878
+#print(prediction.df[(0.48<prediction.df$prob) & (0.52>prediction.df$prob),])
+#my_glm <- glm(gt~PET.BAG, data=prediction.df, family=binomial())
+#dose.p(my_glm, p=0.5) # CN: 0.6670282 MCI: 2.130332 
+
+if (group == 'CN'){
+  # cutoff_final <- 0.8522485
+  cutoff_final <- 0.7829160
+  df.match1$threshold <- ifelse(df.match1$PET.BAG > cutoff_final, "Y1_decl",
+                                "Y0_stable")
+} else{
+  cutoff_final = 2.230878 
+  df.match1$threshold <- ifelse(df.match1$MRI.BAG > cutoff_final, 'Y1_decl',
+                                'Y0_stable')
+}
+
+table(df.match1$threshold, df.match1$DX.cat.c)
 
 ggsave(filename = sprintf(
   "%s_DX_change_prediction_%s_%s.png", group, database, winner.name),
-  path = sprintf("2_BrainAge/PET_MRI_age0/results/%s/%s/2_DX_change/",
+  path = sprintf("2_BrainAge/PET_MRI_age_final/results/%s/%s/2_DX_change/",
                  database, group),
   width = 10, height = 10, device='tiff', dpi=300)
 detach(prediction.df)

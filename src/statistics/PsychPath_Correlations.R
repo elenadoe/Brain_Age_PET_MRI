@@ -5,8 +5,8 @@ library(ggplot2)
 library(ppcor)
 
 rm(list=ls())
-group <- 'MCI'
-modality <- 'PET'
+group <- 'CN'
+modality <- 'MRI'
 database <- 'ADNI'
 color <- ifelse(modality == 'MRI', 'cyan4', 'coral')
 psychpath <- 'PATH'
@@ -14,7 +14,7 @@ long_psychpath <- ifelse(
   psychpath == 'PATH', '1_pathology', '1_cognitive performance')
 
 pred_table <- read.csv(sprintf(
-  '2_BrainAge/PET_MRI_age0/results/ADNI/%s/pred_merged_%s_%s_%s.csv',
+  '2_BrainAge/PET_MRI_age (Kopie)/results/ADNI/%s/pred_merged_%s_%s_%s.csv',
   group, group, modality, psychpath))
 
 if (psychpath == 'PATH'){
@@ -54,7 +54,7 @@ for (i in 1:length(vars_)){
       theme(text = element_text(size=20))
     g
     ggsave(filename = paste(group, '_', vars_[i], '_', modality, ".png", sep=""),
-           path = sprintf("2_BrainAge/PET_MRI_age0/results/%s/%s/%s",
+           path = sprintf("2_BrainAge/PET_MRI_age (Kopie)/results/%s/%s/%s",
                           database, group, long_psychpath),
            width = 10, height = 10, device='tiff', dpi=300)
   }
