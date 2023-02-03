@@ -16,12 +16,14 @@ from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.linear_model import LinearRegression
 warnings.filterwarnings("ignore")
+np.random.seed(0)
 # %%
 # matplotlib config
 cm_main = pickle.load(open("../config/plotting_config_main.p", "rb"))
 
 
-def plot_hist(df, group, train_test, modality, database_list, r, y='age'):
+def plot_hist(df, group, train_test, modality, database_list, atlas, r,
+              y='age'):
     """
     Plot histogram of y.
 
@@ -56,14 +58,15 @@ def plot_hist(df, group, train_test, modality, database_list, r, y='age'):
     plt.title('Age distribution in {} set'.format(train_test))
     plt.xlabel('Age [years]')
     plt.ylabel('n Participants')
-    plt.savefig('../results/{}/{}/plots/{}_{}_age_distribution_{}'.format(
-        database_list[0], group, train_test, modality, r) + '.png',
+    plt.savefig('../results/{}/{}/plots/{}_{}_{}_age_distribution_{}'.format(
+        database_list[0], group, train_test, modality, atlas, r) + '.png',
         bbox_inches="tight")
     plt.show()
 
 
 def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
-                   database, correct_with_CA=True, database_list=None):
+                   database, atlas, correct_with_CA=True,
+                   database_list=None):
     """
     Plot predicted age against chronological age.
 
@@ -173,7 +176,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
     plt.xlabel('Chronological Age [Years]')
     plt.legend()
     plt.savefig("../results/{}/{}/plots/real_vs_pred".format(database, group) +
-                "_{}_{}_{}_{}_{}.jpg".format(modality,
+                "_{}_{}_{}_{}_{}_{}.jpg".format(modality, atlas,
                                              train_test,
                                              alg,
                                              str(correct_with_CA),
@@ -182,8 +185,8 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
     plt.close()
 
     # save prediction metrics
-    results = open("../results/{}/{}/evaluation/eval_{}_{}_{}_{}_{}.txt".format(
-        database, group, modality, train_test, alg,
+    results = open("../results/{}/{}/evaluation/eval_{}_{}_{}_{}_{}_{}.txt".format(
+        database, group, modality, atlas, train_test, alg,
         str(correct_with_CA), r), 'w+')
     results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS" +
                   "\n" + str(mae) + "\t" + str(r2) + "\t" +
@@ -193,7 +196,7 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
     results.close()
 
 
-def check_bias(y_true, y_pred, alg, modality, group, r, database,
+def check_bias(y_true, y_pred, alg, modality, group, r, database, atlas,
                corr_with_CA=True, corrected=False, info=True, save=True):
     """
     Bias check & provision of correction parameters.
@@ -294,8 +297,8 @@ def check_bias(y_true, y_pred, alg, modality, group, r, database,
 
         if save:
             plt.savefig(
-                '../results/{}/{}/bias-corrected_{}_{}_{}_{}.jpg'.format(
-                database, group, corr_with_CA, modality, alg, r),
+                '../results/{}/{}/bias-corrected_{}_{}_{}_{}_{}.jpg'.format(
+                database, group, corr_with_CA, modality, atlas, alg, r),
                 dpi=300)
 
         plt.close()
@@ -304,7 +307,7 @@ def check_bias(y_true, y_pred, alg, modality, group, r, database,
 
 
 def feature_imp(df_test, col, final_model, final_model_name,
-                modality, r, y='age', n_repeats=1000, rand_seed=0):
+                modality, atlas, r, y='age', rand_seed=0):
     """
     Plot feature importance.
 
@@ -313,7 +316,7 @@ def feature_imp(df_test, col, final_model, final_model_name,
      here: (216,1)
      https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVR.html)
 
-    Parameters
+    Parameters  # TODO
     ----------
     feature_imp: dictionary-like object
         from calling sklearn.inspection.permutation_importance
@@ -329,47 +332,63 @@ def feature_imp(df_test, col, final_model, final_model_name,
     # get feature importance for linear kernels
     # (coefficients are not available for other kernels,
     # best kernel is svm most of the times)
-    if final_model.named_steps[final_model_name].kernel == "linear":
-
-        imp = final_model.named_steps[final_model_name].coef_[0]
-
-        # get atlas
-        atlas = '../data/0_ATLAS/schaefer200-17_Tian.nii'
-        atlas = image.load_img(atlas)
-        atlas_matrix = image.get_data(atlas)
-
-        # get labels
-        labels = open('../data/0_ATLAS/composite_atlas_labels.txt')
-        labels = labels.read().split('\n')[:-1]
-
-        # put feature importance into dataframe and save
-        df_imp = pd.DataFrame({'region': labels,
-                               'perm_importance': imp})
-        df_imp.to_csv('../results/ADNI/CN/evaluation/' +
-                      'weighted_importance_{}_{}_{}.csv'.format(
-                          modality, final_model_name, r))
-
-        # create statistical map where each voxel value
-        # coresponds to weight coefficients
-        # TODO atlas_matrix_stat = atlas_matrix.copy()
-
-        # 0 is background in atlas matrix
-        # but first element (index = 0) of imp is
-        # weight of first actual feature
-        for x in range(1, 217):
-            atlas_matrix[atlas_matrix == x] = imp[x-1]
-        # create niimg from atlas_matrix
-        atlas_final = image.new_img_like(atlas, atlas_matrix)
-
-        # plot feature importance, save output plot and niimg
-        plotting.plot_stat_map(atlas_final)
-        plt.title("{}-relevant regions for aging".format(final_model_name))
-        plt.savefig("../results/ADNI/" +
-                    "CN/evaluation/weighted_importance_{}_{}_{}.jpg".format(
-                        modality, final_model_name, r))
-        nib.save(atlas_final, "../results/ADNI/CN/evaluation" +
-                 "/permutation_importance_{}_{}_{}.nii".format(
-                     modality, final_model_name, r))
-        plt.close()
+    if final_model_name != 'svm':
+        print("No coefficients available for RVR.")
     else:
-        print("Kernel not linear, no weight coefficients available.")
+        if final_model.named_steps[final_model_name].kernel == "linear":
+    
+            imp = final_model.named_steps[final_model_name].coef_[0]
+    
+            # get labels
+            if atlas == "Sch_Tian":
+                # get atlas
+                atlas_file = '../data/0_ATLAS/schaefer200-17_Tian.nii'
+                atlas_file = image.load_img(atlas_file)
+                atlas_matrix = image.get_data(atlas_file)
+                labels = open('../data/0_ATLAS/composite_atlas_labels.txt')
+                labels = labels.read().split('\n')[:-1]
+            elif atlas == "AAL3":
+                atlas_file = '../data/0_ATLAS/AAL3v1_1mm.nii'
+                atlas_file = image.load_img(atlas_file)
+                atlas_matrix = image.get_data(atlas_file)
+                labels = open('../data/0_ATLAS/AAL3v1_1mm.nii.txt')
+                labels = labels.read().split('\n')[:-1]
+                # remove labels that were redefined in AAL3 and left empty for comparability
+                labels = [i for i in labels if i not in ['35 Cingulate_Ant_L ',
+                                                         '36 Cingulate_Ant_R ',
+                                                         '81 Thalamus_L ',
+                                                         '82 Thalamus_R ']]
+                # remove numbers from names, only keep region definition
+                labels = [x.split()[1] for x in labels]
+    
+            # put feature importance into dataframe and save
+            df_imp = pd.DataFrame({'region': labels,
+                                   'feat_importance': imp})
+            df_imp.to_csv('../results/ADNI/CN/evaluation/' +
+                          'weighted_importance_{}_{}_{}_{}.csv'.format(
+                              modality, atlas, final_model_name, r))
+    
+            # create statistical map where each voxel valueo
+            # coresponds to weight coefficients
+            # TODO atlas_matrix_stat = atlas_matrix.copy()
+    
+            # 0 is background in atlas matrix
+            # but first element (index = 0) of imp is
+            # weight of first actual feature
+            for x in range(1, len(labels)):
+                atlas_matrix[atlas_matrix == x] = imp[x-1]
+            # create niimg from atlas_matrix
+            atlas_final = image.new_img_like(atlas_file, atlas_matrix)
+    
+            # plot feature importance, save output plot and niimg
+            plotting.plot_stat_map(atlas_final)
+            plt.title("{}-relevant regions for aging".format(final_model_name))
+            plt.savefig("../results/ADNI/" +
+                        "CN/evaluation/weighted_importance_{}_{}_{}_{}.jpg".format(
+                            modality, atlas, final_model_name, r))
+            nib.save(atlas_final, "../results/ADNI/CN/evaluation" +
+                     "/feature_importance_{}_{}_{}_{}.nii".format(
+                         modality, atlas, final_model_name, r))
+            plt.close()
+        else:
+            print("Kernel not linear, no weight coefficients available.")

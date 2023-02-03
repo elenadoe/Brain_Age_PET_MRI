@@ -12,13 +12,14 @@ import seaborn as sns
 import pandas as pd
 import warnings
 import pickle
+import pdb
 from pingouin import corr, partial_corr, mwu
 from transform_data import neuropsych_merge, neuropath_merge, dx_merge
 
 warnings.filterwarnings("ignore")
 
 
-def neuro_correlation(group, age_or_diff, psych_or_path, modality,
+def neuro_correlation(group, age_or_diff, psych_or_path, modality, atlas,
                       fold="BAGGED"):
     """
     Correlations between BPAD and cognitive performance/neuropathology.
@@ -43,7 +44,7 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality,
         r-values of significant correlations
 
     """
-    all_ = open(
+    """all_ = open(
         "../results/ADNI/{}/".format(group) +
         group + "_{}_associations_{}-BPAD.txt".format(psych_or_path,
                                                          modality), "a+")
@@ -68,7 +69,22 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality,
     std_diff = y_diff/np.sqrt(y_true)
     y_diff_cat = ["negative" if x <= -2
                   else "neutral" if (-2 < x < 2)
-                  else "positive" for x in y_diff]
+                  else "positive" for x in y_diff]"""
+
+    if group == "CN":
+        add_ = ""
+    else:
+        add_ = "_"+str(fold)
+        print("Model " + str(fold))
+    df_pred = pd.read_csv(
+        "../results/ADNI/{}/{}-predicted_age_{}_{}{}.csv".format(
+            group, modality, atlas, group, add_))
+    # ADNI RID = last 4 digits of ADNI PTID (required for merging)
+    df_pred['RID'] = df_pred['PTID'].str[-4:].astype(int)
+
+    y_true = df_pred['Age']
+    y_pred = df_pred['Prediction']
+    y_diff = y_pred - y_true
 
     # merge predictions with cognitive performance
     if (psych_or_path == "PSYCH") or (psych_or_path == "psych"):
@@ -92,7 +108,6 @@ def neuro_correlation(group, age_or_diff, psych_or_path, modality,
                                  neuropath1_var, neuropath2_var)
 
     merged["BAG"] = y_diff
-    merged["BAG Category"] = y_diff_cat
     merged.to_csv("../results/ADNI/{}/pred_merged_{}_{}_{}.csv".format(
             group, group, modality, psych_or_path), index=False)
     """print("\033[1m---SIGNIFICANT CORRELATIONS BETWEEN {} ".format(
