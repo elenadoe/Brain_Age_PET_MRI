@@ -16,8 +16,8 @@ def nearest(items, pivot):
 
 
 # fetch AAL atlas and labels
-atlas = 'data/0_ATLAS/AAL3v1_1mm.nii'
-atlas = nib.load(atlas)
+atlas_file = 'data/0_ATLAS/AAL3v1_1mm.nii'
+atlas = nib.load(atlas_file)
 label_file = 'data/0_ATLAS/AAL3v1_1mm.nii.txt'
 label_list = open(label_file)
 label_elems = label_list.read().split('\n')
@@ -83,7 +83,7 @@ for group in groups:
             masker = NiftiLabelsMasker(labels_img=atlas,
                                     standardize=False,
                                     memory='nilearn_cache',
-                                    resampling_target='labels')
+                                    resampling_target='data')
             parcelled = masker.fit_transform(niimg)
             image_list.append(parcelled)
             subj_succ['sess'].append(sess[0])
