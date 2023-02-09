@@ -16,9 +16,9 @@ def nearest(items, pivot):
 
 
 # fetch AAL atlas and labels
-atlas_file = 'data/0_ATLAS/AAL3v1_1mm.nii'
+atlas_file = 'data/0_ATLAS/AAL3v1.nii'
 atlas = nib.load(atlas_file)
-label_file = 'data/0_ATLAS/AAL3v1_1mm.nii.txt'
+label_file = 'data/0_ATLAS/AAL3v1.nii.txt'
 label_list = open(label_file)
 label_elems = label_list.read().split('\n')
 labels = [x.split(' ')[1] for x in label_elems if len(x.split(' '))>1]
@@ -38,7 +38,7 @@ for group in groups:
     subject_list = subject_list[subject_list.Group == group]
     subject_list.name
 
-    output_csv = 'data/ADNI/{}/ADNI_MRI_{}_AAL3_1mm_parcels.csv'.format(group, group)
+    output_csv = 'data/ADNI/{}/ADNI_MRI_{}_AAL3_2mm_parcels.csv'.format(group, group)
 
     # ids to be excluded
     excl_ids = []

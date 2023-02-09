@@ -10,9 +10,9 @@ from glob import glob
 # Edit paths before running
 subject_list = 'data/OASIS/OASIS_CN_IDs_Age.txt'
 # fetch AAL atlas and labels
-atlas_file = 'data/0_ATLAS/AAL3v1_1mm.nii'
+atlas_file = 'data/0_ATLAS/AAL3v1.nii'
 atlas = nib.load(atlas_file)
-label_file = 'data/0_ATLAS/AAL3v1_1mm.nii.txt'
+label_file = 'data/0_ATLAS/AAL3v1.nii.txt'
 label_list = open(label_file)
 label_elems = label_list.read().split('\n')
 labels = [x.split(' ')[1] for x in label_elems if len(x.split(' '))>1]
@@ -23,7 +23,7 @@ labels = [i for i in labels if i not in exclude]
 
 # this should include subjects' folders
 data_file = '/data/project/cat_12.5/OASIS3'
-output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/OASIS_AAL_1mm_parcels.csv'
+output_csv = '/data/project/age_prediction/codes/Brain_Age_PET_MRI/data/OASIS_AAL_parcels_2mm.csv'
 
 # NOTE: 'sub-OAS30775_ses-d2893', 'sub-OAS31018_ses-d0469' need to be
 # excluded as not all frames were measured in PET
