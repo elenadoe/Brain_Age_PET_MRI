@@ -70,7 +70,8 @@ def cross_validate(df_train, col, models, model_params, splits, scoring,
     results['RVR()'] = {}
     results['svm'] = {}
 
-    scaler = 'scaler_robust'
+    # scaler = 'scaler_robust'
+    scaler = 'scaler_minmax'
 
     for i, (model, params) in enumerate(zip(models, model_params)):
         # split data using age-bins
@@ -609,14 +610,10 @@ def predict_other(database, group, modality, atlas, rand_seed_np,
                 "../data/ADNI/MCI/MCI_{}_parcels_init.csv".format(
                     modality), sep=";")
             file_['Group'] = 'MCI'"""
-        if (database == "ADNI") and (group == "MCI"):
-            file_ = pd.read_csv(
-                "../data/{}/{}/{}_{}_{}_{}_1mm_parcels.csv".format(
-                    database, group, database, modality, group, atlas),
-                sep=";")
-        else:
-            file_ = pd.read_csv(
+        file_ = pd.read_csv(
                     "../data/{}/{}/{}_{}_{}_{}_1mm_parcels.csv".format(
+                        database, group, database, modality, group, atlas))
+        print("../data/{}/{}/{}_{}_{}_{}_1mm_parcels.csv".format(
                         database, group, database, modality, group, atlas))
         file_['age'] = np.round(file_['age'], 0)
         file_ = outlier_check_other(file_, group=group, database=database,

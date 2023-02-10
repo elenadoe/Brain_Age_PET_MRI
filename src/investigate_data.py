@@ -15,13 +15,13 @@ from scipy.stats import ttest_ind
 # %%%
 # LOAD DATA
 adni_cn = pd.read_csv(
-    "../data/ADNI/CN/ADNI_PET_CN_Sch_Tian_1mm_parcels.csv")
+    "../data/ADNI/CN/ADNI_PET_CN_AAL3_1mm_parcels.csv")
 adni_scd = pd.read_csv(
-    "../data/ADNI/SMC/ADNI_PET_SMC_Sch_Tian_1mm_parcels.csv")
+    "../data/ADNI/SMC/ADNI_PET_SMC_AAL3_1mm_parcels.csv")
 oasis_cn = pd.read_csv(
-    "../data/OASIS/CN/OASIS_PET_CN_Sch_Tian_1mm_parcels.csv")
+    "../data/OASIS/CN/OASIS_PET_CN_AAL3_1mm_parcels.csv")
 delcode_scd = pd.read_csv(
-    "../data/DELCODE/SMC/DELCODE_PET_SMC_Sch_Tian_1mm_parcels.csv")
+    "../data/DELCODE/SMC/DELCODE_PET_SMC_AAL3_1mm_parcels.csv")
 
 # %%
 # INSPECT SUVR in ROIS
@@ -51,4 +51,12 @@ plt.show()
 print("ADNI CN age: {}, ADNI SCD age: {}, DELCODE age: {}".format(
     adni_cn_age, adni_scd_age, delcode_scd_age))
 print(ttest_ind(adni_cn[['age']], delcode_scd[['age']]))
-print(ttest_ind(adni_cn[['age']], adni_scd[['age']]))
+
+
+# %%
+adni_cn = pd.read_csv(
+    "../data/ADNI/CN/ADNI_MRI_CN_AAL3_1mm_parcels.csv")
+for i in range(2,100):
+    plt.scatter(range(len(adni_cn.index)), adni_cn[adni_cn.columns.tolist()[-i]])
+    plt.title(adni_cn.columns.tolist()[-i])
+    plt.show()

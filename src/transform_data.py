@@ -133,10 +133,10 @@ def outlier_check_other(df_other, database, modality, atlas, fold, rand_seed_np,
             "../data/ADNI/CN/test_train_{}_{}_{}.csv".format(
                 modality, atlas, fold))
     ADNI_CN_train = ADNI_CN_train[ADNI_CN_train.train]
-    if not(exists("../data/{}/{}/{}_parcels_{}_{}_{}.csv".format(
-            database, group, modality, atlas, group, database))):
-        print("../data/{}/{}/{}_parcels_{}_{}_{}.csv".format(
-            database, group, modality, atlas, group, database) +
+    if not(exists("../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
+            database, group, modality, atlas, group, database, fold))):
+        print("../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
+            database, group, modality, atlas, group, database, fold) +
             " does not yet exist.")
 
         age_check = df_other['age'] >= 60
@@ -144,15 +144,11 @@ def outlier_check_other(df_other, database, modality, atlas, fold, rand_seed_np,
         if database == 'ADNI':  # ADNI SCD or MCI
             # for ADNI data additionally check that individuals are > 60 in
             # both modalities
-            if group == 'MCI':
-                sep = ";"
-            else:
-                sep = ","
+
             second_mod = ['PET' if modality == 'MRI' else 'MRI'][0]
             second_df = pd.read_csv(
                 '../data/{}/{}/{}_{}_{}_{}_1mm_parcels.csv'.format(
-                    database, group, database, second_mod, group, atlas),
-                sep=sep)
+                    database, group, database, second_mod, group, atlas))
             second_age_check = second_df['age'] >= 60
             age_check = age_check.values & second_age_check.values
             df_other['IQR'] = [True]*len(df_other)
@@ -207,26 +203,28 @@ def outlier_check_other(df_other, database, modality, atlas, fold, rand_seed_np,
         len_init = len(df_other.index)
 
         # MATCHING to train set
-        if fold == 0:
-            while ttest_ind(df_other[['age']],
-                            ADNI_CN_train[['age']])[1][0] < 0.1:
-                drop_index = rand_seed_np.choice(
-                    df_other[df_other.age <= 68].index, replace=False)
-                df_other.drop(drop_index, inplace=True)
-                if 'second_mod' in locals():
-                    second_df.drop(drop_index, inplace=True)
-    
-            df_other.to_csv("../data/{}/{}/{}_parcels_{}_{}_{}.csv".format(
-                database, group, modality, atlas, group, database))
+        """while ttest_ind(df_other[['age']],
+                        ADNI_CN_train[['age']])[1][0] < 0.05:
+            # drop_index = rand_seed_np.choice(
+            #    df_other[df_other.age <= 68].index, replace=False)
+            drop_index = np.argmin(df_other.age)
+            df_other.drop(drop_index, inplace=True)
+            df_other.reset_index(inplace=True, drop=True)
             if 'second_mod' in locals():
-                second_df.to_csv("../data/{}/{}/{}_parcels_{}_{}_{}.csv".format(
-                    database, group, second_mod, atlas, group, database))
-            print("Removed {} subjects during age matching.".format(
-                len_init-len(df_other.index)))
+                second_df.drop(drop_index, inplace=True)
+                second_df.reset_index(inplace=True, drop=True)"""
+
+        df_other.to_csv("../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
+            database, group, modality, atlas, group, database, fold))
+        if 'second_mod' in locals():
+            second_df.to_csv("../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
+                database, group, second_mod, atlas, group, database, fold))
+        print("Removed {} subjects during age matching.".format(
+            len_init-len(df_other.index)))
     else:
         df_other = pd.read_csv(
-            "../data/{}/{}/{}_parcels_{}_{}_{}.csv".format(
-                database, group, modality, atlas, group, database))
+            "../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
+                database, group, modality, atlas, group, database, fold))
         print("Using existing data.")
     print("T-test age ADNI CN - {} {}:".format(database, group),
           ttest_ind(ADNI_CN_train[['age']], df_other[['age']])[1][0])
