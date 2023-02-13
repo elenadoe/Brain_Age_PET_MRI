@@ -69,13 +69,6 @@ features = features.reshape(x, z)
 df = pd.DataFrame(features, columns=labels['labels'])
 df_sub = pd.DataFrame(subj_succ)
 df_final = pd.concat([df_sub, df], axis=1)
-# remove labels that were redefined in AAL3 and left empty for comparability
-exclude = ['Cingulate_Ant_L', 'Cingulate_Ant_R', 
-            'Thalamus_L', 'Thalamus_R']
-df_final.drop(['Cingulate_Ant_L', 'Cingulate_Ant_R',
-               'Thalamus_L', 'Thalamus_R'],
-              inplace=True, axis=1, errors='ignore')
-
 
 for excl_id in excl_ids:
     df_final.drop(df_final[df_final['name'] == excl_id].index, inplace=True)
