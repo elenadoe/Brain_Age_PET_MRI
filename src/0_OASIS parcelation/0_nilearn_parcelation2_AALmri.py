@@ -1,6 +1,7 @@
 import os
 from nilearn._utils import check_niimg
 from nilearn.input_data import NiftiLabelsMasker
+from nilearn.datasets import fetch_atlas_aal
 import nibabel as nib
 import os.path as op
 import numpy as np
@@ -10,20 +11,20 @@ from glob import glob
 # Edit paths before running
 subject_list = 'data/OASIS/OASIS_CN_IDs_Age.txt'
 # fetch AAL atlas and labels
-atlas_file = 'data/0_ATLAS/AAL3v1.nii'
+atlas_file = 'data/0_ATLAS/AAL1_TPMcropped.nii'
+
 atlas = nib.load(atlas_file)
-label_file = 'data/0_ATLAS/AAL3v1.nii.txt'
-label_list = open(label_file)
-label_elems = label_list.read().split('\n')
-labels = [x.split(' ')[1] for x in label_elems if len(x.split(' '))>1]
-# remove labels that were redefined in AAL3 and left empty for comparability
-exclude = ['Cingulate_Ant_L', 'Cingulate_Ant_R', 
-            'Thalamus_L', 'Thalamus_R']
-labels = [i for i in labels if i not in exclude]
+#label_file = 'data/0_ATLAS/AAL1_TPMcropped.nii.txt'
+label_list = fetch_atlas_aal()
+# label_elems = label_list.read().split('\n')
+# labels = [x.split(' ')[1] for x in label_elems if len(x.split(' '))>1]
+labels = pd.DataFrame(label_list)[['labels', 'indices']]
+
+
 
 # this should include subjects' folders
 data_file = '/data/project/cat_12.5/OASIS3'
-output_csv = '/data/project/age_prediction/codes/Brain_Age_PET_MRI/data/OASIS_AAL_parcels_2mm.csv'
+output_csv = '/data/project/age_prediction/codes/Brain_Age_PET_MRI/data/OASIS_AAL1_cropped_parcels.csv'
 
 # NOTE: 'sub-OAS30775_ses-d2893', 'sub-OAS31018_ses-d0469' need to be
 # excluded as not all frames were measured in PET
@@ -65,9 +66,16 @@ for sub in subj_list:
 features = np.array(image_list)
 x, y, z = features.shape
 features = features.reshape(x, z)
-df = pd.DataFrame(features, columns=labels)
+df = pd.DataFrame(features, columns=labels['labels'])
 df_sub = pd.DataFrame(subj_succ)
 df_final = pd.concat([df_sub, df], axis=1)
+# remove labels that were redefined in AAL3 and left empty for comparability
+exclude = ['Cingulate_Ant_L', 'Cingulate_Ant_R', 
+            'Thalamus_L', 'Thalamus_R']
+df_final.drop(['Cingulate_Ant_L', 'Cingulate_Ant_R',
+               'Thalamus_L', 'Thalamus_R'],
+              inplace=True, axis=1, errors='ignore')
+
 
 for excl_id in excl_ids:
     df_final.drop(df_final[df_final['name'] == excl_id].index, inplace=True)
