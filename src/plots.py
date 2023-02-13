@@ -1,4 +1,4 @@
-"""
+1"""
 Created on Tue Dec 21 16:27:41 2021.
 
 @author: doeringe
@@ -15,6 +15,7 @@ import warnings
 from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.linear_model import LinearRegression
+from nilearn.datasets import fetch_atlas_aal
 warnings.filterwarnings("ignore")
 np.random.seed(0)
 # %%
@@ -340,14 +341,14 @@ def feature_imp(df_test, col, final_model, final_model_name,
             imp = final_model.named_steps[final_model_name].coef_[0]
     
             # get labels
-            if atlas == "Sch_Tian":
+            if atlas.startswith("Sch_Tian"):
                 # get atlas
                 atlas_file = '../data/0_ATLAS/schaefer200-17_Tian.nii'
                 atlas_file = image.load_img(atlas_file)
                 atlas_matrix = image.get_data(atlas_file)
                 labels = open('../data/0_ATLAS/composite_atlas_labels.txt')
                 labels = labels.read().split('\n')[:-1]
-            elif atlas == "AAL3":
+            elif atlas.startswith("AAL3"):
                 atlas_file = '../data/0_ATLAS/AAL3v1_1mm.nii'
                 atlas_file = image.load_img(atlas_file)
                 atlas_matrix = image.get_data(atlas_file)
@@ -360,6 +361,9 @@ def feature_imp(df_test, col, final_model, final_model_name,
                                                          '82 Thalamus_R ']]
                 # remove numbers from names, only keep region definition
                 labels = [x.split()[1] for x in labels]
+            elif atlas.startswith("AAL1"):
+                labels = fetch_atlas_aal().labels
+                
     
             # put feature importance into dataframe and save
             df_imp = pd.DataFrame({'region': labels,

@@ -43,12 +43,12 @@ def main(analyze, modality, atlas, rand_seed_np, rand_seed=rand_seed):
     None.
 
     """
-    while atlas != 'Sch_Tian' and atlas != 'AAL3':
+    while atlas != 'Sch_Tian' and not atlas.startswith('AAL'):
         atlas = input("Invalid argument, which atlas would you" +
-                      " like to use?\nPossible arguments: Sch_Tian or AAL3")
-    dir_mri_csv = '../data/ADNI/CN/ADNI_MRI_CN_{}_1mm_parcels.csv'.format(
+                      " like to use?\nPossible arguments: Sch_Tian or AALX")
+    dir_mri_csv = '../data/ADNI/CN/ADNI_MRI_CN_{}_parcels.csv'.format(
         atlas)
-    dir_pet_csv = '../data/ADNI/CN/ADNI_PET_CN_{}_1mm_parcels.csv'.format(
+    dir_pet_csv = '../data/ADNI/CN/ADNI_PET_CN_{}_parcels.csv'.format(
         atlas)
 
     if analyze == "bias correction":

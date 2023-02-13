@@ -1,12 +1,13 @@
 from nilearn._utils import check_niimg
 from nilearn.input_data import NiftiLabelsMasker
+from nilearn.datasets import fetch_atlas_aal
 import nibabel as nib
 import numpy as np
 import pandas as pd
 from glob import glob
 
 
-group = "CN"
+group = "SMC"
 if group == "MCI":
     subjs = pd.read_csv('../../data/ADNI/MCI/FDG_BASELINE_MCI_11_17_2021.csv')
     data_path = '/media/ukwissarchive/doeringe/BrainAge/ADNI/ADNI/MCI/2_SUVR_foranalysis/'
@@ -16,17 +17,16 @@ else:
 subjs = subjs[[group in x for x in subjs.Group]]
 subjs_list = subjs['Subject'].tolist()
 
-atlas = '../../data/0_ATLAS/AAL_TPMcropped.nii'
+atlas = '../../data/0_ATLAS/AAL1_TPMcropped.nii'
 atlas = nib.load(atlas)
 labels = '../../data/0_ATLAS/AAL3v1.nii.txt'
-labels = open(labels)
-labels = labels.read().split('\n')
-# remove labels that were redefined in AAL3 and left empty for comparability
-labels = [i for i in labels if i not in ['35 Cingulate_Ant_L ',
- '36 Cingulate_Ant_R ', '81 Thalamus_L ', '82 Thalamus_R ',]][:-1]
-labels =  [x.split()[1] for x in labels]
+labels = fetch_atlas_aal().labels
+"""labels = [x for x in labels if not x.startswith('Cerebelum')
+          and not x.startswith('Vermis')]
+print(labels)"""
+#labels =  [x.split()[1] for x in labels]
 
-output_csv = '../../data/ADNI/{}/ADNI_PET_{}_AAL3_1mm_parcels.csv'.format(group, group)
+output_csv = '../../data/ADNI/{}/ADNI_PET_{}_AAL1_cropped_parcels.csv'.format(group, group)
 
 # %%
 dates = [date.split('/')[::-1] for date in subjs['AcqDate']]

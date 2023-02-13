@@ -147,7 +147,7 @@ def outlier_check_other(df_other, database, modality, atlas, fold, rand_seed_np,
 
             second_mod = ['PET' if modality == 'MRI' else 'MRI'][0]
             second_df = pd.read_csv(
-                '../data/{}/{}/{}_{}_{}_{}_1mm_parcels.csv'.format(
+                '../data/{}/{}/{}_{}_{}_{}_parcels.csv'.format(
                     database, group, database, second_mod, group, atlas))
             second_age_check = second_df['age'] >= 60
             age_check = age_check.values & second_age_check.values
@@ -155,7 +155,6 @@ def outlier_check_other(df_other, database, modality, atlas, fold, rand_seed_np,
             
             second_df['Dataset'] = database
             second_df['AGE_CHECK'] = age_check
-            second_df['Group'] = group
             second_df['IQR'] = [True]*len(df_other)
 
         elif database == 'OASIS':  # ADNI SCD, OASIS CN, DELCODE SCD
@@ -169,7 +168,7 @@ def outlier_check_other(df_other, database, modality, atlas, fold, rand_seed_np,
             # age check as above
             second_mod = ['PET' if modality == 'MRI' else 'MRI'][0]
             second_df = pd.read_csv(
-                '../data/{}/{}/{}_{}_{}_{}_1mm_parcels.csv'.format(
+                '../data/{}/{}/{}_{}_{}_{}_parcels.csv'.format(
                     database, group, database, second_mod, group, atlas))
             assert len(df_other.index) == len(second_df.index),\
                 "Dataframes don't have the same length!"
@@ -283,10 +282,16 @@ def split_data(df_mri, df_pet, col, rand_seed, atlas, splits=5,
                       right_on='Subject', how='left')
 
     if info:
-        print("First column: {}".format(col[0]) +
-              " (should be 'X17Networks_LH_VisCent_ExStr_1')" +
-              "\nLast column: {}".format(col[-1]) +
-              " (should be 'CAU-lh)")
+        if atlas == 'Sch_Tian_1mm':
+            print("First column: {}".format(col[0]) +
+                  " (should be 'X17Networks_LH_VisCent_ExStr_1')" +
+                  "\nLast column: {}".format(col[-1]) +
+                  " (should be 'CAU-lh)")
+        elif atlas == 'AAL1_cropped':
+            print("First column: {}".format(col[0]) +
+                  " (should be 'Precentral_L')" +
+                  "\nLast column: {}".format(col[-1]) +
+                  " (should be 'Vermis_10')")
 
     # exclude individuals younger than 60 if older_60 == True
     if older_60:
