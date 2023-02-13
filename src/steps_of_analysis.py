@@ -611,9 +611,9 @@ def predict_other(database, group, modality, atlas, rand_seed_np,
                     modality), sep=";")
             file_['Group'] = 'MCI'"""
         file_ = pd.read_csv(
-                    "../data/{}/{}/{}_{}_{}_{}_1mm_parcels.csv".format(
+                    "../data/{}/{}/{}_{}_{}_{}_parcels.csv".format(
                         database, group, database, modality, group, atlas))
-        print("../data/{}/{}/{}_{}_{}_{}_1mm_parcels.csv".format(
+        print("../data/{}/{}/{}_{}_{}_{}_parcels.csv".format(
                         database, group, database, modality, group, atlas))
         file_['age'] = np.round(file_['age'], 0)
         file_ = outlier_check_other(file_, group=group, database=database,
