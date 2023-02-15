@@ -46,7 +46,7 @@ pickle.dump(cm_gender_MCI, open('plotting_config_gender_MCI.p', 'wb'))
 
 random_state = 0
 # hyperparameters
-kernels = ['linear', 'rbf', 'poly']
+kernels = ['linear']
 degree = [2, 3]
 cs = [0.001, 0.01, 0.1, 1, 10, 100, 500]
 # hyperparameters gb
