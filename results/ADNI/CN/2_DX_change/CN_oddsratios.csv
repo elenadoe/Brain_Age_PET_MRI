@@ -1,6 +1,0 @@
-"predictor","oddsratio","ci_low (2.5)","ci_high (97.5)","increment"
-"PET.BAG",1.394,1.102,1.832,"Indicator variable"
-"MRI.BAG",0.995,0.766,1.292,"Indicator variable"
-"ABETA.cat",0.773,0.367,1.57,"Indicator variable"
-"APOE4",13.06,2.085,147.657,"Indicator variable"
-"PTEDUCAT",0.978,0.777,1.227,"Indicator variable"

@@ -1,1 +1,0 @@
-Model	Variable	r	p	n	Method	p_Bonferroni	corrected
