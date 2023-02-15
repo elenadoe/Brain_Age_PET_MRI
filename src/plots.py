@@ -1,4 +1,4 @@
-1"""
+"""
 Created on Tue Dec 21 16:27:41 2021.
 
 @author: doeringe
@@ -344,14 +344,12 @@ def feature_imp(df_test, col, final_model, final_model_name,
             if atlas.startswith("Sch_Tian"):
                 # get atlas
                 atlas_file = '../data/0_ATLAS/schaefer200-17_Tian.nii'
-                atlas_file = image.load_img(atlas_file)
                 atlas_matrix = image.get_data(atlas_file)
                 labels = open('../data/0_ATLAS/composite_atlas_labels.txt')
                 labels = labels.read().split('\n')[:-1]
             elif atlas.startswith("AAL3"):
                 atlas_file = '../data/0_ATLAS/AAL3v1_1mm.nii'
-                atlas_file = image.load_img(atlas_file)
-                atlas_matrix = image.get_data(atlas_file)
+                
                 labels = open('../data/0_ATLAS/AAL3v1_1mm.nii.txt')
                 labels = labels.read().split('\n')[:-1]
                 # remove labels that were redefined in AAL3 and left empty for comparability
@@ -362,9 +360,12 @@ def feature_imp(df_test, col, final_model, final_model_name,
                 # remove numbers from names, only keep region definition
                 labels = [x.split()[1] for x in labels]
             elif atlas.startswith("AAL1"):
+                atlas_file = '../data/0_ATLAS/AAL1_TPMcropped.nii'
                 labels = fetch_atlas_aal().labels
-                
-    
+
+            atlas_file = image.load_img(atlas_file)
+            atlas_matrix = image.get_data(atlas_file)
+
             # put feature importance into dataframe and save
             df_imp = pd.DataFrame({'region': labels,
                                    'feat_importance': imp})
@@ -374,15 +375,17 @@ def feature_imp(df_test, col, final_model, final_model_name,
     
             # create statistical map where each voxel valueo
             # coresponds to weight coefficients
-            # TODO atlas_matrix_stat = atlas_matrix.copy()
+            atlas_matrix_stat = np.around(atlas_matrix).copy().astype(int)
+            label_nums = sorted(list(set(atlas_matrix_stat.flatten())))
     
             # 0 is background in atlas matrix
             # but first element (index = 0) of imp is
             # weight of first actual feature
-            for x in range(1, len(labels)):
-                atlas_matrix[atlas_matrix == x] = imp[x-1]
+            for x in range(1, len(label_nums)):
+                tmp = label_nums[x]
+                atlas_matrix_stat[atlas_matrix_stat == tmp] = imp[x-1]
             # create niimg from atlas_matrix
-            atlas_final = image.new_img_like(atlas_file, atlas_matrix)
+            atlas_final = image.new_img_like(atlas_file, atlas_matrix_stat)
     
             # plot feature importance, save output plot and niimg
             plotting.plot_stat_map(atlas_final)
@@ -393,6 +396,7 @@ def feature_imp(df_test, col, final_model, final_model_name,
             nib.save(atlas_final, "../results/ADNI/CN/evaluation" +
                      "/feature_importance_{}_{}_{}_{}.nii".format(
                          modality, atlas, final_model_name, r))
+            plt.show()
             plt.close()
         else:
             print("Kernel not linear, no weight coefficients available.")
