@@ -6,18 +6,20 @@ import os.path as op
 import numpy as np
 import pandas as pd
 from glob import glob
-from nilearn.datasets import fetch_atlas_aal
+from nilearn.datasets import fetch_atlas_schaefer_2018
 
 group = 'MCI'
-subjs = pd.read_csv('../../data/DELCODE/{}.csv'.format(group))
+subjs = pd.read_csv('/media/projects/brain_age/PET_MRI_age/data/DELCODE/{}.csv'.format(group))
 subjs_list = subjs['Repseudonym'].tolist()
 data_path = '/media/ukwissarchive/doeringe/BrainAge/DELCODE/MRTs/1_Normalized/'
 
-atlas = '../../data/0_ATLAS/AAL1_TPMcropped.nii'
-atlas = nib.load(atlas)
-labels = fetch_atlas_aal().labels
+schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
+atlas = '../../data/0_ATLAS/schaefer200-17_Tian.nii'
+text_file = open('../../data/0_ATLAS/Tian_Subcortex_S1_3T_label.txt')
+labels = text_file.read().split('\n')
+labels = np.append(schaefer['labels'], np.array(labels[:-1]))
 
-output_csv = '../../data/DELCODE/{}/DELCODE_PET_{}_AAL1_cropped_parcels.csv'.format(group, group)
+output_csv = '../../data/DELCODE/DELCODE_MRI_{}_Sch_Tian_1mm_parcels.csv'.format(group)
 
 
 #%%
@@ -61,7 +63,5 @@ features = features.reshape(x, z)
 df = pd.DataFrame(features, columns=labels)
 df_sub = pd.DataFrame(subj_succ)
 df_final = pd.concat([df_sub, df], axis=1)
-df_final['Dataset'] = 'DELCODE'
-df_final['Group'] = group
 
 df_final.to_csv(output_csv, index=False)

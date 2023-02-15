@@ -1,17 +1,16 @@
-import os
 from nilearn._utils import check_niimg
 from nilearn.input_data import NiftiLabelsMasker
 import nibabel as nib
-import os.path as op
 import numpy as np
 import pandas as pd
 from glob import glob
 from nilearn.datasets import fetch_atlas_aal
 
-group = 'MCI'
-subjs = pd.read_csv('../../data/DELCODE/{}.csv'.format(group))
-subjs_list = subjs['Repseudonym'].tolist()
-data_path = '/media/ukwissarchive/doeringe/BrainAge/DELCODE/MRTs/1_Normalized/'
+group = 'SMC'
+subjs = pd.read_csv(
+    '../../data/DELCODE/{}/{}.csv'.format(group, group), sep=";")
+subjs_list = subjs['PTID'].tolist()
+data_path = '/media/ukwissarchive/doeringe/BrainAge/DELCODE/FDG_P0/2_SUVR/'
 
 atlas = '../../data/0_ATLAS/AAL1_TPMcropped.nii'
 atlas = nib.load(atlas)
@@ -19,8 +18,7 @@ labels = fetch_atlas_aal().labels
 
 output_csv = '../../data/DELCODE/{}/DELCODE_PET_{}_AAL1_cropped_parcels.csv'.format(group, group)
 
-
-#%%
+# %%
 dates = [date.split('.')[::-1] for date in subjs['visdat']]
 sess_list = [date[0]+date[1]+'0' + date[2] if len(date[2]) == 1
              else ''.join(date) for date in dates]
@@ -35,9 +33,9 @@ subj_succ['sess'] = []
 
 # create list of regional data and subject IDs
 for sub in subjs_list:
-    foi = glob(data_path + "m0*" + sub + "*.nii")
-    date = subjs[subjs['Repseudonym'] == sub]['sess'].values[0]
-    age = subjs[subjs['Repseudonym'] == sub]['age'].values[0]
+    foi = glob(data_path + "SUV*" + sub + "*.nii")
+    date = subjs[subjs['PTID'] == sub]['sess'].values[0]
+    age = subjs[subjs['PTID'] == sub]['Age'].values[0]
     y = []
 
     base_ind_ = 0
