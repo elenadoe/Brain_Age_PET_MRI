@@ -29,9 +29,10 @@ labels = pd.DataFrame(label_list)[['labels', 'indices']]
 data_file = '/data/project/cat_12.5/ADNI_complete'
 
 # Edit paths before running
-groups = ['CN', 'MCI', 'SMC']
+# groups = ['CN', 'MCI', 'SMC']
+groups = ['MCI']
 for group in groups:  
-    f_path = 'data/ADNI/' + group + '/ADNI_PET_' + group + '_AAL3_1mm_parcels.csv'
+    f_path = 'data/ADNI/' + group + '/ADNI_PET_' + group + '_AAL1_cropped_parcels.csv'
     subject_list = pd.read_csv(f_path)
     subject_list = subject_list[subject_list.Group == group]
     subject_list.name
@@ -60,7 +61,7 @@ for group in groups:
         day = subjs[subjs['name'] == sub]['sess'].values[0].astype(str)[4:6]
         month = subjs[subjs['name'] == sub]['sess'].values[0].astype(str)[6:8]
         pet_date = datetime(int(year), int(month), int(day), 0, 0)
-        fois = glob(op.join(data_file, sub_name, 'ses-' + '*', 'mri', '*.nii*'))
+        fois = glob(op.join(data_file, sub_name, 'ses-2' + '*', 'mri', '*.nii*'))
         if fois:
             datetimeobject = []
             for foi in fois:
