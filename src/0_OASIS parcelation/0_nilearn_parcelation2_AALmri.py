@@ -34,7 +34,6 @@ excl_ids = ['sub-OAS30775_ses-d2893', 'sub-OAS31018_ses-d0469']
 # read IDs and age
 subjs = pd.read_csv(subject_list, delimiter="\t")
 subj_list = [sub for sub in subjs['SCAN_ID']]
-sessions = [sub.split("d") for sub in subj_list]
 age = subjs['age']
 
 image_list = []
