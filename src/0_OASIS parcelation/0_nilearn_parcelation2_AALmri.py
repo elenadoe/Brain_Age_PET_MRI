@@ -33,20 +33,20 @@ excl_ids = ['sub-OAS30775_ses-d2893', 'sub-OAS31018_ses-d0469']
 
 # read IDs and age
 subjs = pd.read_csv(subject_list, delimiter="\t")
-subj_list = ['sub-' + sub for sub in subjs['SCAN_ID']]
+subj_list = [sub for sub in subjs['SCAN_ID']]
 age = subjs['age']
 
 image_list = []
 subj_succ = {}
 subj_succ['name'] = []
 subj_succ['sess'] = []
-# subj_succ['age'] = []
+subj_succ['age'] = []
 # Strips the newline character
 for sub in subj_list:
     sub_name = sub.split("_", 1)[0]
-    session = sub.split("_", 1)[1]
+    session = sub.split("d")[1]  # CHANGED
     # /data/project/cat_12.5/HCP/993675/mri/m0wp1993675.nii.gz
-    foi = glob(op.join(data_file, sub_name, '*/mri', '*.nii*'))
+    foi = glob(op.join(data_file, 'sub-' + sub_name, '*/mri', '*.nii*'))
     if foi:
         this_image = nib.load(foi[0])
         path = os.path.normpath(foi[0])
@@ -60,7 +60,9 @@ for sub in subj_list:
         parcelled = masker.fit_transform(niimg)
         image_list.append(parcelled)
         subj_succ['sess'].append(sess[0])
-        # subj_succ['age'].append()
+        days = sess[0].split('d')
+        subj_succ['age'].append(
+            age + ((int(sess[0][5:]) - int(session))/365)) # ADDED
         subj_succ['name'].append(sub)
 
 features = np.array(image_list)
