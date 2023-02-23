@@ -2072,3 +2072,228 @@ Outliers MRI test:
 013_S_4580
 
 
+Outliers PET train:
+003_S_4555
+003_S_4644
+022_S_4320
+032_S_0095
+032_S_4921
+070_S_5040
+123_S_4362
+168_S_6062
+
+Outliers PET test:
+
+Outliers MRI train:
+013_S_4580
+016_S_4121
+032_S_1169
+116_S_4010
+168_S_6062
+
+Outliers MRI test:
+033_S_0741
+068_S_4340
+131_S_0123
+
+
+Outliers PET train:
+003_S_4555
+014_S_4093
+032_S_0095
+123_S_4362
+168_S_6062
+
+Outliers PET test:
+003_S_4644
+032_S_4921
+
+Outliers MRI train:
+013_S_4580
+032_S_1169
+068_S_4340
+168_S_6062
+
+Outliers MRI test:
+116_S_4010
+128_S_4607
+
+
+Outliers PET train:
+003_S_4555
+003_S_4644
+032_S_0095
+032_S_4921
+123_S_4362
+168_S_6062
+
+Outliers PET test:
+
+Outliers MRI train:
+002_S_4270
+013_S_4580
+016_S_4121
+032_S_1169
+033_S_0741
+068_S_4340
+116_S_4010
+
+Outliers MRI test:
+
+
+Outliers PET train:
+003_S_4644
+032_S_0095
+123_S_4362
+168_S_6062
+
+Outliers PET test:
+003_S_4555
+
+Outliers MRI train:
+013_S_4580
+016_S_4121
+033_S_0741
+068_S_4340
+116_S_4010
+168_S_6062
+
+Outliers MRI test:
+032_S_1169
+
+
+Outliers PET train:
+003_S_4555
+003_S_4644
+022_S_4320
+032_S_4921
+070_S_5040
+
+Outliers PET test:
+032_S_0095
+123_S_4362
+168_S_6062
+
+Outliers MRI train:
+016_S_4121
+032_S_1169
+033_S_0741
+068_S_4340
+116_S_4010
+131_S_0123
+
+Outliers MRI test:
+013_S_4580
+128_S_4607
+168_S_6062
+
+
+Outliers PET train:
+003_S_4555
+032_S_0095
+037_S_4071
+070_S_5040
+123_S_4362
+168_S_6062
+
+Outliers PET test:
+022_S_0096
+
+Outliers MRI train:
+013_S_4580
+022_S_4266
+029_S_0866
+116_S_4092
+168_S_6062
+
+Outliers MRI test:
+068_S_4340
+
+
+Outliers PET train:
+003_S_4555
+022_S_0096
+032_S_0095
+037_S_4071
+
+Outliers PET test:
+
+Outliers MRI train:
+022_S_4266
+035_S_0048
+068_S_4340
+116_S_4092
+137_S_0301
+
+Outliers MRI test:
+029_S_0866
+
+
+Outliers PET train:
+022_S_0096
+032_S_0095
+037_S_4071
+070_S_5040
+
+Outliers PET test:
+
+Outliers MRI train:
+013_S_4580
+022_S_4266
+029_S_0866
+032_S_1169
+035_S_0048
+068_S_4340
+116_S_4092
+
+Outliers MRI test:
+
+
+Outliers PET train:
+022_S_0096
+032_S_0095
+037_S_4071
+
+Outliers PET test:
+003_S_4555
+070_S_5040
+
+Outliers MRI train:
+013_S_4580
+029_S_0866
+035_S_0048
+068_S_4340
+
+Outliers MRI test:
+022_S_4266
+116_S_4092
+137_S_0301
+
+
+Outliers PET train:
+003_S_4555
+003_S_4644
+022_S_0096
+032_S_4921
+070_S_5040
+
+Outliers PET test:
+003_S_4900
+032_S_0095
+037_S_4071
+123_S_4362
+168_S_6062
+
+Outliers MRI train:
+021_S_4254
+022_S_4266
+029_S_0866
+035_S_0048
+068_S_4340
+116_S_4092
+131_S_0123
+
+Outliers MRI test:
+013_S_4580
+
+
