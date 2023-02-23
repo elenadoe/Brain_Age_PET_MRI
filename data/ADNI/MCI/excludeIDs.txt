@@ -1,0 +1,3 @@
+name	reason
+126_S_4675	PET and MRI more than 365 days apart
+016_S_2007	PET and MRI more than 365 days apart	
