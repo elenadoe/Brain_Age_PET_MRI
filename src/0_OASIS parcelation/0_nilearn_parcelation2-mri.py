@@ -13,7 +13,7 @@ subject_list = 'data/OASIS/OASIS_CN_IDs_Age.txt'
 atlas = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
 # this should include subjects' folders
 data_file = '/data/project/cat_12.5/OASIS3'
-output_csv = '/data/project/age_prediction/codes/PET_MRI_age/data/OASIS_Sch_Tian_1mm_parcels.csv'
+output_csv = '/data/project/age_prediction/codes/Brain_Age_PET_MRI/data/OASIS_Sch_Tian_1mm_parcels.csv'
 
 text_file = open('/data/project/age_prediction/extras/Tian_Subcortex_S1_3T_label.txt')
 labels = text_file.read().split('\n')
@@ -34,11 +34,11 @@ image_list = []
 subj_succ = {}
 subj_succ['name'] = []
 subj_succ['sess'] = []
-# subj_succ['age'] = []
+subj_succ['age'] = []
 # Strips the newline character
 for sub in subj_list:
     sub_name = sub.split("_", 1)[0]
-    session = sub.split("_", 1)[1]
+    session = sub.split("d")[1]  # CHANGED
     # /data/project/cat_12.5/HCP/993675/mri/m0wp1993675.nii.gz
     foi = glob(op.join(data_file, sub_name, '*/mri', '*.nii*'))
     if foi:
@@ -47,14 +47,16 @@ for sub in subj_list:
         sess = [dir for dir in path.split(os.sep) if dir.startswith('ses')]
 
         niimg = check_niimg(this_image, atleast_4d=True)
-        masker = NiftiLabelsMasker(labels_img='data/schaefer200_17_Tian1mm.nii',
+        masker = NiftiLabelsMasker(labels_img='data/0_ATLAS/schaefer200-17_Tian.nii',
                                    standardize=False,
                                    memory='nilearn_cache',
                                    resampling_target='data')
         parcelled = masker.fit_transform(niimg)
         image_list.append(parcelled)
         subj_succ['sess'].append(sess[0])
-        # subj_succ['age'].append()
+        days = sess[0].split('d')
+        subj_succ['age'].append(
+            subjs[subjs['SCAN_ID'] == sub]['age'].values + ((int(sess[0][5:]) - int(session))/365))
         subj_succ['name'].append(sub)
 
 features = np.array(image_list)

@@ -62,7 +62,7 @@ for sub in subj_list:
         subj_succ['sess'].append(sess[0])
         days = sess[0].split('d')
         subj_succ['age'].append(
-            age + ((int(sess[0][5:]) - int(session))/365)) # ADDED
+            subjs[subjs['SCAN_ID'] == sub]['age'].values + ((int(sess[0][5:]) - int(session))/365)) # ADDED
         subj_succ['name'].append(sub)
 
 features = np.array(image_list)
