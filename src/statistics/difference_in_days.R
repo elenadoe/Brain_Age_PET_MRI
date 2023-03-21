@@ -1,8 +1,8 @@
 rm(list=ls())
-mri <- read.csv("2_BrainAge/PET_MRI_age/results/MCI/MRI-predicted_age_MCI_0.csv")
-pet <- read.csv("2_BrainAge/PET_MRI_age/results/MCI/PET-predicted_age_MCI_0.csv")
-mri_sess <- read.csv2("2_BrainAge/PET_MRI_age/data/MCI/MCI_MRI_parcels.csv")
-pet_sess <- read.csv2("2_BrainAge/PET_MRI_age/data/MCI/MCI_PET_parcels.csv")
+mri <- read.csv("2_BrainAge/Brain_Age_PET_MRI/results/MCI/MRI-predicted_age_MCI_0.csv")
+pet <- read.csv("2_BrainAge/Brain_Age_PET_MRI/results/MCI/PET-predicted_age_MCI_0.csv")
+mri_sess <- read.csv2("2_BrainAge/Brain_Age_PET_MRI/data/MCI/MCI_MRI_parcels.csv")
+pet_sess <- read.csv2("2_BrainAge/Brain_Age_PET_MRI/data/MCI/MCI_PET_parcels.csv")
 mri$mri_sess_date <- NA
 pet$pet_sess_date <- NA
 for (i in 1:nrow(mri_sess)){

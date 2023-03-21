@@ -1,0 +1,30 @@
+ # define class weights based on literature, use inverse of two year rate as class weight
+    # https://machinelearningmastery.com/cost-sensitive-logistic-regression/
+    if group == "SMC":
+        weights = {0: 11, 1: 89}  # 10.1590/1980-57642020dn14-030007: annual rate: 5.44% --> two year rate = 5.44% + 5.44%*94.56% = 10.58%
+    elif group == "CN":
+        weights = {0: 5, 1: 95}  # 10.1590/1980-57642020dn14-030007: annual rate: 2.75% --> two year rate = 2.75% + 2.75%*97.25% = 5.42%
+    elif group == "CU":
+        weights = {0: 6, 1: 94}  # 10.1212/WNL.0b013e3181c0665f, see Table 1 for rate of change per two years
+    elif group == "MCI":
+        weights = {0: 24, 2: 76}  # PMID: 10997127: annual rate: 10 - 15% --> two year rate = 19 - 28% --> mean: 24%
+
+# Evaluate AUC with different feature subsets
+fig, ax = plt.subplots(1,2, figsize=(15,5))
+features = ['+'+x if x!=cog_out_nc[2][-1] else x for x in list(reversed(cog_out_nc[2]))]
+
+sns.lineplot(data=auc_n_features_nc, y='AUC', x='n_features',
+             ax=ax[0], marker="x", markeredgecolor="black")
+sns.lineplot(data=auc_n_features_c, y='AUC', x='n_features',
+            ax=ax[1], marker="x", markeredgecolor="black")
+ax[0].set_xticks(range(9), features, rotation=50)
+ax[1].set_xticks(range(9), features, rotation=50)
+ax[0].set_xlabel("Features")
+ax[1].set_xlabel("Features")
+ax[0].set_title("Uncalibrated")
+ax[1].set_title("Calibrated")
+
+fig.suptitle('AUC by feature')
+plt.savefig(f"../results/ADNI/{group}/2_cognitive decline/AUC_by_features_{group}.png",
+            dpi=300, bbox_inches="tight")
+plt.show()

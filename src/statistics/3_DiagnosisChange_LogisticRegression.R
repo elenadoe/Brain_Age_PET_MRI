@@ -8,10 +8,15 @@ library(oddsratio)
 library(ggpattern)
 library(patchwork)
 library(MASS)
+library(predtools)
 
 rm(list=ls())
+
 group <- 'CN'
+atlas <- 'AAL1_cropped'
 database <- 'ADNI'
+matching <- T
+whole.set <- T
 shape <- c(
   "X0_stable" = 21,
   "X1_decl" = 23)
@@ -22,37 +27,57 @@ alpha <- c(
     "X0_stable"=0.4,
     "X1_decl"=0.9)
 
-set.seed(0)
+if (group != 'all' & group != 'CU'){
+  df <- read.csv(sprintf(
+    '2_BrainAge/Brain_Age_PET_MRI/results/ADNI/%s/merged_for_dx_prediction_%s_%s.csv',
+    group, atlas, group))
+} else{
+  df <- read.csv(sprintf(
+    '2_BrainAge/Brain_Age_PET_MRI/results/ADNI/merged_for_dx_prediction_%s_%s.csv',
+    atlas, group))
+  df$DX.n <- ifelse(df$DX.bl == 'CN', 1, ifelse(
+    df$DX.bl == 'SMC', 2, 3))
+}
+df <- df[!is.na(df$DX.cat.c),]
+row.names(df) <- NULL
+df$PTAUAB.cat <- as.factor(df$PTAUAB42.cutoff)
+df$AB.cat <- as.factor(df$ABETA42.cutoff)
 
-df <- read.csv(
-  paste("2_BrainAge/PET_MRI_age_final/data/ADNI/PsychPath/",
-        sprintf("merged_for_dx_prediction_%s.csv", group), sep = ""))
+df$PTGENDER <- as.factor(df$PTGENDER)
+# df$PTEDUCAT <- as.factor(ifelse(df$PTEDUCAT<16,0,1))
+df$APOE4 <- ifelse(df$APOE4>0,1,0)
+df$APOE4 <- as.factor(df$APOE4)
+df$DX.bl <- as.factor(ifelse(df$DX.bl == "CN", 1, ifelse(
+  df$DX.bl == "SMC", 2, 3
+)))
 
-# whether to exclude incomplete cases
-whole.set <- T
 if (whole.set == F){
-  df <- df[df$ABETA.cat!=0,]
+  df <- df[df$PTAUAB.cat!=0,]
 }
 
-# propensity score matching with age of respective modality
-p.match1 <- matchit(DX.cat.n ~ PTGENDER + meanage,
-                    data = df, method = "optimal", distance = "glm")
-
-summary(p.match1)
-
-df.match1 <- match.data(p.match1)
-df.match1$ABETA.cat <- as.factor(df.match1$ABETA.cat)
-df.match1$APOE4 <- as.factor(df.match1$APOE4)
-
-# unmatched <- df[!(df$PTID %in% df.match1$PTID) | df$DX.cat.c == "X1_decl",]
-# table(unmatched$DX.cat.c)
-#p.match2 <- matchit(DX.cat.n ~ PTGENDER + meanage,
-#                    data = unmatched, method = "optimal", distance = "glm")
-#
-# <- match.data(p.match2)
-
-# loop over two different matched sets
-#samples <- list(df.match1, df.match2)
+if (matching){
+  whole.set <- T
+  
+  
+  # propensity score matching with age of respective modality
+  set.seed(0)
+  p.match1 <- matchit(DX.cat.n ~ PTGENDER + meanage,
+                      data = df, method = "optimal", distance = "glm")
+  
+  summary(p.match1)
+  
+  df <- match.data(p.match1)
+  
+  # unmatched <- df[!(df$PTID %in% df.match1$PTID) | df$DX.cat.c == "X1_decl",]
+  # table(unmatched$DX.cat.c)
+  #p.match2 <- matchit(DX.cat.n ~ PTGENDER + meanage,
+  #                    data = unmatched, method = "optimal", distance = "glm")
+  #
+  # <- match.data(p.match2)
+  
+  # loop over two different matched sets
+  #samples <- list(df.match1, df.match2)
+}
 
 cognitive.impairment <- function(x) {
   fitControl <- trainControl(
@@ -60,12 +85,13 @@ cognitive.impairment <- function(x) {
     classProbs = TRUE, summaryFunction = twoClassSummary
   )
   
-  # use both MRI and PET BPAD as they are not strongly correlated in CN
+  # use both RI and PET BPAD as they are not strongly correlated in CN
   # additionally show models with only MRI or PET BPAD for MCI
   # due to strong correlation of BPAD
   # Ranganathan et al. (2017)
   traindata <- subset(x,
-                      select=c(PET.BAG, MRI.BAG, ABETA.cat, APOE4, PTEDUCAT))
+                      select=c(PET.BAG, MRI.BAG, AB.cat,
+                               APOE4, PTEDUCAT, meanage, PTGENDER))
   trainclasses <- factor(x$DX.cat.c)
   nrow(traindata) == length(trainclasses)
   
@@ -74,13 +100,61 @@ cognitive.impairment <- function(x) {
                  trControl = fitControl)
 }
 set.seed(0)
-model <- cognitive.impairment(df.match1)
+model <- cognitive.impairment(df)
 s <- summary(model)
 s
+val_data <- model$pred
+val_data$obs <- ifelse(val_data$obs == 'X0_stable', 0, 1)
+calibration_plot(data = val_data, obs = 'obs', pred = 'X1_decl',
+                 title = "Calibration plot for validation data",
+                 x_lim=c(0,max(val_data$X1_decl)), y_lim=c(0,max(val_data$X1_decl)))
+
+em <- function(y, posteriors_zero, priors_zero, epsilon=1e-6, positive_class=1) {
+  s <- 0
+  priors_s <- priors_zero
+  posteriors_s <- posteriors_zero
+  val <- 2 * epsilon
+  history <- list()
+  acc <- mean((y == positive_class) == (posteriors_zero[, positive_class] > 0.5))
+  rec <- sum((y == positive_class) & (posteriors_zero[, positive_class] > 0.5)) / sum(y == positive_class)
+  prec <- sum((y == positive_class) & (posteriors_zero[, positive_class] > 0.5)) / sum(posteriors_zero[, positive_class] > 0.5)
+  history[[1]] <- list(s=s, priors_s=as.list(priors_s), val=1, acc=acc, prec=prec, rec=rec)
+  
+  while (val >= epsilon) {
+    # E step
+    ratios <- priors_s / priors_zero
+    denominators <- apply(ratios * posteriors_zero, 1, sum)
+    for (c in seq_along(priors_zero)) {
+      posteriors_s[, c] <- ratios[c] * posteriors_zero[, c] / denominators
+    }
+    acc <- mean((y == positive_class) == (posteriors_s[, positive_class] > 0.5))
+    rec <- sum((y == positive_class) & (posteriors_s[, positive_class] > 0.5)) / sum(y == positive_class)
+    prec <- sum((y == positive_class) & (posteriors_s[, positive_class] > 0.5)) / sum(posteriors_s[, positive_class] > 0.5)
+    
+    # M step
+    priors_s_minus_one <- priors_s
+    posteriors_sum <- rowSums(posteriors_s)
+    priors_s <- posteriors_sum / sum(posteriors_sum)
+    
+    # check for stop
+    val <- sum(abs(priors_s - priors_s_minus_one))
+    s <- s + 1
+    history[[s+1]] <- list(s=s, priors_s=as.list(priors_s), val=val, acc=acc, prec=prec, rec=rec)
+  }
+  return(list(posteriors_s=posteriors_s, priors_s=priors_s, history=history))
+}
+priors_zero <- ifelse(group == 'CN' | group == 'SMC',
+                      rep(.06, each=nrow(val_data)),
+                      rep(.2, each=nrow(val_data)))
+priors_zero <- 0.5
+priors_zero <- table(val_data$obs)[2]/(table(val_data$obs)[1]+table(val_data$obs)[2])
+e.max <- em(val_data$obs, data.frame(val_data$X0_stable, val_data$X1_decl), priors_zero)
+
 
 # save odds ratios of full model
-OR <- or_glm(data = df.match1, model = model$finalModel, 
-             incr = list(PET.BAG = 1, MRI.BAG = 1, PTEDUCAT = 1))
+OR <- or_glm(data = df, model = model$finalModel, 
+             incr = list(PET.BAG = 1, MRI.BAG = 1, PTEDUCAT = 1,
+                         meanage = 1))
 OR
 
 prediction.df <- data.frame(rowIndex = model$pred$rowIndex,
@@ -89,15 +163,16 @@ prediction.df <- data.frame(rowIndex = model$pred$rowIndex,
                             prob = model$pred$X1_decl)
 # add relevant variables to prediction df
 for (j in 1:nrow(prediction.df)){
-  prediction.df$PTID[j] <- df.match1$PTID[prediction.df$rowIndex[j]]
-  prediction.df$DX[j] <- df.match1$DX_final[prediction.df$rowIndex[j]]
-  prediction.df$PET.BAG[j] <- df.match1$PET.BAG[prediction.df$rowIndex[j]]
-  prediction.df$MRI.BAG[j] <- df.match1$MRI.BAG[prediction.df$rowIndex[j]]
-  prediction.df$PETAGE[j] <- df.match1$PETAGE[prediction.df$rowIndex[j]]
-  prediction.df$MRIAGE[j] <- df.match1$MRIAGE[prediction.df$rowIndex[j]]
-  prediction.df$APOE[j] <- df.match1$APOE4[prediction.df$rowIndex[j]]
-  prediction.df$AMY.cat[j] <- df.match1$ABETA.cat[prediction.df$rowIndex[j]]
+  prediction.df$PTID[j] <- df$PTID[prediction.df$rowIndex[j]]
+  prediction.df$DX[j] <- df$DX_final[prediction.df$rowIndex[j]]
+  prediction.df$PET.BAG[j] <- df$PET.BAG[prediction.df$rowIndex[j]]
+  prediction.df$MRI.BAG[j] <- df$MRI.BAG[prediction.df$rowIndex[j]]
+  prediction.df$PETAGE[j] <- df$PETAGE[prediction.df$rowIndex[j]]
+  prediction.df$MRIAGE[j] <- df$MRIAGE[prediction.df$rowIndex[j]]
+  prediction.df$APOE[j] <- df$APOE4[prediction.df$rowIndex[j]]
+  prediction.df$AMY.cat[j] <- df$ABETA.cat[prediction.df$rowIndex[j]]
 }
+prediction.df$gt.num <- ifelse(prediction.df$gt == "X0_stable", 0, 1)
 
 attach(prediction.df)
 winner <- PET.BAG
@@ -105,17 +180,17 @@ winner.name <- ifelse(winner == MRI.BAG, 'MRI', 'PET')[1]
 color <- ifelse(winner == MRI.BAG, 'midnightblue', 'darkred')[1]
 # apoe_pal <- c("1" = 'coral3', "2" = 'chocolate')
 
-g <- ggplot(prediction.df, aes(x = winner, y = prob)) +
+g <- ggplot(prediction.df) +
   theme_classic() +
   geom_smooth(method = "glm", 
               method.args = list(family = "binomial"), 
-              aes(color = color, fill = color), se = T, linetype = "dashed") +
+              aes(x = winner, y = gt.num, color = color, fill = color), se = T, linetype = "dashed") +
   # scatter individual data points
-  geom_point(aes(shape = gt, size = gt, alpha = gt, color = color,
+  geom_point(aes(x = winner, y = prob, shape = gt, size = gt, alpha = gt, color = color,
                  fill = color)) +
   # 50% threshold
-  geom_hline(yintercept = 0.5, linetype = "dotted", col = "gray", size = 2) +
-  annotate("text", x = min(winner)+2, y = 0.5, col = "gray",
+  geom_hline(yintercept = 0.5, linetype = "dotted", col = "black", size = 2) +
+  annotate("text", x = min(winner)+1, y = 0.5, col = "black",
            label = "Cut-off", vjust = -0.5, size = 5) +
 
   # configure text size
@@ -166,27 +241,34 @@ dens1 + plot_spacer() + g +
 
 # get intersection of line with ~50% probability
 cutoff <- ggplot_build(g)$data[[1]]
+
 print(cutoff[(0.48<cutoff$y) & (0.52>cutoff$y),]) # CN: 0.7829160 MCI: 2.230878
 #print(prediction.df[(0.48<prediction.df$prob) & (0.52>prediction.df$prob),])
-#my_glm <- glm(gt~PET.BAG, data=prediction.df, family=binomial())
-#dose.p(my_glm, p=0.5) # CN: 0.6670282 MCI: 2.130332 
-
+my_glm <- glm(gt~winner, data=prediction.df, family=binomial())
+cutoff <- dose.p(my_glm, p=c(0.5)) # CN: 0.6670282 MCI: 2.130332 
+cutoff[1]
 if (group == 'CN'){
   # cutoff_final <- 0.8522485
-  cutoff_final <- 0.7829160
-  df.match1$threshold <- ifelse(df.match1$PET.BAG > cutoff_final, "Y1_decl",
+  cutoff_final <- cutoff[1]
+  df$threshold <- ifelse(df$PET.BAG > cutoff_final, "Y1_decl",
                                 "Y0_stable")
+  df.match1$threshold <- ifelse(df.match1$PET.BAG > cutoff_final, "Y1_decl",
+                         "Y0_stable")
 } else{
-  cutoff_final = 2.230878 
-  df.match1$threshold <- ifelse(df.match1$MRI.BAG > cutoff_final, 'Y1_decl',
+  #cutoff_final = 1.555705 
+  cutoff_final <- cutoff[1]
+  df$threshold <- ifelse(df$MRI.BAG > cutoff_final, 'Y1_decl',
                                 'Y0_stable')
+  df.match1$threshold <- ifelse(df.match1$MRI.BAG > cutoff_final, "Y1_decl",
+                                "Y0_stable")
 }
 
+table(df$threshold, df$DX.cat.c)
 table(df.match1$threshold, df.match1$DX.cat.c)
 
 ggsave(filename = sprintf(
   "%s_DX_change_prediction_%s_%s.png", group, database, winner.name),
-  path = sprintf("2_BrainAge/PET_MRI_age_final/results/%s/%s/2_DX_change/",
+  path = sprintf("2_BrainAge/Brain_Age_PET_MRI/results/%s/%s/2_DX_change",
                  database, group),
   width = 10, height = 10, device='tiff', dpi=300)
 detach(prediction.df)

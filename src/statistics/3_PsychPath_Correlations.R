@@ -5,9 +5,8 @@ library(ggplot2)
 library(ppcor)
 library(car)
 
-# TODO: add Hippocampus & Precuneus
-rm(list=ls)
-group <- 'SMC'
+rm(list=ls())
+group <- 'CN'
 database <- 'ADNI'
 atlas <- 'AAL1_cropped'
 # color <- ifelse(modality == 'MRI', 'midnightblue', 'darkred')
@@ -29,8 +28,9 @@ if (group != 'all' & group != 'CU'){
   covars <- c('PTEDUCAT', 'APOE4', 'meanage', 'PTGENDER', 'DX.n')
 }
 
-pred_table$AT <- factor(ifelse(pred_table$PTAU.ABETA42_0.023_cutoff==1, 1,
-                               ifelse(is.nan(pred_table$PTAU.ABETA42_0.023_cutoff), NA, 0)))
+# pred_table$AT <- factor(ifelse(pred_table$PTAU.ABETA42_0.023_cutoff==1, 1,
+#                                ifelse(is.nan(pred_table$PTAU.ABETA42_0.023_cutoff), NA, 0)))
+pred_table$AT <- factor(pred_table$SUMMARYSUVR_WHOLECEREBNORM_1.11CUTOFF)
 
 # compare AT status
 at <- function(df, bag){
@@ -51,7 +51,7 @@ at <- function(df, bag){
       scale_color_discrete() +
       theme(text = element_text(size=20))
     g
-    ggsave(filename = paste(current_bag, '_PTAUAB_', atlas, ".png", sep=""),
+    ggsave(filename = paste(current_bag, '_PETAMY_', atlas, ".png", sep=""),
            path = sprintf(
              "2_BrainAge/Brain_Age_PET_MRI/results/%s/%s/1_pathology/",
              database, group),
@@ -92,13 +92,13 @@ get_cors <- function(df, vars_, covars, bag, amy=''){
   # assess normality
   sw <- shapiro.test(df2[, vars_[i]])
   if (sw$p.value < 0.05){
-    print(paste(vars_[i], sprintf("(n = %i)", nrow(df2)-sum(missing)),
+    print(paste(vars_[i], sprintf("(n = %i)", nrow(df2)),
                 "not normally distributed, calculating spearman corr",
                 "p = ", sw$p.value))
     method='spearman'
   } else{
     method='pearson'
-    print(paste(vars_[i], sprintf("(n = %i)", nrow(df2)-sum(missing)),
+    print(paste(vars_[i], sprintf("(n = %i)", nrow(df2)),
                 "normally distributed, calculating pearson corr",
                 "p = ", sw$p.value))
   }
@@ -150,13 +150,17 @@ get_cors <- function(df, vars_, covars, bag, amy=''){
     }
     
     df3 <- df2[!is.na(df2$AT),]
-    # PET amyloid moderation effect?
-    moderation <- lm(df3[,vars_[i]] ~ df3[,current_bag]*
-                     df3$AT+
-                     df3$meanage+df3$PTGENDER+df3$PTEDUCAT+df3$APOE4) # TODO: use bootstrapping?
+    if (psychpath == "PATH"){
+      moderation <- lm(df3[,current_bag] ~ df3[,vars_[i]]* df3$AT+
+                       df3$meanage+df3$PTGENDER+df3$PTEDUCAT+df3$APOE4)} # TODO: use bootstrapping?
+    else{
+      moderation <- lm(df3[,vars_[i]] ~ df3[,current_bag] * df3$AT+
+                         df3$meanage+df3$PTGENDER+df3$PTEDUCAT+df3$APOE4)}
     print(
       sprintf("Moderation of amyloid on interaction %s - %s: %s",
-              current_bag, vars_[i], summary(moderation)$coefficients[8,4]))
+              current_bag, vars_[i],
+              summary(moderation)$coefficients[
+                nrow(summary(moderation)$coefficients),4]))
     
     alpha <- c(
       "0"=0.2,
@@ -170,7 +174,7 @@ get_cors <- function(df, vars_, covars, bag, amy=''){
     
     df3$X_resid<-resid(lm(df3[,current_bag] ~ df3[,"PTEDUCAT"]+df3[,"meanage"] +
                            df3[,"APOE4"]+df3[,"PTGENDER"]))
-    if (summary(moderation)$coefficients[8,4]<.1){
+    if (summary(moderation)$coefficients[nrow(summary(moderation)$coefficients),4]<.1){
       h <- ggplot(df3) +
         stat_smooth(method=lm, fullrange=FALSE, 
                     aes(x=X_resid,
@@ -205,13 +209,19 @@ bag <- c("MRI.BAG", "PET.BAG")
 get_cors(pred_table, vars_, covars, bag)
 
 # repeat with amyloid positives
-pos_table = pred_table[pred_table$PTAU.ABETA42_0.023_cutoff==1,]
+pos_table = pred_table[pred_table$SUMMARYSUVR_WHOLECEREBNORM_1.11CUTOFF==1,]
 get_cors(pos_table, vars_, covars, bag, '_amypos')
-neg_table = pred_table[pred_table$PTAU.ABETA42_0.023_cutoff==0,]
+neg_table = pred_table[pred_table$SUMMARYSUVR_WHOLECEREBNORM_1.11CUTOFF==0,]
 get_cors(neg_table, vars_, covars, bag, '_amyneg')
 
+# difference between decliners and non-decliners
+l.mri <- lm(pred_table$DX.cat.c ~ 
+                        pred_table$meanage+pred_table$PTGENDER+
+                        pred_table$PTEDUCAT+pred_table$APOE4+pred_table$MRI.BAG)
+summary(l.mri)
+
 # DELCODE PATHOLOGY
-group <- "mci"
+group <- "scd"
 database <- "DELCODE"
 if (group == "mci"){
   pred_table <- read.csv(paste("2_BrainAge/Brain_Age_PET_MRI/results/DELCODE/",
@@ -228,11 +238,11 @@ if (group == "mci"){
 pred_table$sex <- ifelse(pred_table$sex=="m", 0, 1)
 
 
-bag <- c("MRI.BAG")
+bag <- c("PET.BAG")
 atlas <- "AAL1_cropped"
 psychpath <- "PATH"
 long_psychpath <- "1_pathology"
 vars_ <- c("Abeta42",
            'totaltau', 'phosphotau181', 'PTAU.ABETA42')
-covars <- c('edyears', 'APOE4', 'sex')
+covars <- c('edyears', 'APOE4', 'sex', 'Age')
 get_cors(pred_table, vars_, covars, bag, amy="_none_")
