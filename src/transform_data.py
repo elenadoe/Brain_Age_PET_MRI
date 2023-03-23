@@ -9,7 +9,9 @@ import pandas as pd
 import numpy as np
 import pdb
 import random
+import pickle
 
+from sklearn.feature_selection import SelectPercentile, mutual_info_regression
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from scipy.stats import ttest_ind
 from os.path import exists
@@ -104,8 +106,8 @@ def outlier_check_main(df_mri_ADNI, df_pet_ADNI, col, atlas, threshold=3):
 
     return df_mri_ADNI, df_pet_ADNI
 
-def outlier_check_other(df_other, database, modality, atlas, fold, rand_seed_np,
-                        group='SCD', threshold=3):
+def prepare_data_other(df_other, database, modality, atlas, fold,
+                        group, check_outliers, threshold=3):
     """
     Check for outliers in other data (MCI or DELCODE).
 
@@ -133,31 +135,40 @@ def outlier_check_other(df_other, database, modality, atlas, fold, rand_seed_np,
             "../data/ADNI/CN/test_train_{}_{}_{}.csv".format(
                 modality, atlas, fold))
     ADNI_CN_train = ADNI_CN_train[ADNI_CN_train.train]
-    if not(exists("../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
-            database, group, modality, atlas, group, database, fold))):
-        print("../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
-            database, group, modality, atlas, group, database, fold) +
-            " does not yet exist.")
 
-        age_check = df_other['age'] >= 60
+    age_check = df_other['age'] >= 60
 
-        if database == 'ADNI':  # ADNI SCD or MCI
-            # for ADNI data additionally check that individuals are > 60 in
-            # both modalities
+    if database == 'ADNI':  # ADNI SCD or MCI
+        # for ADNI data additionally check that individuals are > 60 in
+        # both modalities
 
-            second_mod = ['PET' if modality == 'MRI' else 'MRI'][0]
-            second_df = pd.read_csv(
-                '../data/{}/{}/{}_{}_{}_{}_parcels.csv'.format(
-                    database, group, database, second_mod, group, atlas))
-            second_age_check = second_df['age'] >= 60
-            age_check = age_check.values & second_age_check.values
-            df_other['IQR'] = [True]*len(df_other)
-            
-            second_df['Dataset'] = database
-            second_df['AGE_CHECK'] = age_check
-            second_df['IQR'] = [True]*len(df_other)
+        second_mod = ['PET' if modality == 'MRI' else 'MRI'][0]
+        second_df = pd.read_csv(
+            '../data/{}/{}/{}_{}_{}_{}_parcels.csv'.format(
+                database, group, database, second_mod, group, atlas))
 
-        elif database == 'OASIS':  # ADNI SCD, OASIS CN, DELCODE SCD
+        # Age check
+        second_age_check = second_df['age'] >= 60
+        age_check = age_check.values & second_age_check.values
+
+        # No outlier check (clinical groups)
+        df_other['IQR'] = True
+        second_df['IQR'] = True
+
+    elif database == 'OASIS':  # OASIS CN
+        second_mod = ['PET' if modality == 'MRI' else 'MRI'][0]
+        second_df = pd.read_csv(
+            '../data/{}/{}/{}_{}_{}_{}_parcels.csv'.format(
+                database, group, database, second_mod, group, atlas))
+        assert len(df_other.index) == len(second_df.index),\
+            "Dataframes don't have the same length!"
+
+        # Age check
+        second_age_check = second_df['age'] >= 60
+        age_check = age_check.values & second_age_check.values
+        
+        # Outlier check
+        if check_outliers:
             ranges = pd.read_csv("../results/999_OUTLIERS/" +
                                  "{}_outlier_ranges.csv".format(atlas))
             col = ranges['col']
@@ -165,21 +176,10 @@ def outlier_check_other(df_other, database, modality, atlas, fold, rand_seed_np,
             high_out_pet = ranges['high']
             insiderange = (~((df_other[col] < low_out_pet) |
                              (df_other[col] > high_out_pet)).any(axis=1))
-            # age check as above
-            second_mod = ['PET' if modality == 'MRI' else 'MRI'][0]
-            second_df = pd.read_csv(
-                '../data/{}/{}/{}_{}_{}_{}_parcels.csv'.format(
-                    database, group, database, second_mod, group, atlas))
-            assert len(df_other.index) == len(second_df.index),\
-                "Dataframes don't have the same length!"
-            second_age_check = second_df['age'] >= 60
-            age_check = age_check.values & second_age_check.values
             df_other['IQR'] = insiderange
-            second_df['Dataset'] = database
-            second_df['AGE_CHECK'] = age_check
-            second_df['Group'] = group
             second_df['IQR'] = insiderange
-            # save outliers per modality
+
+            # Save outliers
             save_outliers = open("../results/999_OUTLIERS/" +
                                  "outliers_{}_{}_{}.txt".format(
                                      database, atlas, group), "a+")
@@ -188,53 +188,98 @@ def outlier_check_other(df_other, database, modality, atlas, fold, rand_seed_np,
                 (df_other[col] > high_out_pet).any(axis=1) |
                 (df_other[col] < low_out_pet).any(axis=1)).tolist()]]
             save_outliers.close()
+        else:
+            df_other['IQR'] = True
+            second_df['IQR'] = True
 
-        elif database == "DELCODE":
-            # patients from DELCODE only have one modality
-            df_other['IQR'] = [True]*len(df_other)
+    elif database == "DELCODE":
+        # No outlier check (clinical samples), age check from one modality
+        df_other['IQR'] = True
 
-        df_other['Ageb'] = [0 if x < 74 else 1
-                            if x < 84 else 2 for x in df_other['age']]
-        df_other['Dataset'] = database
-        df_other['AGE_CHECK'] = age_check
-        df_other['Group'] = group
+    df_other['Ageb'] = [0 if x < 74 else 1
+                        if x < 84 else 2 for x in df_other['age']]
+    df_other['Dataset'] = database
+    df_other['AGE_CHECK'] = age_check
+    df_other['Group'] = group
+    
+    # Exclude individuals younger than 60
+    df_other = df_other[df_other['AGE_CHECK']]
 
-        len_init = len(df_other.index)
+    # If young subjects were excluded
+    len_init = len(df_other.index)
+    print("Detected {} subjects younger than 60 who were removed.".format(
+        len_init-len(df_other.index)) + "from analyses")
 
-        # MATCHING to train set
-        """while ttest_ind(df_other[['age']],
-                        ADNI_CN_train[['age']])[1][0] < 0.05:
-            # drop_index = rand_seed_np.choice(
-            #    df_other[df_other.age <= 68].index, replace=False)
-            drop_index = np.argmin(df_other.age)
-            df_other.drop(drop_index, inplace=True)
-            df_other.reset_index(inplace=True, drop=True)
-            if 'second_mod' in locals():
-                second_df.drop(drop_index, inplace=True)
-                second_df.reset_index(inplace=True, drop=True)"""
+    df_other.to_csv("../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
+        database, group, modality, atlas, group, database, fold))
+    if 'second_mod' in locals():
+        second_df['Dataset'] = database
+        second_df['Group'] = group
+        second_df['AGE_CHECK'] = age_check
+        second_df = second_df[second_df['AGE_CHECK']]
+        second_df.to_csv("../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
+            database, group, second_mod, atlas, group, database, fold))
 
-        df_other.to_csv("../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
-            database, group, modality, atlas, group, database, fold))
-        if 'second_mod' in locals():
-            second_df.to_csv("../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
-                database, group, second_mod, atlas, group, database, fold))
-        print("Removed {} subjects during age matching.".format(
-            len_init-len(df_other.index)))
-    else:
-        df_other = pd.read_csv(
-            "../data/{}/{}/{}_parcels_{}_{}_{}_{}.csv".format(
-                database, group, modality, atlas, group, database, fold))
-        print("Using existing data.")
+    # Compare to age of current training fold
     print("T-test age ADNI CN - {} {}:".format(database, group),
           ttest_ind(ADNI_CN_train[['age']], df_other[['age']])[1][0])
     return df_other
 
 
-def split_data(df_mri, df_pet, col, rand_seed, atlas, splits=5,
-               train_data="ADNI", older_60=True, check_outliers=True,
-               info=True):
+def feature_selection(df, col, y, modality, atlas, i, percentile=50):
     """
-    Split data into train and test sets.
+    Select features for brain age estimation.
+
+    Parameters
+    ----------
+    df : TYPE
+        DESCRIPTION.
+    col : TYPE
+        DESCRIPTION.
+    y : TYPE
+        DESCRIPTION.
+    modality : TYPE
+        DESCRIPTION.
+    atlas : TYPE
+        DESCRIPTION.
+    i : TYPE
+        DESCRIPTION.
+    percentile : TYPE, optional
+        DESCRIPTION. The default is 75.
+
+    Returns
+    -------
+    df : TYPE
+        DESCRIPTION.
+    sel_col : TYPE
+        DESCRIPTION.
+    unsel_col : TYPE
+        DESCRIPTION.
+
+    """
+    sel = SelectPercentile(score_func=mutual_info_regression,
+                           percentile=percentile)
+
+    # Get and fit FS to  train subset of outer CV loop
+    df_train = df[df['train']]
+    sel.fit(df_train[col], df_train[y])
+    pickle.dump(sel, open(
+            f"../results/0_FINAL_MODELS/feature_selector_{modality}_{i}_{atlas}.p", "wb"))
+
+    sel_idx = sel.get_support(indices=True)
+    sel_col = np.array(col)[sel_idx].tolist()
+    unsel_col = [c for c in col if c not in sel_col]
+
+    # remove unselected columns
+    df.drop(unsel_col, axis=1, inplace=True)
+
+    return df, sel_col, unsel_col
+
+
+def prepare_data(df_mri, df_pet, col, atlas,
+                 train_data="ADNI", older_60=True, info=True):
+    """
+    Check minimum age and ADNI study phase of participants.
 
     Parameters
     ----------
@@ -273,13 +318,13 @@ def split_data(df_mri, df_pet, col, rand_seed, atlas, splits=5,
         "IDs between modalities don't match."
 
     adniinfo = pd.read_csv(
-        "../data/ADNI/CU/FDG_BASELINE_HEALTHY_4_15_2021_unique.csv")
-    
+        "../data/ADNI/CU/FDG_BASELINE_HEALTHY_4_15_2021_unique.csv", sep=";")
+
     # ADDED IN REVIEW 1: add group
-    df_mri = pd.merge(df_mri, adniinfo[['Subject', 'Group']], left_on='name',
-                      right_on='Subject', how='left')
-    df_pet = pd.merge(df_pet, adniinfo[['Subject', 'Group']], left_on='name',
-                      right_on='Subject', how='left')
+    df_mri = pd.merge(df_mri, adniinfo[['Subject', 'Group', 'StudyPhase']],
+                      left_on='name', right_on='Subject', how='left')
+    df_pet = pd.merge(df_pet, adniinfo[['Subject', 'Group', 'StudyPhase']],
+                      left_on='name', right_on='Subject', how='left')
 
     if info:
         if atlas == 'Sch_Tian_1mm':
@@ -291,7 +336,7 @@ def split_data(df_mri, df_pet, col, rand_seed, atlas, splits=5,
             print("First column: {}".format(col[0]) +
                   " (should be 'Precentral_L')" +
                   "\nLast column: {}".format(col[-1]) +
-                  " (should be 'Vermis_10')")
+                  " (should be 'Temporal_Inf_R')")
 
     # exclude individuals younger than 60 if older_60 == True
     if older_60:
@@ -301,7 +346,7 @@ def split_data(df_mri, df_pet, col, rand_seed, atlas, splits=5,
         df_pet['AGE_CHECK'] = older_60_mri & older_60_pet
         df_mri['AGE_CHECK'] = older_60_mri & older_60_pet
         if info:
-            print(len(df_pet)-sum(df_pet['AGE_CHECK']),
+            print(len(df_pet.index)-sum(df_pet['AGE_CHECK']),
                   "individuals younger than 60 years discarded.")
     else:
         df_pet['AGE_CHECK'] = True
@@ -318,53 +363,122 @@ def split_data(df_mri, df_pet, col, rand_seed, atlas, splits=5,
     # to be considered in train_test split
     # OASIS data to be reserved as additional test set
     # ADDED IN REVIEW 1: only CN
-    # SCD as additional test set
-    split_data = (df_mri['Dataset'] == train_data) & df_mri['AGE_CHECK']
+    # SCD and CU as additional test set
+    df_mri = df_mri[df_mri.StudyPhase != 'ADNI Baseline']
+    df_pet = df_pet[df_pet.StudyPhase != 'ADNI Baseline']
 
-    # prepare input (X) and output (y) for train-test split
-    X = df_mri[col][split_data].values
-    y_pseudo = df_mri['Ageb'][split_data]
-    # make train-test splits
-    cv = StratifiedKFold(n_splits=splits,
-                         random_state=rand_seed,
-                         shuffle=True).split(X, y_pseudo)
+    # Drop individuals younger than 60
+    df_mri['use_data'] = (df_mri['Dataset'] == train_data) & df_mri['AGE_CHECK']
+    df_pet['use_data'] = (df_pet['Dataset'] == train_data) & df_pet['AGE_CHECK']
+    df_mri = df_mri[df_mri['use_data']]
+    df_pet = df_pet[df_pet['use_data']]
+    
+    assert len(df_mri.index) == len(df_pet.index)
 
-    count = 0
-    for id_tr, id_te in cv:
-        names = df_mri['name'][split_data].to_numpy()
-        train_names = names[id_tr]
+    return df_mri, df_pet
 
-        df_mri['train'] = [True if x in train_names
-                           else False for x in df_mri['name']]
-        df_pet['train'] = df_mri['train']
 
-        if check_outliers:
-            df_mri, df_pet = outlier_check_main(df_mri, df_pet, col,
-                                                atlas=atlas)
-            n_outliers = len(df_mri) - sum(df_mri['IQR'])
-            if info:
-                print("Total participants: ", len(df_mri),
-                      "Inside IQR of all regions: ",
-                      len(df_mri[df_mri['IQR']]),
-                      "\n({}".format(n_outliers),
-                      "participants discarded as outliers)")
-                print("Outliers in train set: ",
-                      sum(df_mri['train']) -
-                      sum(df_mri['IQR'][df_mri['train']]),
-                      "Outliers in test set: ",
-                      sum(~df_mri['train']) -
-                      sum(df_mri['IQR'][~df_mri['train']]))
-        else:
-            n_outliers = 0
-            df_mri['IQR'] = True
-            df_pet['IQR'] = True
-        df_mri.to_csv('../data/ADNI/CN/' +
-                      'test_train_MRI_{}_{}.csv'.format(atlas, str(count)))
-        df_pet.to_csv('../data/ADNI/CN/' +
-                      'test_train_PET_{}_{}.csv'.format(atlas, str(count)))
-        count = count+1
+def split_data(df_mri, df_pet, col, i, id_tr, atlas,
+               y='age', check_outliers=True, feat_sel=True, info=True):
+    """
+    
 
-    return n_outliers
+    Parameters
+    ----------
+    df_mri : TYPE
+        DESCRIPTION.
+    df_pet : TYPE
+        DESCRIPTION.
+    use_data : TYPE
+        DESCRIPTION.
+    col : TYPE
+        DESCRIPTION.
+    i : TYPE
+        DESCRIPTION.
+    id_tr : TYPE
+        DESCRIPTION.
+    atlas : TYPE
+        DESCRIPTION.
+    y : TYPE, optional
+        DESCRIPTION. The default is 'age'.
+    check_outliers : TYPE, optional
+        DESCRIPTION. The default is True.
+    select_features : TYPE, optional
+        DESCRIPTION. The default is True.
+    info : TYPE, optional
+        DESCRIPTION. The default is True.
+
+    Returns
+    -------
+    df_mri : TYPE
+        DESCRIPTION.
+    df_pet : TYPE
+        DESCRIPTION.
+    sel_col_mri : TYPE
+        DESCRIPTION.
+    sel_col_pet : TYPE
+        DESCRIPTION.
+
+    """
+
+    names = df_mri['name'].to_numpy()
+    train_names = names[id_tr]
+
+    df_mri['train'] = [True if x in train_names
+                       else False for x in df_mri['name']]
+    df_pet['train'] = df_mri['train']
+
+    if check_outliers:
+        df_mri, df_pet = outlier_check_main(df_mri, df_pet, col,
+                                            atlas=atlas)
+        n_outliers = len(df_mri) - sum(df_mri['IQR'])
+        if info:
+            print("Total participants: ", len(df_mri),
+                  "Inside IQR of all regions: ",
+                  len(df_mri[df_mri['IQR']]),
+                  "\n({}".format(n_outliers),
+                  "participants discarded as outliers)")
+            print("Outliers in train set: ",
+                  sum(df_mri['train']) -
+                  sum(df_mri['IQR'][df_mri['train']]),
+                  "Outliers in test set: ",
+                  sum(~df_mri['train']) -
+                  sum(df_mri['IQR'][~df_mri['train']]))
+    else:
+        n_outliers = 0
+        df_mri['IQR'] = True
+        df_pet['IQR'] = True
+        print("Total participants: ", len(df_mri),
+              "Train set: ",
+              len(df_mri[df_mri['train']]),
+              "Test set: ",
+              len(df_mri[~df_mri['train']]))
+
+    if feat_sel:
+        df_mri, sel_col_mri, unsel_col_mri = feature_selection(
+            df_mri, col, y, 'MRI', atlas, i)
+        df_pet, sel_col_pet, unsel_col_pet = feature_selection(
+            df_pet, col, y, 'PET', atlas, i)
+    else:
+        sel_col_mri = col
+        sel_col_pet = col
+
+    # Save for reference
+    df_mri.to_csv('../data/ADNI/CN/' +
+                  'test_train_MRI_{}_{}.csv'.format(atlas, i))
+    df_pet.to_csv('../data/ADNI/CN/' +
+                  'test_train_PET_{}_{}.csv'.format(atlas, i))
+
+    df_mri = df_mri[df_mri['AGE_CHECK'] & df_mri['IQR']]
+    df_pet = df_pet[df_pet['AGE_CHECK'] & df_pet['IQR']]
+
+    # these do not change here, only save last
+    """df_mri_dk.to_csv('../data/ADNI/CU/' +
+                     'ADNI_MRI_CU_{}_parcels.csv'.format(atlas))
+    df_pet_dk.to_csv('../data/ADNI/CU/' +
+                     'ADNI_PET_CU_{}_parcels.csv'.format(atlas))"""
+
+    return df_mri, df_pet, sel_col_mri, sel_col_pet
 
 
 def neuropsych_merge(df_pred, df_neuropsych,

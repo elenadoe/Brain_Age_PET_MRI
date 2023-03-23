@@ -55,8 +55,8 @@ print(ttest_ind(adni_cn[['age']], delcode_scd[['age']]))
 
 # %%
 adni_cn = pd.read_csv(
-    "../data/ADNI/CN/ADNI_PET_CN_AAL1_cropped_parcels.csv")
-for i in range(2,98):
+    "../data/ADNI/CN/ADNI_MRI_CN_AAL1_cropped_parcels.csv")
+for i in range(2, 116):
     plt.scatter(range(len(adni_cn.index)), adni_cn[adni_cn.columns.tolist()[-i]])
     plt.title(adni_cn.columns.tolist()[-i])
     plt.show()

@@ -16,6 +16,7 @@ from nilearn import plotting, image
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.linear_model import LinearRegression
 from nilearn.datasets import fetch_atlas_aal
+from sklearn.inspection import permutation_importance
 warnings.filterwarnings("ignore")
 np.random.seed(0)
 # %%
@@ -113,27 +114,12 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
         mae_adni = mean_absolute_error(
             np.array(y_true)[np.array(database_list) == database],
             np.array(y_pred)[np.array(database_list) == database])
-        """r2_oasis = r2_score(
-            np.array(y_true)[np.array(database_list) == 'OASIS'],
-            np.array(y_pred)[np.array(database_list) == 'OASIS'])
-        mae_oasis = mean_absolute_error(
-            y_true[np.array(database_list) == 'OASIS'],
-            np.array(y_pred)[np.array(database_list) == 'OASIS'])
-        y_db_cat = [0 if x == "ADNI" else 1 for x in database_list]"""
 
         plt.scatter(y_true, y_pred, color=cm_main[0], alpha=0.9)
         plt.fill([60, 60, 95], [60, 95, 95],
                  zorder=0, color='gray', alpha=0.3)
         plt.fill([60, 95, 95], [60, 60, 95],
                  zorder=0, color='gray', alpha=0.1)
-
-        # print test metrics
-        """print("Round: {}\n".format(r), "On average, predicted age of", group,
-              "differed by ", np.mean(y_diff),
-              " years from their chronological age.")
-        print("MAE = {}, R2 = {}".format(mae, r2))
-        print("ADNI:\nMAE = {}, R2 = {}".format(mae_adni, r2_adni))
-        print("OASIS:\nMAE = {}, R2 = {}\n\n".format(mae_oasis, r2_oasis))"""
 
     # if MCI test set, plot in ADNI color and print test metrics
     else:
@@ -145,11 +131,6 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
                      zorder=0, color=cm_main[0], alpha=0.4)
             plt.fill([50, 100, 100], [50, 50, 100],
                      zorder=0, color=cm_main[0], alpha=0.2)
-            """print("Round: {}\n".format(r), "On average, predicted age of",
-                  group,
-                  "differed by ", np.mean(y_diff),
-                  " years from their chronological age.")
-            print("MAE = {}, R2 = {}".format(mae, r2))"""
 
         # if CN train set or OASIS CN set (latter may be shown in
         # paper, therefore use OASIS color)
@@ -161,11 +142,6 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
                      zorder=0, color=cm_main[0], alpha=0.4)
             plt.fill([60, 95, 95], [60, 60, 95],
                      zorder=0, color=cm_main[0], alpha=0.2)
-            """print("Round: {}\n".format(r), "On average, predicted age of",
-                  group,
-                  "differed by ", np.mean(y_diff),
-                  " years from their chronological age.")
-            print("MAE = {}, R2 = {}".format(mae, r2))"""
 
     # plot line where chronological age = brain-predicted age
     plt.plot([np.min(y_pred), np.max(y_pred)],
@@ -178,17 +154,17 @@ def real_vs_pred_2(y_true, y_pred, alg, modality, train_test, group, r,
     plt.legend()
     plt.savefig("../results/{}/{}/plots/real_vs_pred".format(database, group) +
                 "_{}_{}_{}_{}_{}_{}.jpg".format(modality, atlas,
-                                             train_test,
-                                             alg,
-                                             str(correct_with_CA),
-                                             r),
+                                                train_test,
+                                                alg,
+                                                str(correct_with_CA), r),
                 bbox_inches='tight', dpi=300)
     plt.close()
 
     # save prediction metrics
-    results = open("../results/{}/{}/evaluation/eval_{}_{}_{}_{}_{}_{}.txt".format(
-        database, group, modality, atlas, train_test, alg,
-        str(correct_with_CA), r), 'w+')
+    results = open(
+        "../results/{}/{}/evaluation/eval_{}_{}_{}_{}_{}_{}.txt".format(
+            database, group, modality, atlas, train_test, alg,
+            str(correct_with_CA), r), 'w+')
     results.write("MAE\tR2\tME\tMAE_ADNI\tR_2ADNI\tMAE_OASIS\tR2_OASIS" +
                   "\n" + str(mae) + "\t" + str(r2) + "\t" +
                   str(np.mean(y_diff)) +
@@ -299,7 +275,7 @@ def check_bias(y_true, y_pred, alg, modality, group, r, database, atlas,
         if save:
             plt.savefig(
                 '../results/{}/{}/bias-corrected_{}_{}_{}_{}_{}.jpg'.format(
-                database, group, corr_with_CA, modality, atlas, alg, r),
+                    database, group, corr_with_CA, modality, atlas, alg, r),
                 dpi=300)
 
         plt.close()
@@ -308,7 +284,7 @@ def check_bias(y_true, y_pred, alg, modality, group, r, database, atlas,
 
 
 def feature_imp(df_test, col, final_model, final_model_name,
-                modality, atlas, r, y='age', rand_seed=0):
+                modality, atlas, r, feat_sel, y='age', rand_seed=42):
     """
     Plot feature importance.
 
@@ -330,73 +306,88 @@ def feature_imp(df_test, col, final_model, final_model_name,
     -------
     none (plots and saves plots)
     """
-    # get feature importance for linear kernels
-    # (coefficients are not available for other kernels,
-    # best kernel is svm most of the times)
-    if final_model_name != 'svm':
-        print("No coefficients available for RVR.")
+    # get feature importance for models
+    # imp = final_model.named_steps[final_model_name].coef_[0]
+    perm = permutation_importance(final_model, df_test[col], df_test[y],
+                                  n_repeats=100, random_state=rand_seed,
+                                  scoring="neg_mean_absolute_error")
+    imp = perm.importances_mean.tolist()
+
+    # get labels
+    if atlas.startswith("Sch_Tian"):
+        # get atlas
+        atlas_file = '../data/0_ATLAS/schaefer200-17_Tian.nii'
+        atlas_matrix = image.get_data(atlas_file)
+        labels = open('../data/0_ATLAS/composite_atlas_labels.txt')
+        labels = labels.read().split('\n')[:-1]
+
+    elif atlas.startswith("AAL3"):
+        atlas_file = '../data/0_ATLAS/AAL3v1_1mm.nii'
+        labels = open('../data/0_ATLAS/AAL3v1_1mm.nii.txt')
+        labels = labels.read().split('\n')[:-1]
+        # remove labels that were redefined in AAL3 and left empty for comparability
+        labels = [i for i in labels if i not in ['35 Cingulate_Ant_L ',
+                                                 '36 Cingulate_Ant_R ',
+                                                 '81 Thalamus_L ',
+                                                 '82 Thalamus_R ']]
+        # remove numbers from names, only keep region definition
+        labels = [x.split()[1] for x in labels]
+    elif atlas.startswith("AAL1"):
+        atlas_file = '../data/0_ATLAS/AAL1_TPMcropped.nii'
+        labels = fetch_atlas_aal().labels
+
+    if feat_sel:
+        sel = pickle.load(open(
+            f"../results/0_FINAL_MODELS/feature_selector_{modality}_{r}_{atlas}.p",
+            "rb"))
+        sel_feats = sel.get_support(indices=True)
     else:
-        if final_model.named_steps[final_model_name].kernel == "linear":
-    
-            imp = final_model.named_steps[final_model_name].coef_[0]
-    
-            # get labels
-            if atlas.startswith("Sch_Tian"):
-                # get atlas
-                atlas_file = '../data/0_ATLAS/schaefer200-17_Tian.nii'
-                atlas_matrix = image.get_data(atlas_file)
-                labels = open('../data/0_ATLAS/composite_atlas_labels.txt')
-                labels = labels.read().split('\n')[:-1]
-            elif atlas.startswith("AAL3"):
-                atlas_file = '../data/0_ATLAS/AAL3v1_1mm.nii'
-                
-                labels = open('../data/0_ATLAS/AAL3v1_1mm.nii.txt')
-                labels = labels.read().split('\n')[:-1]
-                # remove labels that were redefined in AAL3 and left empty for comparability
-                labels = [i for i in labels if i not in ['35 Cingulate_Ant_L ',
-                                                         '36 Cingulate_Ant_R ',
-                                                         '81 Thalamus_L ',
-                                                         '82 Thalamus_R ']]
-                # remove numbers from names, only keep region definition
-                labels = [x.split()[1] for x in labels]
-            elif atlas.startswith("AAL1"):
-                atlas_file = '../data/0_ATLAS/AAL1_TPMcropped.nii'
-                labels = fetch_atlas_aal().labels
+        sel_feats = list(range(len(labels)))
 
-            atlas_file = image.load_img(atlas_file)
-            atlas_matrix = image.get_data(atlas_file)
+    # TODO: permutation importance instead of coefficients
 
-            # put feature importance into dataframe and save
-            df_imp = pd.DataFrame({'region': labels,
-                                   'feat_importance': imp})
-            df_imp.to_csv('../results/ADNI/CN/evaluation/' +
-                          'weighted_importance_{}_{}_{}_{}.csv'.format(
-                              modality, atlas, final_model_name, r))
-    
-            # create statistical map where each voxel valueo
-            # coresponds to weight coefficients
-            atlas_matrix_stat = np.around(atlas_matrix).copy().astype(int)
-            label_nums = sorted(list(set(atlas_matrix_stat.flatten())))
-    
-            # 0 is background in atlas matrix
-            # but first element (index = 0) of imp is
-            # weight of first actual feature
-            for x in range(1, len(label_nums)):
-                tmp = label_nums[x]
-                atlas_matrix_stat[atlas_matrix_stat == tmp] = imp[x-1]
-            # create niimg from atlas_matrix
-            atlas_final = image.new_img_like(atlas_file, atlas_matrix_stat)
-    
-            # plot feature importance, save output plot and niimg
-            plotting.plot_stat_map(atlas_final)
-            plt.title("{}-relevant regions for aging".format(final_model_name))
-            plt.savefig("../results/ADNI/" +
-                        "CN/evaluation/weighted_importance_{}_{}_{}_{}.jpg".format(
-                            modality, atlas, final_model_name, r))
-            nib.save(atlas_final, "../results/ADNI/CN/evaluation" +
-                     "/feature_importance_{}_{}_{}_{}.nii".format(
-                         modality, atlas, final_model_name, r))
-            plt.show()
-            plt.close()
-        else:
-            print("Kernel not linear, no weight coefficients available.")
+    labels = np.array(labels)[sel_feats].tolist()
+    # Exclude cerebellar ROIs
+    labels = [x for x in labels if not x.startswith('Cerebelum')
+              and not x.startswith('Vermis')]
+    # Load atlas
+    atlas_file = image.load_img(atlas_file)
+    atlas_matrix = image.get_data(atlas_file)
+
+    # put feature importance into dataframe and save
+    df_imp = pd.DataFrame({'region': labels,
+                           'feat_importance': imp})
+    df_imp.to_csv('../results/ADNI/CN/evaluation/' +
+                  'weighted_importance_{}_{}_{}_{}.csv'.format(
+                      modality, atlas, final_model_name, r))
+
+    # create statistical map where each voxel valueo
+    # coresponds to weight coefficients
+    atlas_matrix = np.around(atlas_matrix).astype(int)
+    atlas_matrix_stat = np.zeros(atlas_matrix.shape)
+    label_nums = sorted(list(set(atlas_matrix.flatten())))
+    label_nums = np.array(label_nums)[sel_feats].tolist()
+
+    # exclude cerebellar regions (ID>9000)
+    label_nums = [x for x in label_nums if x < 9000]
+
+    # 0 is background in atlas matrix
+    # but first element (index = 0) of imp is
+    # weight of first actual feature
+    for x in range(1, len(label_nums)):
+        tmp = label_nums[x]
+        atlas_matrix_stat[atlas_matrix == tmp] = imp[x-1]
+    # create niimg from atlas_matrix
+    atlas_final = image.new_img_like(atlas_file, atlas_matrix_stat)
+
+    # plot feature importance, save output plot and niimg
+    plotting.plot_stat_map(atlas_final)
+    plt.title("{}-relevant regions for aging".format(final_model_name))
+    plt.savefig("../results/ADNI/" +
+                "CN/evaluation/weighted_importance_{}_{}_{}_{}.jpg".format(
+                    modality, atlas, final_model_name, r))
+    nib.save(atlas_final, "../results/ADNI/CN/evaluation" +
+             "/feature_importance_{}_{}_{}_{}.nii".format(
+                 modality, atlas, final_model_name, r))
+    plt.show()
+    plt.close()

@@ -15,7 +15,8 @@ all_modalities = ["PET", "MRI"]
 rand_seed = 0
 
 
-def main(analyze, modality, atlas, rand_seed_np, rand_seed=rand_seed):
+def main(analyze, modality, atlas, correct_with_CA=True,
+         feat_sel=True, check_outliers=True, rand_seed=rand_seed, save=True):
     """
     Execute analysis.
 
@@ -43,9 +44,10 @@ def main(analyze, modality, atlas, rand_seed_np, rand_seed=rand_seed):
     None.
 
     """
-    while atlas != 'Sch_Tian' and not atlas.startswith('AAL'):
+    while atlas != 'Sch_Tian_1mm' and not atlas.startswith('AAL'):
         atlas = input("Invalid argument, which atlas would you" +
-                      " like to use?\nPossible arguments: Sch_Tian or AALX")
+                      " like to use?\nPossible arguments:" +
+                      "Sch_Tian_1mm or AAL1_cropped")
     dir_mri_csv = '../data/ADNI/CN/ADNI_MRI_CN_{}_parcels.csv'.format(
         atlas)
     dir_pet_csv = '../data/ADNI/CN/ADNI_PET_CN_{}_parcels.csv'.format(
@@ -61,7 +63,8 @@ def main(analyze, modality, atlas, rand_seed_np, rand_seed=rand_seed):
                 final_model, final_model_name = brain_age(
                     dir_mri_csv, dir_pet_csv, modality, atlas=atlas,
                     correct_with_CA=c, info_init=False, save=False,
-                    rand_seed=rand_seed)
+                    rand_seed=rand_seed,
+                    check_outliers=check_outliers, feat_sel=feat_sel)
             bias_results[str(c) + '_model'] = final_model_name
             bias_results[str(c) + '_MAE'] = mae
             bias_results[str(c) + '_R2'] = r2
@@ -69,17 +72,19 @@ def main(analyze, modality, atlas, rand_seed_np, rand_seed=rand_seed):
     elif analyze == "predict ADNI CN":
         group = "CN"
         brain_age(dir_mri_csv, dir_pet_csv, modality, atlas=atlas,
-                  correct_with_CA='True',
+                  correct_with_CA=correct_with_CA,
                   rand_seed=rand_seed,
-                  info=True, save=True, info_init=True)
+                  info=True, save=save, info_init=True,
+                  check_outliers=check_outliers, feat_sel=feat_sel)
 
     else:
         database = analyze.split()[1]
         group = analyze.split()[2]
         assert database in ["OASIS", "ADNI", "DELCODE"],\
             "database not recognized"
-        assert group in ["CN", "SMC", "MCI"],\
+        assert group in ["CN", "CU", "SMC", "MCI"],\
             "group not recognized"
 
         predict_other(database=database, group=group, modality=modality,
-                      atlas=atlas, rand_seed_np=rand_seed_np)
+                      atlas=atlas,
+                      check_outliers=check_outliers, feat_sel=feat_sel)

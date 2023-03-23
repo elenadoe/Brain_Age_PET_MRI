@@ -16,7 +16,7 @@ atlas = '../../data/0_ATLAS/AAL1_TPMcropped.nii'
 atlas = nib.load(atlas)
 labels = fetch_atlas_aal().labels
 
-output_csv = '../../data/DELCODE/{}/DELCODE_PET_{}_AAL1_cropped_parcels.csv'.format(group, group)
+output_csv = '../../data/DELCODE/{}/DELCODE_PET_{}_AAL1_cropped_parcels2.csv'.format(group, group)
 
 # %%
 dates = [date.split('.')[::-1] for date in subjs['visdat']]

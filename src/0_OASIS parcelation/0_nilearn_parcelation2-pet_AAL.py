@@ -17,19 +17,20 @@ labels = fetch_atlas_aal().labels
 
 # read IDs and age
 subjs = pd.read_csv(subject_list, delimiter="\t")
-subj_list = ['sub-' + sub for sub in subjs['SCAN_ID']]
+subj_list = [sub for sub in subjs['SCAN_ID']]
 age = subjs['age']
 
 image_list = []
 subj_succ = []
 subj_miss = []
+sessions = []
 
 # create list of regional data and subject IDs
 for sub in subj_list:
     sub_name = sub.split("_", 1)[0]
-    session = sub.split("_", 1)[1]
+    session = sub.split("d", 1)[1]
 
-    foi = glob(data_path + "SUV*" + sub_name + "_" + session + "*.nii")
+    foi = glob(data_path + "SUV*" + sub_name + "*_*" + session + "*.nii")
     if foi:
         this_image = nib.load(foi[0])
         niimg = check_niimg(this_image, atleast_4d=True)
@@ -40,9 +41,11 @@ for sub in subj_list:
         parcelled = masker.fit_transform(niimg)
         image_list.append(parcelled)
         subj_succ.append(sub)
+        sessions.append(session)
 
 # exclude data that could not be pre-processed including frame issues
-age = [age[x] for x in range(len(subj_list)) if subj_list[x] in subj_succ]
+age = [int(np.round(age[x])) for x in range(len(subj_list)) if subj_list[x] in subj_succ]
+subj_succ = [sub.split("_", 1)[0] for sub in subj_succ]
 
 features = np.array(image_list)
 x, y, z = features.shape
@@ -50,8 +53,9 @@ features = features.reshape(x, z)
 df = pd.DataFrame(features, columns=labels)
 
 # combine information on subjects, age and regional data
-subs = {'Subject': subj_succ,
-        'Age': age}
+subs = {'name': subj_succ,
+        'age': age,
+        'sess': sessions}
 subs_pd = pd.DataFrame(subs)
 df_new = pd.concat([subs_pd, df], axis=1)
 df_new['Database'] = 'OASIS'

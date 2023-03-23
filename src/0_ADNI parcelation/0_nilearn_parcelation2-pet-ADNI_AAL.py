@@ -6,8 +6,16 @@ import numpy as np
 import pandas as pd
 from glob import glob
 
+"""TODO:
+        df_mri_dk = df_mri[
+        (df_mri['Dataset'] == train_data) & df_mri['AGE_CHECK'] &
+        (df_mri['StudyPhase'] == 'ADNI Baseline')]
+    df_pet_dk = df_pet[
+        (df_pet['Dataset'] == train_data) & df_pet['AGE_CHECK'] &
+        (df_pet['StudyPhase'] == 'ADNI Baseline')]
+    then remove from transform data ll. 335, 388"""
 
-group = "SMC"
+group = "MCI"
 if group == "MCI":
     subjs = pd.read_csv('../../data/ADNI/MCI/FDG_BASELINE_MCI_11_17_2021.csv')
     data_path = '/media/ukwissarchive/doeringe/BrainAge/ADNI/ADNI/MCI/2_SUVR_foranalysis/'
@@ -19,7 +27,6 @@ subjs_list = subjs['Subject'].tolist()
 
 atlas = '../../data/0_ATLAS/AAL1_TPMcropped.nii'
 atlas = nib.load(atlas)
-labels = '../../data/0_ATLAS/AAL3v1.nii.txt'
 labels = fetch_atlas_aal().labels
 """labels = [x for x in labels if not x.startswith('Cerebelum')
           and not x.startswith('Vermis')]
@@ -29,7 +36,7 @@ print(labels)"""
 output_csv = '../../data/ADNI/{}/ADNI_PET_{}_AAL1_cropped_parcels.csv'.format(group, group)
 
 # %%
-dates = [date.split('/')[::-1] for date in subjs['AcqDate']]
+dates = [date.split('/')[::-1] for date in subjs['Acq Date']]
 
 sess_list = [date[0]+date[1]+'0' + date[2] if len(date[2]) == 1
              else ''.join(date) for date in dates]
