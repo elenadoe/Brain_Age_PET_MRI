@@ -628,3 +628,365 @@ Outliers MRI test:
 116_S_4092
 
 
+Outliers PET train:
+003_S_4555
+013_S_4616
+
+Outliers PET test:
+070_S_5040
+
+Outliers MRI train:
+016_S_4121
+021_S_4254
+029_S_4290
+032_S_1169
+068_S_4340
+116_S_4092
+
+Outliers MRI test:
+013_S_4580
+
+
+Outliers PET train:
+003_S_4555
+013_S_4616
+
+Outliers PET test:
+070_S_5040
+
+Outliers MRI train:
+016_S_4121
+021_S_4254
+029_S_4290
+032_S_1169
+068_S_4340
+116_S_4092
+
+Outliers MRI test:
+013_S_4580
+
+
+Outliers PET train:
+003_S_4555
+013_S_4616
+070_S_5040
+123_S_4362
+
+Outliers PET test:
+
+Outliers MRI train:
+016_S_4121
+021_S_4254
+022_S_4266
+029_S_4290
+032_S_1169
+068_S_4340
+116_S_4092
+
+Outliers MRI test:
+
+
+Outliers PET train:
+003_S_4555
+013_S_4616
+070_S_5040
+123_S_4362
+
+Outliers PET test:
+
+Outliers MRI train:
+016_S_4121
+021_S_4254
+022_S_4266
+029_S_4290
+032_S_1169
+068_S_4340
+116_S_4092
+
+Outliers MRI test:
+
+
+Outliers PET train:
+003_S_4555
+070_S_5040
+
+Outliers PET test:
+
+Outliers MRI train:
+013_S_4580
+016_S_4121
+021_S_4254
+022_S_4266
+029_S_4290
+116_S_4092
+
+Outliers MRI test:
+068_S_4340
+
+
+Outliers PET train:
+003_S_4555
+070_S_5040
+
+Outliers PET test:
+
+Outliers MRI train:
+013_S_4580
+016_S_4121
+021_S_4254
+022_S_4266
+029_S_4290
+116_S_4092
+
+Outliers MRI test:
+068_S_4340
+
+
+Outliers PET train:
+070_S_5040
+123_S_4362
+
+Outliers PET test:
+003_S_4555
+032_S_4921
+
+Outliers MRI train:
+013_S_4580
+022_S_4266
+029_S_4290
+068_S_4340
+116_S_4092
+
+Outliers MRI test:
+016_S_4121
+021_S_4254
+
+
+Outliers PET train:
+070_S_5040
+123_S_4362
+
+Outliers PET test:
+003_S_4555
+032_S_4921
+
+Outliers MRI train:
+013_S_4580
+022_S_4266
+029_S_4290
+068_S_4340
+116_S_4092
+
+Outliers MRI test:
+016_S_4121
+021_S_4254
+
+
+Outliers PET train:
+003_S_4555
+003_S_4900
+010_S_4442
+022_S_4320
+032_S_4921
+070_S_5040
+123_S_4362
+
+Outliers PET test:
+003_S_4644
+
+Outliers MRI train:
+013_S_4580
+016_S_4121
+032_S_1169
+068_S_4340
+116_S_4010
+
+Outliers MRI test:
+029_S_4290
+
+
+Outliers PET train:
+003_S_4555
+003_S_4900
+010_S_4442
+022_S_4320
+032_S_4921
+070_S_5040
+123_S_4362
+
+Outliers PET test:
+003_S_4644
+
+Outliers MRI train:
+013_S_4580
+016_S_4121
+032_S_1169
+068_S_4340
+116_S_4010
+
+Outliers MRI test:
+029_S_4290
+
+
+Outliers PET train:
+003_S_4555
+003_S_4644
+003_S_4900
+022_S_4320
+123_S_4362
+
+Outliers PET test:
+070_S_5040
+
+Outliers MRI train:
+016_S_4121
+029_S_4290
+032_S_1169
+068_S_4340
+116_S_4010
+
+Outliers MRI test:
+
+
+Outliers PET train:
+003_S_4555
+003_S_4644
+003_S_4900
+022_S_4320
+123_S_4362
+
+Outliers PET test:
+070_S_5040
+
+Outliers MRI train:
+016_S_4121
+029_S_4290
+032_S_1169
+068_S_4340
+116_S_4010
+
+Outliers MRI test:
+
+
+Outliers PET train:
+003_S_4644
+014_S_4093
+022_S_4320
+070_S_5040
+123_S_4362
+
+Outliers PET test:
+003_S_4900
+
+Outliers MRI train:
+016_S_4121
+029_S_4290
+032_S_1169
+068_S_4340
+070_S_4856
+
+Outliers MRI test:
+116_S_4010
+
+
+Outliers PET train:
+003_S_4555
+003_S_4644
+032_S_4921
+070_S_5040
+
+Outliers PET test:
+022_S_4320
+123_S_4362
+
+Outliers MRI train:
+013_S_4580
+016_S_4121
+032_S_1169
+116_S_4010
+
+Outliers MRI test:
+068_S_4340
+
+
+Outliers PET train:
+003_S_4644
+014_S_4093
+022_S_4320
+070_S_5040
+123_S_4362
+
+Outliers PET test:
+003_S_4900
+
+Outliers MRI train:
+016_S_4121
+029_S_4290
+032_S_1169
+068_S_4340
+070_S_4856
+
+Outliers MRI test:
+116_S_4010
+
+
+Outliers PET train:
+003_S_4644
+022_S_4320
+123_S_4362
+
+Outliers PET test:
+003_S_4555
+032_S_4921
+
+Outliers MRI train:
+013_S_4580
+029_S_4290
+068_S_4340
+116_S_4010
+
+Outliers MRI test:
+016_S_4121
+032_S_1169
+
+
+Outliers PET train:
+003_S_4555
+003_S_4644
+032_S_4921
+070_S_5040
+
+Outliers PET test:
+022_S_4320
+123_S_4362
+
+Outliers MRI train:
+013_S_4580
+016_S_4121
+032_S_1169
+116_S_4010
+
+Outliers MRI test:
+068_S_4340
+
+
+Outliers PET train:
+003_S_4644
+022_S_4320
+123_S_4362
+
+Outliers PET test:
+003_S_4555
+032_S_4921
+
+Outliers MRI train:
+013_S_4580
+029_S_4290
+068_S_4340
+116_S_4010
+
+Outliers MRI test:
+016_S_4121
+032_S_1169
+
+
