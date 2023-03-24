@@ -1,0 +1,15 @@
+no cereb, no outlier exclusion
+CN: no path, no psych
+SMC: path: near sig PET <-> ABETA, MRI, PET <-> PTAU; psych: near sig MRI, PET <-> MEM, PET <-> EF
+MCI: path: very sig MRI <-> AV, ABETA, PTAU/ABETA, sig PET <-> ABETA, MRI <-> TAU, PTAU, near sig PET <-> PTAU/ABETA, psych: all very sig
+CU: path: near sig PET <-> ABETA, psych: n.s.
+
+cognitive outcome
+CN: n.s., no pred.
+SMC: n.s., no pred. (Hippocampus GMV AUC = 80%)
+CU: n.s., no pred. (Hippocampus GMV AUC = 76%)
+MCI: both significant (MRI BAG extremely significant), MCI predictive (AUC MRI=0.76, MRI+demo=0.77, PTAU.ABETA42=0.79)
+
+no cereb, outlier exclusion
+
+SMC: path: near sig PET <-> ABETA
