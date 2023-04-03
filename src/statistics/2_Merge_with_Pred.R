@@ -28,15 +28,18 @@ diagnoses <- read.csv(
   na.strings = c("", "NA"))
 
 # Parcelation table for hippocampal volume and glucose metabolism in precuneus
+# from AAL1 atlas
 mri.parcels <- read.csv(
-  sprintf("2_BrainAge/Brain_Age_PET_MRI/data/ADNI/%s/ADNI_MRI_%s_%s_parcels.csv",
-          group, group, atlas))
+  sprintf(
+    "2_BrainAge/Brain_Age_PET_MRI/data/ADNI/%s/ADNI_MRI_%s_AAL1_cropped_parcels.csv",
+    group, group))
 mri.parcels$Hippocampus_GMV <- (mri.parcels$Hippocampus_L + mri.parcels$Hippocampus_R)/2
 mri.parcels <- subset(mri.parcels,
                       select=c("name", "Hippocampus_GMV"))
 pet.parcels <- read.csv(
-  sprintf("2_BrainAge/Brain_Age_PET_MRI/data/ADNI/%s/ADNI_PET_%s_%s_parcels.csv",
-          group, group, atlas))
+  sprintf(
+    "2_BrainAge/Brain_Age_PET_MRI/data/ADNI/%s/ADNI_PET_%s_AAL1_cropped_parcels.csv",
+    group, group))
 pet.parcels$Precuneus_SUVR <- (pet.parcels$Precuneus_L + pet.parcels$Precuneus_R)/2
 pet.parcels <- subset(pet.parcels,
                      select=c("name", "Precuneus_SUVR"))
@@ -92,7 +95,7 @@ write.csv(df, paste(sprintf("2_BrainAge/Brain_Age_PET_MRI/results/ADNI/%s/", gro
                     sep=""),
           row.names = F)
 rm(list=ls())
-atlas <- 'AAL1_cropped'
+atlas <- 'Sch_Tian_1mm'
 cn <- read.csv(paste("2_BrainAge/Brain_Age_PET_MRI/results/ADNI/CN/",
             sprintf("merged_for_dx_prediction_%s_CN.csv", atlas), sep = ""))
 smc <- read.csv(paste("2_BrainAge/Brain_Age_PET_MRI/results/ADNI/SMC/",
@@ -115,40 +118,51 @@ write.csv(all, paste("2_BrainAge/Brain_Age_PET_MRI/results/ADNI/",
           row.names = F)
 
 rm(list=ls())
-scd.delcode.petage <- read.csv(
-  "2_BrainAge/Brain_Age_PET_MRI/results/DELCODE/SMC/PET-predicted_age_AAL1_cropped_SMC_BAGGED.csv")
+atlas <- "AAL1_cropped"
+scd.delcode.petage <- read.csv(sprintf(
+  "2_BrainAge/Brain_Age_PET_MRI/results/DELCODE/SMC/PET-predicted_age_%s_SMC_BAGGED.csv",
+  atlas))
 scd.dems <- read.csv(
-  "2_BrainAge//Brain_Age_PET_MRI/data/DELCODE/SCD.csv")
-scd <- merge(scd.delcode.petage, scd.dems, by.x = "PTID", by.y = "Repseudonym")
+  "2_BrainAge//Brain_Age_PET_MRI/data/DELCODE/SMC/SMC.csv")
+scd <- merge(scd.delcode.petage, scd.dems, by = "PTID")
 names(scd)[names(scd) == "ratio_Abeta42_40"] <- "ABETA42.40"
-scd$PTAU.ABETA42 <- scd$phosphotau181/scd$Abeta42
+names(scd)[names(scd) == "edyears"] <- "PTEDUCAT"
+scd$PTGENDER <- ifelse(scd$sex == "f", 1, 0)
+scd$DX.cat.n <- ifelse(scd$DX.FU == "X1_decl", 1, 0)
+scd$PTAU.ABETA42 <- as.numeric(scd$phosphotau181)/as.numeric(scd$Abeta42)
 scd$PET.BAG <- scd$Prediction - scd$Age
 scd$APOE4 <- paste(substr(scd$ApoE, 2, 2),
                    ifelse(substr(scd$ApoE, 5, 5) == "M",
                           3, ifelse(substr(scd$ApoE, 5, 5) == "A", 4, ifelse(
                             is.na(scd$ApoE), "", 2))), sep="")
 scd$APOE4 <- ifelse(scd$APOE4 == "44", 2, ifelse(grepl("4", scd$APOE4), 1, 0))
-write.csv(scd, paste("2_BrainAge/Brain_Age_PET_MRI/results/DELCODE/",
-                     "merged_for_dx_prediction_AAL1_cropped_SMC.csv",
+write.csv(scd, paste("2_BrainAge/Brain_Age_PET_MRI/results/DELCODE/SMC/",
+                     "merged_for_dx_prediction_", atlas, "_SMC.csv",
                      sep=""),
           row.names = F)
 
 rm(list=ls())
-mci.delcode.mriage <- read.csv(
-  "2_BrainAge/Brain_Age_PET_MRI/results/DELCODE/MCI/MRI-predicted_age_AAL1_cropped_MCI_BAGGED.csv")
-mci.dems <- read.csv(
-  "2_BrainAge//Brain_Age_PET_MRI/data/DELCODE/MCI.csv")
-mci <- merge(mci.delcode.mriage, mci.dems, by.x = "PTID", by.y = "Repseudonym")
+atlas <- "AAL1_cropped"
+mci.delcode.mriage <- read.csv(sprintf(
+  "2_BrainAge/Brain_Age_PET_MRI/results/DELCODE/MCI/MRI-predicted_age_%s_MCI_BAGGED.csv",
+  atlas))
+mci.dems <- read.csv2(
+  "2_BrainAge//Brain_Age_PET_MRI/data/DELCODE/MCI/MCI.csv")
+mci <- merge(mci.delcode.mriage, mci.dems, by = "PTID", by.y = "Repseudonym")
 names(mci)[names(mci) == "ratio_Abeta42_40"] <- "ABETA42.40"
-mci$PTAU.ABETA42 <- mci$phosphotau181/mci$Abeta42
+names(mci)[names(mci) == "edyears"] <- "PTEDUCAT"
+mci$PTGENDER <- ifelse(mci$sex == "f", 1, 0)
+mci$PTAU.ABETA42 <- as.numeric(mci$phosphotau181)/as.numeric(mci$Abeta42)
 mci$MRI.BAG <- mci$Prediction - mci$Age
-mci$APOE4 <- paste(substr(mci$ApoE, 2, 2),
-                   ifelse(substr(mci$ApoE, 5, 5) == "M",
+# Excel converted APOE to dates, reverse formatting
+mci$APOE4 <- ifelse(mci$ApoE == "", "",
+                    paste(substr(mci$ApoE, 2, 2),
+                        ifelse(substr(mci$ApoE, 5, 5) == "M",
                           3, ifelse(substr(mci$ApoE, 5, 5) == "A", 4, ifelse(
-                            is.na(mci$ApoE), "", 2))), sep="")
+                            is.na(mci$ApoE), "", 2))), sep=""))
 mci$APOE4 <- ifelse(mci$APOE4 == "44", 2, ifelse(grepl("4", mci$APOE4), 1, 0))
-write.csv(mci, paste("2_BrainAge/Brain_Age_PET_MRI/results/DELCODE/",
-                     "merged_for_dx_prediction_AAL1_cropped_MCI.csv",
+write.csv(mci, paste("2_BrainAge/Brain_Age_PET_MRI/results/DELCODE/MCI/",
+                     "merged_for_dx_prediction_", atlas, "_MCI.csv",
                      sep=""),
           row.names = F)
 

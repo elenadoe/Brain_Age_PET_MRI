@@ -18,14 +18,12 @@ if (group != 'all' & group != 'CU'){
   pred_table <- read.csv(sprintf(
     '2_BrainAge/Brain_Age_PET_MRI/results/ADNI/%s/merged_for_dx_prediction_%s_%s.csv',
     group, atlas, group))
-  covars <- c('PTEDUCAT', 'APOE4', 'meanage', 'PTGENDER')
 } else{
   pred_table <- read.csv(sprintf(
     '2_BrainAge/Brain_Age_PET_MRI/results/ADNI/merged_for_dx_prediction_%s_%s.csv',
     atlas, group))
   pred_table$DX.n <- ifelse(pred_table$DX.bl == 'CN', 1, ifelse(
     pred_table$DX.bl == 'SMC', 2, 3))
-  covars <- c('PTEDUCAT', 'APOE4', 'meanage', 'PTGENDER', 'DX.n')
 }
 
 # pred_table$AT <- factor(ifelse(pred_table$PTAU.ABETA42_0.023_cutoff==1, 1,
@@ -78,8 +76,10 @@ at(pred_table, bag)
 if (psychpath == 'PATH'){
     vars_ <- c('SUMMARYSUVR_WHOLECEREBNORM', 'ABETA42_recalculated',
                'TAU', 'PTAU', 'PTAU.ABETA42')
+    covars <- c('PTEDUCAT', 'APOE4', 'meanage', 'PTGENDER')
 } else{
   vars_ <- c('ADNI_MEM', 'ADNI_EF')
+  covars <- c('PTEDUCAT', 'APOE4', 'PTGENDER')
 }
 
 # FIND PARTIAL CORRELATIONS

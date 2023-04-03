@@ -1,8 +1,8 @@
 rm(list=ls())
-mri <- read.csv("2_BrainAge/Brain_Age_PET_MRI/results/MCI/MRI-predicted_age_MCI_0.csv")
-pet <- read.csv("2_BrainAge/Brain_Age_PET_MRI/results/MCI/PET-predicted_age_MCI_0.csv")
-mri_sess <- read.csv2("2_BrainAge/Brain_Age_PET_MRI/data/MCI/MCI_MRI_parcels.csv")
-pet_sess <- read.csv2("2_BrainAge/Brain_Age_PET_MRI/data/MCI/MCI_PET_parcels.csv")
+mri <- read.csv("2_BrainAge/Brain_Age_PET_MRI/data/ADNI/CN/test_train_PET_AAL1_cropped_4.csv")
+pet <- read.csv("2_BrainAge/Brain_Age_PET_MRI/data/ADNI/CN/test_train_PET_AAL1_cropped_4.csv")
+mri_sess <- read.csv("2_BrainAge/Brain_Age_PET_MRI/data/ADNI/CN/ADNI_MRI_CN_AAL1_cropped_parcels.csv")
+pet_sess <- read.csv("2_BrainAge/Brain_Age_PET_MRI/data/ADNI/CN/ADNI_PET_CN_Sch_Tian_1mm_parcels.csv")
 mri$mri_sess_date <- NA
 pet$pet_sess_date <- NA
 for (i in 1:nrow(mri_sess)){
@@ -28,8 +28,8 @@ mri_sess <- subset(mri_sess, select = c(name, sess, mri_sess_date))
 sess <- merge(pet_sess, mri_sess, by = "name")
 sess$diffdays <-  as.numeric(sess$pet_sess_date) -  as.numeric(sess$mri_sess_date)
 sess$absdiff <- abs(sess$diffdays)
-mci <- subset(mri, select = (PTID))
-mci$name <- mci$PTID
+mci <- subset(mri, select = (name))
+mci$name <- mci$name
 mci <- merge(mci, sess, all.x = T, all.y = F, by = "name")
 # systematic difference of PET and MRI days
 table(mci$diffdays>0)

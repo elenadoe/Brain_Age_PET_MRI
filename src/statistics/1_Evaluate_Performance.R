@@ -12,10 +12,10 @@ r2_score <- function(y_true, y_pred) {
   return(r2)
 }
 
-group <- 'CN'
+group <- 'MCI'
 atlas <- 'Sch_Tian_1mm'
-database <- 'OASIS'
-modality <- 'PET'
+database <- 'DELCODE'
+modality <- 'MRI'
 model.add <- ifelse(group == 'CN' & database == 'ADNI', '', '_BAGGED')
 
 df <- read.csv(sprintf(
@@ -34,20 +34,37 @@ n <- nrow(df)
 mae <- mean(abs(df$BAG))
 range <- range(df$BAG)
 me <- mean(df$Prediction - df$Age)
+sd_me <- sd(df$Prediction - df$Age)
 rsquared <- r2_score(df$Age, df$Prediction)
 
 sprintf("%s-predicted brain age in %s %s (%s, n=%s):",
         modality, database, group, atlas, n)
-sprintf("MAE = %s, range = %s - %s, me = %s, R2 = %s",
-        round(mae, 2) , round(range[1], 1), round(range[2], 1),
-        round(me, 2), round(rsquared, 2))
+sprintf("MAE = %s, range = %s - %s, me = %s (SD = %s), R2 = %s",
+        round(mae, 3) , round(range[1], 1), round(range[2], 1),
+        round(me, 3), round(sd_me, 2), round(rsquared, 2))
 
-df_mri <- read.csv(sprintf(
-  '2_BrainAge/Brain_Age_PET_MRI/results/%s/%s/%s-predicted_age_%s_%s%s.csv',
-  database, group, "MRI", atlas, group, model.add))
-df_mri$BAG <- df_mri$Prediction - df_mri$Age
-if (database == "OASIS"){
-  df_mri <- df_mri[df_mri$PTID %in% cn_ids,]
+if (modality == "PET" & database != "DELCODE"){
+  df_mri <- read.csv(sprintf(
+    '2_BrainAge/Brain_Age_PET_MRI/results/%s/%s/%s-predicted_age_%s_%s%s.csv',
+    database, group, "MRI", atlas, group, model.add))
+  df_mri$BAG <- df_mri$Prediction - df_mri$Age
+  if (database == "OASIS"){
+    df_mri <- df_mri[df_mri$PTID %in% cn_ids,]
+  }
+  # Accuracy PET vs MRI
+  t.test(abs(df$BAG), abs(df_mri$BAG), paired=TRUE)
 }
 
-t.test(abs(df$BAG), abs(df_mri$BAG))
+if (database != "ADNI" | group != "CN"){
+  df_cn <- read.csv(sprintf(
+    '2_BrainAge/Brain_Age_PET_MRI/results/ADNI/CN/%s-predicted_age_%s_CN.csv',
+    modality, atlas))
+  df_cn$BAG <- df_cn$Prediction - df_cn$Age
+  # Brain age advancement
+  print(t.test(df$BAG, df_cn$BAG))
+  if (database == "OASIS"){
+    # Generalizability
+    print(t.test(abs(df$BAG), abs(df_cn$BAG)))
+  }
+}
+
