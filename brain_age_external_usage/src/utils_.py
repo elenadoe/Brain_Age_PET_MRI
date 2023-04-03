@@ -52,11 +52,6 @@ def make_parcels(scan_paths):
         image_list.append(parcelled)
         subj['name'].append(scan)
         subj['age'].append('')
-    pause = input(
-        """Atlas parcelation successful.
-        Please enter chronological (true) age of all subjects in the csv
-        file, which was stored at {}.
-        Enter 'done' when done.\n""".format(output_csv))
 
     features = np.array(image_list)
     x, y, z = features.shape
@@ -66,8 +61,6 @@ def make_parcels(scan_paths):
     df_final = pd.concat([df_sub, df], axis=1)
 
     df_final.to_csv(output_csv, index=False)
-
-    return pause
 
 
 def predict(df, col, model_, final_model_name,
