@@ -8,9 +8,6 @@ Created on Tue Dec 21 18:32:44 2021
 import numpy as np
 from steps_of_analysis import brain_age, predict_other
 
-
-# TODO: make package (create __init__.py file)
-
 all_modalities = ["PET", "MRI"]
 rand_seed = 0
 
