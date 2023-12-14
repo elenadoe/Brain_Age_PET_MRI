@@ -12,3 +12,5 @@ Code dependency is visualized below.
 8. predict bias-corrected brain age of ADNI MCI test set (*demo.ipynb main(3, modality)*)
 9. Calculate partial spearman correlations between cognitive performance/neuropathology and BPAD in CN and MCI (*demo.ipyb main(4.1:4.4, modality)*)
 10. Calculate Mann-Whitney-U test between frequencies of converters and stables after two years (*demo.ipynb main(5.1:5.2, modality)*)
+
+![Pipeline](/graphics/pipeline_of_analysis.png "Nested cross-validation procedure for brain age prediction")
