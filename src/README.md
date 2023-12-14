@@ -1,5 +1,6 @@
 ## **STEPS OF ANALYSIS**
 **Assumes parcelation of neuroimaging data is already completed. A demonstration of Code can be found in the demos folder**
+Below is a figure outlining the k-fold cross-validation procedure.
 1. assure all participants in ADNI and OASIS are older than 65
 2. create train-test splits from ADNI data
 3.1 determine outlier ranges from training data
