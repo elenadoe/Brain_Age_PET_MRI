@@ -19,10 +19,7 @@ def nearest(items, pivot):
 atlas_file = 'data/0_ATLAS/AAL1_TPMcropped.nii'
 atlas = nib.load(atlas_file)
 atlas = nib.load(atlas_file)
-#label_file = 'data/0_ATLAS/AAL1_TPMcropped.nii.txt'
 label_list = fetch_atlas_aal()
-# label_elems = label_list.read().split('\n')
-# labels = [x.split(' ')[1] for x in label_elems if len(x.split(' '))>1]
 labels = pd.DataFrame(label_list)[['labels', 'indices']]
 
 # this should include subjects' folders
@@ -45,14 +42,12 @@ for group in groups:
     # read IDs and age
     subjs = subject_list[['age', 'name', 'sess']]
 
-    # subj_list = ['sub-' + sub.replace('_', '') for sub in subjs['name']]
-
+    # initiate lists
     image_list = []
     subj_succ = {}
     subj_succ['name'] = []
     subj_succ['sess'] = []
     subj_succ['Age'] = []
-    # subj_succ['age'] = []
 
     # create list of regional data and subject IDs
     for sub in subjs['name']:
@@ -86,7 +81,6 @@ for group in groups:
             parcelled = masker.fit_transform(niimg)
             image_list.append(parcelled)
             subj_succ['sess'].append(sess[0])
-            # subj_succ['age'].append()
             subj_succ['name'].append(sub_name)
             new_age = subjs[subjs['name'] == sub][
                                     'age'].values[0] + (nearest_scan.year - int(year))
