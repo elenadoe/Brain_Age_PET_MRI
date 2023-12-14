@@ -2,8 +2,7 @@ This folder contains all files necessary to estimate MRI or FDG BAG from new dat
 
 Before usage, please assure that 
 1) the modality of the data is either MRI or FDG-PET
-2) the data has been pre-processed according to Doering et al. (pre-processing scripts available in src folder). Importantly, data must be in MNI152 space.
-3) TODO
+2) the data has been pre-processed according to Doering et al. (pre-processing scripts available in src folder). Importantly, data must be spatially normalized and in MNI152 space.
 
 Instructions for usage:
 1) clone this folder by entering the following into your terminal
