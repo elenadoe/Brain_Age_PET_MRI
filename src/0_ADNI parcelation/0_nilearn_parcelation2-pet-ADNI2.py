@@ -6,6 +6,7 @@ import pandas as pd
 from glob import glob
 from nilearn.datasets import fetch_atlas_schaefer_2018
 
+# define groups and group-dependent paths
 group = "MCI"
 if group == "MCI":
     subjs = pd.read_csv('../../data/ADNI/MCI/FDG_BASELINE_MCI_11_17_2021.csv')
@@ -22,11 +23,9 @@ atlas = '../../data/0_ATLAS/schaefer200-17_Tian.nii'
 text_file = open('../../data/0_ATLAS/Tian_Subcortex_S1_3T_label.txt')
 labels = text_file.read().split('\n')
 labels = np.append(schaefer['labels'], np.array(labels[:-1]))
-#labels =  [x.split()[1] for x in labels]
 
 output_csv = '../../data/ADNI/{}/ADNI_PET_{}_Sch_Tian_1mm_parcels.csv'.format(group, group)
 
-# %%
 if group == "MCI":
     dates = [date.split('/')[::-1] for date in subjs['Acq Date']]
 else:
@@ -35,7 +34,7 @@ sess_list = [date[0]+date[1]+'0' + date[2] if len(date[2]) == 1
              else ''.join(date) for date in dates]
 subjs['sess'] = sess_list
 
-# %%
+# initiate lists
 image_list = []
 subj_succ = {}
 subj_succ['age'] = []
