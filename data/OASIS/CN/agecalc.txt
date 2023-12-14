@@ -1,4 +1,0 @@
-Age was downloaded only for PET data.
-The difference in session days (MRI-PET) was calculated and divided by 365.
-This difference was added to the age at PET scan.
-Age at PET and MRI scan were finally rounded to 0 decimal points.
