@@ -16,25 +16,24 @@ def nearest(items, pivot):
 
 
 # fetch AAL atlas and labels
-atlas_file = 'data/0_ATLAS/AAL1_TPMcropped.nii'
-atlas = nib.load(atlas_file)
+atlas_file = '../../templates/AAL1_TPMcropped.nii'
 atlas = nib.load(atlas_file)
 label_list = fetch_atlas_aal()
 labels = pd.DataFrame(label_list)[['labels', 'indices']]
 
 # this should include subjects' folders
-data_file = '/data/project/cat_12.5/ADNI_complete'
+data_file = '/path/to/preprocessed_data/'
 
 # Edit paths before running
 # groups = ['CN', 'MCI', 'SMC']
 groups = ['MCI']
 for group in groups:  
-    f_path = 'data/ADNI/' + group + '/ADNI_PET_' + group + '_AAL1_cropped_parcels.csv'
+    f_path = '/path/to/PET_outputCSV.csv'  # use PET output CSV for reference so only coherent IDs are parcellated
     subject_list = pd.read_csv(f_path)
     subject_list = subject_list[subject_list.Group == group]
     subject_list.name
 
-    output_csv = 'data/ADNI/{}/ADNI_MRI_{}_AAL1_cropped_parcels.csv'.format(group, group)
+    output_csv = '/path/to/output_CSV.csv'
 
     # ids to be excluded
     excl_ids = []
