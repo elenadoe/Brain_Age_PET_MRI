@@ -9,8 +9,7 @@ Instructions for usage:
 ```
 git clone https://github.com/elenadoe/Brain_Age_PET_MRI/brain_age_external_usage
 ``` 
-2) use pip install to install the following dependencies:
-# TODO
+2) use pip install to install necessary dependencies
 3) execute the brain age estimation program from the src folder, either using jupyter notebook, or Python3. For Python3, enter the following into your terminal and follow instructions:
 ```
 python3 predict_BAG.py
