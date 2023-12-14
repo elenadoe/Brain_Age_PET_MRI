@@ -9,22 +9,22 @@ from nilearn.datasets import fetch_atlas_schaefer_2018
 # define groups and group-dependent paths
 group = "MCI"
 if group == "MCI":
-    subjs = pd.read_csv('../../data/ADNI/MCI/FDG_BASELINE_MCI_11_17_2021.csv')
-    data_path = '/media/ukwissarchive/doeringe/BrainAge/ADNI/ADNI/MCI/2_SUVR_foranalysis/'
+    subjs = pd.read_csv('/path/to/ADNI_CSV_overview.csv')
+    data_path = '/path/to/SUVR_data/'
 else:
-    subjs = pd.read_csv('../../data/ADNI/CU/FDG_BASELINE_HEALTHY_4_15_2021_unique.csv')
-    data_path = '/media/ukwissarchive/doeringe/BrainAge/ADNI/ADNI/CN/2_SUVR/'
+    subjs = pd.read_csv('/path/to/ADNI_CSV_overview.csv')
+    data_path = '/path/to/SUVR_data/'
 subjs = subjs[[group in x for x in subjs.Group]]
 subjs_list = subjs['Subject'].tolist()
 
 schaefer = fetch_atlas_schaefer_2018(n_rois=200, yeo_networks=17)
-atlas = '../../data/0_ATLAS/schaefer200-17_Tian.nii'
+atlas = '../../templates/schaefer200-17_Tian.nii'
 
-text_file = open('../../data/0_ATLAS/Tian_Subcortex_S1_3T_label.txt')
+text_file = open('../../templates/Tian_Subcortex_S1_3T_label.txt')
 labels = text_file.read().split('\n')
 labels = np.append(schaefer['labels'], np.array(labels[:-1]))
 
-output_csv = '../../data/ADNI/{}/ADNI_PET_{}_Sch_Tian_1mm_parcels.csv'.format(group, group)
+output_csv = '/path/to/output_csv.csv'
 
 if group == "MCI":
     dates = [date.split('/')[::-1] for date in subjs['Acq Date']]
