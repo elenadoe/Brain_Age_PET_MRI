@@ -6,43 +6,29 @@ import numpy as np
 import pandas as pd
 from glob import glob
 
-"""TODO:
-        df_mri_dk = df_mri[
-        (df_mri['Dataset'] == train_data) & df_mri['AGE_CHECK'] &
-        (df_mri['StudyPhase'] == 'ADNI Baseline')]
-    df_pet_dk = df_pet[
-        (df_pet['Dataset'] == train_data) & df_pet['AGE_CHECK'] &
-        (df_pet['StudyPhase'] == 'ADNI Baseline')]
-    then remove from transform data ll. 335, 388"""
-
 group = "MCI"
 if group == "MCI":
-    subjs = pd.read_csv('../../data/ADNI/MCI/FDG_BASELINE_MCI_11_17_2021.csv')
-    data_path = '/media/ukwissarchive/doeringe/BrainAge/ADNI/ADNI/MCI/2_SUVR_foranalysis/'
+    subjs = pd.read_csv('/path/to/ADNI_overview_CSV.csv')
+    data_path = '/path/to/SUVR_data/'
 else:
-    subjs = pd.read_csv('../../data/ADNI/CU/FDG_BASELINE_HEALTHY_4_15_2021_unique.csv')
-    data_path = '/media/ukwissarchive/doeringe/BrainAge/ADNI/ADNI/CN/2_SUVR/'
+    subjs = pd.read_csv('/path/to/ADNI_overview_CSV.csv')
+    data_path = '/path/to/SUVR_data/'
 subjs = subjs[[group in x for x in subjs.Group]]
 subjs_list = subjs['Subject'].tolist()
 
-atlas = '../../data/0_ATLAS/AAL1_TPMcropped.nii'
+atlas = '../../templates/AAL1_TPMcropped.nii'
 atlas = nib.load(atlas)
 labels = fetch_atlas_aal().labels
-"""labels = [x for x in labels if not x.startswith('Cerebelum')
-          and not x.startswith('Vermis')]
-print(labels)"""
-#labels =  [x.split()[1] for x in labels]
 
-output_csv = '../../data/ADNI/{}/ADNI_PET_{}_AAL1_cropped_parcels.csv'.format(group, group)
+output_csv = '/path/to/output_CSV.csv'
 
-# %%
+# format dates in ADNI overview file
 dates = [date.split('/')[::-1] for date in subjs['Acq Date']]
-
 sess_list = [date[0]+date[1]+'0' + date[2] if len(date[2]) == 1
              else ''.join(date) for date in dates]
 subjs['sess'] = sess_list
 
-# %%
+# initiate lists
 image_list = []
 subj_succ = {}
 subj_succ['age'] = []
