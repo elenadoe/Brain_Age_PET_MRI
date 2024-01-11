@@ -11,4 +11,4 @@ Deviations of brain age from chronologic age, known as the brain age gap (BAG), 
 **If you're using (parts of) the code provided in this project, please remember to cite:**
 Doering, E., Antonopoulos, G., Hoenig, M., van Eimeren, T., Daamen, M., Boecker, H., Jessen, F., Düzel, E., Eickhoff, S., Patil, K., & Drzezga, A. (2023). MRI or18F-FDG PET for Brain Age Gap Estimation: Links to Cognition, Pathology, and Alzheimer Disease Progression. Journal of Nuclear Medicine. Society of Nuclear Medicine. https://doi.org/10.2967/jnumed.123.265931
 
-![Graphical Abstract](/graphics/graphical_abstract brain age.png "Graphical abstract")
+![Graphical Abstract](/graphics/graphical abstract brain age.png "Graphical abstract")
