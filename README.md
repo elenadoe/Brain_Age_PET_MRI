@@ -9,6 +9,7 @@ Deviations of brain age from chronologic age, known as the brain age gap (BAG), 
 **Conclusion**: Age was reliably estimated from MRI or 18F-FDG PET. MRI BAG reflected cognitive and pathologic markers of AD in SCD and MCI, whereas 18F-FDG PET BAG was sensitive mainly to early cognitive impairment, possibly constituting an independent biomarker of brain age-related changes.
 
 **If you're using (parts of) the code provided in this project, please remember to cite:**
+
 Doering, E., Antonopoulos, G., Hoenig, M., van Eimeren, T., Daamen, M., Boecker, H., Jessen, F., Düzel, E., Eickhoff, S., Patil, K., & Drzezga, A. (2023). MRI or18F-FDG PET for Brain Age Gap Estimation: Links to Cognition, Pathology, and Alzheimer Disease Progression. Journal of Nuclear Medicine. Society of Nuclear Medicine. https://doi.org/10.2967/jnumed.123.265931
 
 ![Graphical Abstract](/graphics/graphical_abstract_brain_age.png "Graphical abstract")
